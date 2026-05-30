@@ -1,0 +1,93 @@
+{% extends "scheduling/student_base.html" %}
+
+{% block title %}Usar Recuperacion | Eunoia{% endblock %}
+{% block hero_title %}Usa tu Recuperacion en pocos pasos.{% endblock %}
+{% block hero_copy %}Primero revisas el credito y despues elegis una sesion compatible de la misma actividad.{% endblock %}
+
+{% block content %}
+<section class="grid">
+    <article class="card span-4">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Recuperacion elegida</p>
+                <h3>{{ recovery_focus_credit.section.name }}</h3>
+            </div>
+            {% if recovery_focus_credit_overdue %}
+                <span class="pill soft-danger">Vencida</span>
+            {% else %}
+                <span class="pill soft-success">Disponible</span>
+            {% endif %}
+        </div>
+        <div class="stack">
+            <div class="item">
+                <strong>Vence el {{ recovery_focus_credit.expires_at|date:"j \d\e F, Y" }}</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Se confirma solo si sigue siendo compatible al guardar.</p>
+            </div>
+            <div class="item">
+                <strong>{{ eligible_sessions_count }} opcion{{ eligible_sessions_count|pluralize:"es" }} hoy</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Solo sesiones futuras de la misma actividad.</p>
+            </div>
+            {% if recovery_focus_credit.origin_session %}
+                <div class="item">
+                    <strong>Origen</strong>
+                    <p class="meta" style="margin-top: 8px; line-height: 1.6;">Clase del {{ recovery_focus_credit.origin_session.date|date:"j/m/Y" }} a las {{ recovery_focus_credit.origin_session.start_time|time:"H:i" }}.</p>
+                </div>
+            {% endif %}
+            <a href="{% url 'my-bookings' %}" class="button-secondary">Volver a mis turnos</a>
+        </div>
+    </article>
+
+    <article class="card span-8">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Sesiones elegibles</p>
+                <h3>Clases futuras para Recuperacion</h3>
+            </div>
+        </div>
+
+        {% if recovery_session_cards %}
+            <div class="list">
+                {% for card in recovery_session_cards %}
+                    <article class="item">
+                        <div class="item-header">
+                            <div>
+                                <strong>{{ card.session.date|date:"l j \d\e F" }}</strong>
+                                <p class="meta">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }}</p>
+                            </div>
+                            <div class="badge-row">
+                                <span class="pill soft-success">{{ card.session.booked_count }}/{{ card.session.capacity }} ocupados</span>
+                                {% if card.action.can_book %}
+                                    <span class="pill soft-warning">Compatible</span>
+                                {% else %}
+                                    <span class="pill soft-muted">No disponible</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="session-note" style="margin: 12px 0 14px; line-height: 1.6;">{{ card.action.message }}</p>
+                        <div class="item-footer">
+                            <span class="meta">Clase de {{ card.session.section.name }}</span>
+                            {% if card.action.can_book %}
+                                <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="used_recovery_credit_id" value="{{ recovery_focus_credit.id }}">
+                                    <input type="hidden" name="next" value="{% url 'my-bookings' %}">
+                                    <button type="submit" class="button">{{ card.action.label }}</button>
+                                </form>
+                            {% else %}
+                                <span class="button-disabled" aria-disabled="true">{{ card.action.label }}</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                No hay sesiones futuras cargadas para esta actividad en este momento.
+                <div class="empty-actions">
+                    <a href="{% url 'my-bookings' %}" class="button-secondary">Volver a mis turnos</a>
+                </div>
+            </div>
+        {% endif %}
+    </article>
+</section>
+{% endblock %}

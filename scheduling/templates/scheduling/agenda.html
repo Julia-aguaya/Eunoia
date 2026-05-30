@@ -1,0 +1,118 @@
+{% extends "scheduling/student_base.html" %}
+
+{% block title %}Agenda | Eunoia{% endblock %}
+{% block hero_title %}Agenda clara para decidir rapido.{% endblock %}
+{% block hero_copy %}Ves sesiones futuras de {{ primary_section.name|default:"tu actividad" }} y, si estas habilitada, podes Reservar desde aca.{% endblock %}
+
+{% block content %}
+<section class="grid">
+    <article class="card span-8">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Actividad principal</p>
+                <h3>Proximas sesiones</h3>
+            </div>
+            {% if primary_section %}
+                <span class="pill">{{ primary_section.name }}</span>
+            {% endif %}
+        </div>
+
+        {% if upcoming_session_cards %}
+            <div class="list">
+                {% for card in upcoming_session_cards %}
+                    <article class="item">
+                        <div class="item-header">
+                            <div>
+                                <strong>{{ card.session.date|date:"l j \d\e F" }}</strong>
+                                <p class="meta">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }}</p>
+                            </div>
+                            <div class="badge-row">
+                                {% if card.session.booked_count >= card.session.capacity %}
+                                    <span class="pill strong-danger">Sin cupo</span>
+                                {% elif card.session.booked_count == card.session.capacity|add:"-1" %}
+                                    <span class="pill strong-warning">Ultimo lugar</span>
+                                {% else %}
+                                    <span class="pill soft-success">{{ card.session.booked_count }}/{{ card.session.capacity }} ocupados</span>
+                                {% endif %}
+                                {% if card.session.id in booked_session_ids %}
+                                    <span class="pill soft-muted">Ya reservado</span>
+                                {% endif %}
+                                {% if card.compatible_recovery_count %}
+                                    <span class="pill soft-warning">Compatible con {{ card.compatible_recovery_count }} recuperacion{{ card.compatible_recovery_count|pluralize:"es" }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="session-note" style="margin: 12px 0 14px; line-height: 1.6;">
+                            {{ card.action.message }}
+                        </p>
+                        {% if card.compatible_recovery_count %}
+                            <p class="meta" style="margin: 0 0 14px; line-height: 1.6;">Para Recuperacion, usa el flujo guiado.</p>
+                        {% endif %}
+                        <div class="item-footer">
+                            <span class="meta">Clase de {{ card.session.section.name }}</span>
+                            <div class="badge-row">
+                                {% if card.compatible_recovery_count %}
+                                    <a href="{{ card.recovery_url }}" class="button-secondary">Usar Recuperacion</a>
+                                {% endif %}
+                                {% if card.action.can_book %}
+                                    <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="button">{{ card.action.label }}</button>
+                                    </form>
+                                {% else %}
+                                    <span class="button-disabled" aria-disabled="true">{{ card.action.label }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                {% if primary_section %}
+                    No hay sesiones futuras cargadas para {{ primary_section.name }} por ahora.
+                {% else %}
+                    No podemos mostrar agenda porque tu actividad principal todavia no esta configurada.
+                {% endif %}
+                <div class="empty-actions">
+                    <a href="{% url 'dashboard' %}" class="button-secondary">Volver al inicio</a>
+                </div>
+            </div>
+        {% endif %}
+    </article>
+
+    <aside class="card span-4">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Estado de uso</p>
+                <h3>Antes de Reservar</h3>
+            </div>
+        </div>
+        <div class="stack">
+            {% if not operational_status.can_operate %}
+            <div class="item">
+                <strong>Bloqueo operativo activo</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Podes ver horarios y cupos, pero no Reservar ni Cancelar hasta estar habilitada.</p>
+            </div>
+            {% endif %}
+            <div class="item">
+                <strong>Como leer esta agenda</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Cada tarjeta indica si podes Reservar, si no hay cupo o si aplica Recuperacion.</p>
+            </div>
+            <div class="item">
+                <strong>Reserva directa</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si el boton esta habilitado, podes confirmar desde esta pantalla.</p>
+            </div>
+            <div class="item">
+                <strong>Recuperacion visible</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si una clase acepta Recuperacion, te llevamos al flujo guiado.</p>
+            </div>
+            <div class="item">
+                <strong>Accion bloqueada</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si algo no esta disponible, lo ves con motivo claro.</p>
+            </div>
+        </div>
+    </aside>
+</section>
+{% endblock %}

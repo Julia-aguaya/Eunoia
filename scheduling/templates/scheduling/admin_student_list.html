@@ -1,0 +1,272 @@
+{% extends "scheduling/admin_base.html" %}
+
+{% block title %}Alumnas | Portal admin Eunoia{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .search-panel {
+            margin-bottom: 18px;
+        }
+
+        .search-header,
+        .row,
+        .row-main,
+        .row-state,
+        .row-actions,
+        .search-form,
+        .search-tools,
+        .section-title {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .search-form {
+            align-items: stretch;
+        }
+
+        .search-form label {
+            font-weight: 600;
+        }
+
+        .search-input {
+            min-width: min(420px, 100%);
+            min-height: 46px;
+            padding: 0 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .search-input:focus,
+        .action-button:focus,
+        .button-search:focus,
+        .button-secondary:focus {
+            outline: 3px solid rgba(47, 85, 102, 0.2);
+            outline-offset: 2px;
+        }
+
+        .section-title {
+            margin-bottom: 16px;
+        }
+
+        .section-title h3 {
+            font-size: 1.9rem;
+        }
+
+        .list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .row {
+            padding: 18px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(63, 85, 97, 0.12);
+        }
+
+        .row-main {
+            align-items: flex-start;
+            flex: 1 1 320px;
+        }
+
+        .row-main strong {
+            display: block;
+            font-size: 1.08rem;
+            margin-bottom: 4px;
+        }
+
+        .student-meta {
+            display: grid;
+            gap: 4px;
+            line-height: 1.55;
+        }
+
+        .row-state {
+            flex: 1 1 320px;
+            justify-content: flex-start;
+        }
+
+        .state-group {
+            display: grid;
+            gap: 6px;
+            min-width: 150px;
+        }
+
+        .row-label {
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .row-actions {
+            flex: 0 0 auto;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .action-form {
+            margin: 0;
+        }
+
+        .student-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .student-link:hover strong {
+            text-decoration: underline;
+            text-decoration-color: rgba(32, 61, 75, 0.35);
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 16px;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            font: inherit;
+            cursor: pointer;
+            transition: transform 180ms ease, background-color 180ms ease;
+        }
+
+        .action-button:hover { transform: translateY(-1px); }
+
+        .action-button.activate {
+            background: var(--primary-strong);
+            color: #fff;
+        }
+
+        .action-button.suspend {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        @media (max-width: 860px) {
+            .row,
+            .row-main,
+            .row-state,
+            .row-actions,
+            .search-form,
+            .search-tools,
+            .section-title {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-input,
+            .search-form,
+            .search-tools,
+            .action-form,
+            .action-button {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block hero_title %}Panel de alumnas para operacion diaria.{% endblock %}
+{% block hero_copy %}Busca por nombre o email, revisa estado y ajusta acceso en la misma vista.{% endblock %}
+
+{% block hero_metrics %}
+    <div class="metric">
+        <span>Mes operativo</span>
+        <strong>{{ admin_current_month_label }}</strong>
+    </div>
+    <div class="metric">
+        <span>Alumnas activas</span>
+        <strong>{{ admin_summary.active }}</strong>
+    </div>
+    <div class="metric">
+        <span>Pendientes o sin estado</span>
+        <strong>{{ admin_summary.pending|add:admin_summary.missing }}</strong>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <section class="panel search-panel">
+        <div class="search-header">
+            <div>
+                <h3 style="margin: 0;">Buscador operativo</h3>
+                <p class="search-copy">Filtra por nombre, apellido o email. Solo se muestran alumnas del mes operativo actual.</p>
+            </div>
+        </div>
+        <form method="get" class="search-form" role="search">
+            <div style="display: grid; gap: 8px; flex: 1 1 420px;">
+                <label for="admin-query">Buscar alumna</label>
+                <input id="admin-query" class="search-input" type="search" name="q" value="{{ admin_query }}" placeholder="Ej: ada, lovelace o ada@example.com">
+            </div>
+            <div class="search-tools">
+                <button type="submit" class="button-search">Buscar</button>
+                {% if admin_query %}
+                    <a href="{% url 'admin-student-list' %}" class="button-secondary">Limpiar</a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <div>
+                <h3>Listado de alumnas</h3>
+                <p class="muted">{{ admin_students|length }} resultado{{ admin_students|length|pluralize }} para {{ admin_current_month_label }}.</p>
+            </div>
+            <div class="status-badge info">Lectura rapida de operacion y pago</div>
+        </div>
+
+        {% if admin_students %}
+            <div class="list">
+                {% for row in admin_students %}
+                    <article class="row">
+                        <div class="row-main">
+                            <div class="student-meta">
+                                 <a href="{{ row.detail_url }}" class="student-link">
+                                     <strong>{{ row.student.get_full_name|default:row.student.email }}</strong>
+                                 </a>
+                                 <span>{{ row.student.email }}</span>
+                                 <span>Seccion principal: {{ row.section_name }}</span>
+                                 {% if row.section_name == 'Sin seccion principal' %}
+                                     <span class="status-badge warning">Falta definir actividad principal</span>
+                                 {% endif %}
+                             </div>
+                         </div>
+
+                        <div class="row-state">
+                            <div class="state-group">
+                                <span class="row-label">Operacion</span>
+                                <span class="status-badge {{ row.operational_tone }}">{{ row.operational_label }}</span>
+                            </div>
+                            <div class="state-group">
+                                <span class="row-label">Pago actual</span>
+                                <span class="status-badge {{ row.payment_tone }}">{{ row.payment_label }}</span>
+                            </div>
+                        </div>
+
+                        <div class="row-actions">
+                            <a href="{{ row.detail_url }}" class="button-secondary">Ver detalle</a>
+                            <form method="post" action="{% url 'admin-toggle-student-access' row.student.pk %}" class="action-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="q" value="{{ admin_query }}">
+                                <input type="hidden" name="next" value="{% url 'admin-student-list' %}{% if admin_query %}?q={{ admin_query|urlencode }}{% endif %}">
+                                <button type="submit" class="action-button {% if row.is_active %}suspend{% else %}activate{% endif %}">
+                                    {{ row.action_label }}
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                No encontramos alumnas con ese filtro. Proba por nombre, apellido o email completo.
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

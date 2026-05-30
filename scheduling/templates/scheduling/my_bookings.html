@@ -1,0 +1,135 @@
+{% extends "scheduling/student_base.html" %}
+
+{% block title %}Mis turnos | Eunoia{% endblock %}
+{% block hero_title %}Reservas y Recuperacion, en orden.{% endblock %}
+{% block hero_copy %}Ves tus proximas clases y tu Recuperacion disponible o vencida en una sola pantalla.{% endblock %}
+
+{% block content %}
+<section class="grid">
+    {% if not operational_status.can_operate %}
+    <article class="card span-12">
+        <div class="empty">
+            Tu acceso mensual esta bloqueado: no podes Reservar ni Cancelar desde la web.
+            Tus turnos activos siguen visibles para seguimiento.
+            <div class="empty-actions">
+                <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+            </div>
+        </div>
+    </article>
+    {% endif %}
+
+    <article class="card span-7">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Reservas activas</p>
+                <h3>Proximos turnos</h3>
+            </div>
+        </div>
+
+        {% if upcoming_booking_cards %}
+            <div class="list">
+                {% for card in upcoming_booking_cards %}
+                    {% with booking=card.booking %}
+                    <article class="item">
+                        <div class="item-header">
+                            <div>
+                                <strong>{{ booking.session.date|date:"l j \d\e F" }}</strong>
+                                <p class="meta">{{ booking.session.start_time|time:"H:i" }} a {{ booking.session.end_time|time:"H:i" }} - {{ booking.session.section.name }}</p>
+                            </div>
+                            <div class="badge-row">
+                                {% if booking.source == 'makeup' %}
+                                    <span class="pill soft-warning">Recuperacion aplicada</span>
+                                {% else %}
+                                    <span class="pill soft-success">Reserva activa</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="session-note" style="margin-top: 12px; line-height: 1.6;">
+                            {% if booking.used_recovery_credit_id %}
+                                Este turno uso una Recuperacion de tu actividad.
+                            {% else %}
+                                Reserva regular de tu actividad principal.
+                            {% endif %}
+                        </p>
+                        <div class="item-footer" style="margin-top: 14px;">
+                            <span class="meta">{{ card.cancel_action.message }}</span>
+                            {% if card.cancel_action.can_cancel %}
+                                <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <button type="submit" class="button-danger">{{ card.cancel_action.label }}</button>
+                                </form>
+                            {% else %}
+                                <span class="pill soft-warning">{{ card.cancel_action.label }}</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                No tenes reservas activas futuras por ahora.
+                <div class="empty-actions">
+                    <a href="{% url 'agenda' %}" class="button-secondary">Buscar una clase</a>
+                </div>
+            </div>
+        {% endif %}
+    </article>
+
+    <article class="card span-5">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Recuperaciones</p>
+                <h3>Disponibles y vencidas</h3>
+            </div>
+        </div>
+
+        <div class="stack">
+            {% if available_recovery_credits %}
+                {% for credit in available_recovery_credits %}
+                    <article class="item">
+                        <div class="item-header">
+                            <strong>{{ credit.section.name }}</strong>
+                            <span class="pill soft-success">Disponible</span>
+                        </div>
+                        <p class="meta" style="margin-top: 10px; line-height: 1.6;">
+                            Vence el {{ credit.expires_at|date:"j \d\e F, Y" }}.
+                            {% if credit.origin_session %}
+                                Se origino en la clase del {{ credit.origin_session.date|date:"j/m/Y" }}.
+                            {% endif %}
+                        </p>
+                        <div class="item-footer" style="margin-top: 14px;">
+                             <span class="meta">La reserva se valida antes de confirmar.</span>
+                            <a href="{% url 'use-recovery' credit.id %}" class="button-secondary">Reservar con Recuperacion</a>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% endif %}
+
+            {% if expired_recovery_credits %}
+                {% for credit in expired_recovery_credits %}
+                    <article class="item">
+                        <div class="item-header">
+                            <strong>{{ credit.section.name }}</strong>
+                            <span class="pill soft-danger">Vencida</span>
+                        </div>
+                        <p class="meta" style="margin-top: 10px; line-height: 1.6;">
+                            Vencio el {{ credit.expires_at|date:"j \d\e F, Y" }}.
+                        </p>
+                    </article>
+                {% endfor %}
+            {% endif %}
+
+            {% if not available_recovery_credits and not expired_recovery_credits %}
+                <div class="empty">
+                    No tenes Recuperacion registrada en este momento.
+                    <div class="empty-actions">
+                        <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </article>
+</section>
+{% endblock %}

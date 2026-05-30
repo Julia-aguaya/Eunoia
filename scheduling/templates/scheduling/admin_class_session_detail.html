@@ -1,0 +1,412 @@
+{% extends "scheduling/admin_base.html" %}
+
+{% block title %}{{ staff_session.section.name }} {{ staff_session.date|date:"d/m/Y" }} | Portal staff Eunoia{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .page-actions,
+        .panel-header,
+        .facts,
+        .fact,
+        .summary-grid,
+        .summary-card,
+        .detail-grid,
+        .booking-row,
+        .booking-copy,
+        .booking-meta,
+        .info-stack,
+        .info-block {
+            display: flex;
+            gap: 14px;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .page-actions {
+            margin-bottom: 18px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            text-decoration: none;
+            color: var(--primary-strong);
+        }
+
+        .facts,
+        .summary-grid,
+        .detail-grid,
+        .info-stack {
+            display: grid;
+        }
+
+        .facts {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .fact,
+        .summary-card,
+        .info-block,
+        .booking-row {
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(63, 85, 97, 0.12);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .fact,
+        .summary-card,
+        .info-block {
+            flex-direction: column;
+            align-items: flex-start;
+            min-height: 110px;
+        }
+
+        .fact dt,
+        .summary-card span,
+        .eyebrow-copy,
+        .tiny-copy,
+        .booking-copy p,
+        .info-block p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .fact dt {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .fact dd,
+        .summary-card strong,
+        .info-block strong {
+            margin: 0;
+            color: var(--primary-strong);
+        }
+
+        .fact dd {
+            font-size: 1rem;
+            line-height: 1.55;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .summary-card strong {
+            font-size: 1.9rem;
+        }
+
+        .detail-grid {
+            grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.85fr);
+            gap: 18px;
+        }
+
+        .stack,
+        .booking-list,
+        .info-stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .booking-list {
+            gap: 12px;
+        }
+
+        .booking-row {
+            align-items: center;
+        }
+
+        .booking-copy {
+            display: grid;
+            gap: 4px;
+        }
+
+        .booking-copy strong,
+        .info-block h3,
+        .panel h3 {
+            margin: 0;
+        }
+
+        .booking-meta {
+            justify-content: flex-start;
+        }
+
+        .mono {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tone-note {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            background: var(--primary-soft);
+            color: var(--primary-strong);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 960px) {
+            .facts,
+            .summary-grid,
+            .detail-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .facts,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-actions,
+            .booking-row,
+            .booking-meta,
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .button-secondary {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block hero_title %}Detalle operativo de clase.{% endblock %}
+{% block hero_copy %}Revisa cupo, reservas y cierres de la sesion en una vista.{% endblock %}
+
+{% block hero_metrics %}
+    <div class="metric">
+        <span>Fecha</span>
+        <strong>{{ staff_session.date|date:"d/m" }}</strong>
+    </div>
+    <div class="metric">
+        <span>Ocupacion actual</span>
+        <strong>{{ staff_session_booked_count }}/{{ staff_session.capacity }}</strong>
+    </div>
+    <div class="metric">
+        <span>Estado</span>
+        <strong>{{ staff_session.get_status_display }}</strong>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="page-actions">
+        <a href="{{ staff_session_back_url }}" class="back-link">Volver a la agenda</a>
+        <div class="booking-meta">
+            <span class="status-badge {% if staff_session.status == 'scheduled' %}success{% else %}danger{% endif %}">{{ staff_session.get_status_display }}</span>
+            <span class="status-badge muted">{{ staff_session.section.name }}</span>
+            <span class="status-badge muted">{{ staff_session.date|date:"d/m/Y" }}</span>
+        </div>
+    </div>
+
+    <section class="panel" style="margin-bottom: 18px;">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow-copy">Sesion #{{ staff_session.pk }}</p>
+                <h3>{{ staff_session.section.name }} · <span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></h3>
+            </div>
+            <span class="status-badge {% if staff_session_available_spots > 0 and staff_session.status == 'scheduled' %}success{% else %}warning{% endif %}">
+                {{ staff_session_available_spots }} cupo{{ staff_session_available_spots|pluralize }} libre{{ staff_session_available_spots|pluralize }}
+            </span>
+        </div>
+
+        <dl class="facts">
+            <div class="fact">
+                <dt>Fecha</dt>
+                <dd>{{ staff_session.date|date:"l j \\d\\e F \\d\\e Y" }}</dd>
+            </div>
+            <div class="fact">
+                <dt>Horario</dt>
+                <dd><span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></dd>
+            </div>
+            <div class="fact">
+                <dt>Seccion</dt>
+                <dd>{{ staff_session.section.name }}</dd>
+            </div>
+            <div class="fact">
+                <dt>Estado</dt>
+                <dd>{{ staff_session.get_status_display }}</dd>
+            </div>
+            <div class="fact">
+                <dt>Cupo total</dt>
+                <dd>{{ staff_session.capacity }}</dd>
+            </div>
+            <div class="fact">
+                <dt>Ocupacion actual</dt>
+                <dd>{{ staff_session_booked_count }} / {{ staff_session.capacity }} ({{ staff_session_occupancy_percent }}%)</dd>
+            </div>
+        </dl>
+
+        <div class="tone-note">{{ staff_session_summary_text }}</div>
+    </section>
+
+    <div class="summary-grid">
+        <article class="summary-card">
+            <span>Reservas activas</span>
+            <strong>{{ staff_session_booked_count }}</strong>
+            <p>Reservas activas de esta sesion.</p>
+        </article>
+        <article class="summary-card">
+            <span>Lugares libres</span>
+            <strong>{{ staff_session_available_spots }}</strong>
+            <p>Lugares disponibles ahora.</p>
+        </article>
+        <article class="summary-card">
+            <span>Con recuperacion</span>
+            <strong>{{ staff_session_makeup_bookings_count }}</strong>
+            <p>Reservas activas con recuperacion.</p>
+        </article>
+        <article class="summary-card">
+            <span>Movimientos visibles</span>
+            <strong>{{ staff_session_total_movements_count }}</strong>
+            <p>Activas y recientes no activas.</p>
+        </article>
+    </div>
+
+    <div class="detail-grid">
+        <div class="stack">
+            <section class="panel">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3>Alumnas anotadas</h3>
+                        <p class="tiny-copy">Reservas activas de esta sesion.</p>
+                    </div>
+                    <span class="status-badge muted">{{ staff_session_regular_bookings_count }} sin recuperacion</span>
+                </div>
+
+                {% if staff_session_active_bookings %}
+                    <div class="booking-list">
+                        {% for booking in staff_session_active_bookings %}
+                            <article class="booking-row">
+                                <div class="booking-copy">
+                                    <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                    <p>{{ booking.student.email }}</p>
+                                    {% if booking.used_recovery_credit %}
+                                        <p>Reserva por recuperacion {{ booking.used_recovery_credit.get_source_display|lower }}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
+                                    {% else %}
+                                        <p>Reserva regular sin recuperacion asociada.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="booking-meta">
+                                    <span class="status-badge success">{{ booking.get_status_display }}</span>
+                                    <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
+                                        {% if booking.used_recovery_credit %}Con recuperacion{% else %}Regular{% endif %}
+                                    </span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty">Todavia no hay reservas activas para esta sesion.</div>
+                {% endif %}
+            </section>
+
+            <section class="panel">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3>Reservas relevantes recientes</h3>
+                        <p class="tiny-copy">Cancelaciones y otros estados no activos de esta sesion.</p>
+                    </div>
+                </div>
+
+                {% if staff_session_recent_booking_events %}
+                    <div class="booking-list">
+                        {% for booking in staff_session_recent_booking_events %}
+                            <article class="booking-row">
+                                <div class="booking-copy">
+                                    <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                    <p>{{ booking.student.email }}</p>
+                                    {% if booking.used_recovery_credit %}
+                                        <p>Quedo asociada a una recuperacion previa.</p>
+                                    {% else %}
+                                        <p>Sin recuperacion asociada.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="booking-meta">
+                                    <span class="status-badge danger">{{ booking.get_status_display }}</span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty">No hay otros movimientos relevantes cargados para esta sesion.</div>
+                {% endif %}
+            </section>
+        </div>
+
+        <div class="stack">
+            <section class="panel">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3>Resumen de estado</h3>
+                        <p class="tiny-copy">Lectura rapida para decidir la siguiente accion.</p>
+                    </div>
+                </div>
+
+                <div class="info-stack">
+                    <article class="info-block">
+                        <span class="eyebrow-copy">Capacidad</span>
+                        <strong>{{ staff_session_booked_count }} / {{ staff_session.capacity }}</strong>
+                        <p>{{ staff_session_available_spots }} cupo{{ staff_session_available_spots|pluralize }} libre{{ staff_session_available_spots|pluralize }}.</p>
+                    </article>
+                    <article class="info-block">
+                        <span class="eyebrow-copy">Recuperaciones visibles</span>
+                        <strong>{{ staff_session_makeup_bookings_count }}</strong>
+                        <p>{{ staff_session_generated_recovery_credits_count }} credito{{ staff_session_generated_recovery_credits_count|pluralize }} generado{{ staff_session_generated_recovery_credits_count|pluralize }} por cierres asociados.</p>
+                    </article>
+                    {% if staff_session.holiday_closure %}
+                        <article class="info-block">
+                            <span class="eyebrow-copy">Impacto del cierre</span>
+                            <strong>{{ staff_session_holiday_closure_affected_bookings_count }} reserva{{ staff_session_holiday_closure_affected_bookings_count|pluralize }} activa{{ staff_session_holiday_closure_affected_bookings_count|pluralize }}</strong>
+                            <p>Sesion cerrada por feriado con {{ staff_session_generated_recovery_credits_count }} recuperaciones asociadas.</p>
+                        </article>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3>Notas y cierre asociado</h3>
+                        <p class="tiny-copy">Solo muestra datos ya cargados.</p>
+                    </div>
+                </div>
+
+                <div class="info-stack">
+                    <article class="info-block">
+                        <span class="eyebrow-copy">Notas de la sesion</span>
+                        <strong>{% if staff_session.notes %}Cargadas{% else %}Sin notas{% endif %}</strong>
+                        <p>{% if staff_session.notes %}{{ staff_session.notes }}{% else %}No hay observaciones guardadas para esta sesion.{% endif %}</p>
+                    </article>
+
+                    <article class="info-block">
+                        <span class="eyebrow-copy">Cierre por feriado</span>
+                        <strong>{% if staff_session.holiday_closure %}Asociado{% else %}No aplica{% endif %}</strong>
+                        <p>
+                            {% if staff_session.holiday_closure %}
+                                {{ staff_session.holiday_closure.reason }}{% if staff_session.holiday_closure.notes %} · {{ staff_session.holiday_closure.notes }}{% endif %}
+                            {% else %}
+                                Esta sesion no tiene cierre por feriado vinculado.
+                            {% endif %}
+                        </p>
+                    </article>
+                </div>
+            </section>
+        </div>
+    </div>
+{% endblock %}

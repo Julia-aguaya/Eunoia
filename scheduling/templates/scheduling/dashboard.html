@@ -1,0 +1,151 @@
+{% extends "scheduling/student_base.html" %}
+
+{% block title %}Inicio | Eunoia{% endblock %}
+{% block hero_title %}Tu estado del mes{% endblock %}
+{% block hero_copy %}Revisa tu estado operativo y tus turnos de {{ primary_section.name|default:"tu actividad" }}.{% endblock %}
+
+{% block content %}
+<section class="grid">
+    {% if not operational_status.can_operate %}
+    <article class="card span-12">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Operacion bloqueada</p>
+                <h3>Acciones disponibles</h3>
+            </div>
+        </div>
+        <div class="empty">
+            Tu acceso mensual esta bloqueado: no podes reservar ni cancelar desde la web.
+            Cuando vuelva a estar activo, se habilita todo automaticamente.
+            <div class="empty-actions">
+                <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda sin reservar</a>
+                <a href="{% url 'my-bookings' %}" class="button-secondary">Revisar mis turnos</a>
+            </div>
+        </div>
+    </article>
+    {% endif %}
+
+    <article class="card span-7">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Vista rapida</p>
+                <h3>Tus proximas clases</h3>
+            </div>
+            <a href="{% url 'my-bookings' %}" class="button-secondary">Ver mis turnos</a>
+        </div>
+
+        {% if upcoming_bookings %}
+            <div class="list">
+                {% for booking in upcoming_bookings|slice:":3" %}
+                    <article class="item">
+                        <div class="item-header">
+                            <div>
+                                <strong>{{ booking.session.date|date:"l j \d\e F" }}</strong>
+                                <p class="meta">{{ booking.session.start_time|time:"H:i" }} a {{ booking.session.end_time|time:"H:i" }} - {{ booking.session.section.name }}</p>
+                            </div>
+                            {% if booking.source == 'makeup' %}
+                                    <span class="pill soft-warning">Turno por Recuperacion</span>
+                            {% else %}
+                                <span class="pill soft-success">Reserva activa</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                No tenes reservas activas futuras. Revisa agenda para Reservar.
+                <div class="empty-actions">
+                    <a href="{% url 'agenda' %}" class="button-secondary">Ir a la agenda</a>
+                </div>
+            </div>
+        {% endif %}
+    </article>
+
+    <article class="card span-5">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Recuperaciones</p>
+                <h3>Estado de Recuperacion</h3>
+            </div>
+        </div>
+        <div class="stack">
+            <div class="item">
+                <strong>{{ available_recovery_credits|length }} vigentes</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Disponibles para usar antes del vencimiento.</p>
+            </div>
+            <div class="item">
+                <strong>{{ upcoming_makeup_bookings_count }} ya aplicadas</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Reservas confirmadas con Recuperacion.</p>
+            </div>
+            <div class="item">
+                <strong>{{ expired_recovery_credits|length }} vencidas</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Ya no se pueden usar.</p>
+            </div>
+            {% if recovery_credit_cards %}
+                <a href="{{ recovery_credit_cards.0.use_url }}" class="button">Usar Recuperacion</a>
+            {% endif %}
+            <a href="{% url 'my-bookings' %}" class="button-secondary">Revisar recuperaciones</a>
+        </div>
+    </article>
+
+    <article class="card span-12">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Agenda de tu actividad</p>
+                <h3>Proximas sesiones visibles</h3>
+            </div>
+            <a href="{% url 'agenda' %}" class="button-secondary">Abrir agenda completa</a>
+        </div>
+
+        {% if upcoming_session_cards %}
+            <div class="list">
+                {% for card in upcoming_session_cards|slice:":3" %}
+                    <article class="item">
+                        <div class="item-header">
+                            <div>
+                                <strong>{{ card.session.date|date:"l j \d\e F" }}</strong>
+                                <p class="meta">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }} - {{ card.session.section.name }}</p>
+                            </div>
+                            <div class="badge-row">
+                                {% if card.session.booked_count >= card.session.capacity %}
+                                    <span class="pill strong-danger">Sin cupo</span>
+                                {% elif card.session.booked_count == card.session.capacity|add:"-1" %}
+                                    <span class="pill strong-warning">Ultimo lugar</span>
+                                {% else %}
+                                    <span class="pill soft-success">{{ card.session.booked_count }}/{{ card.session.capacity }} ocupados</span>
+                                {% endif %}
+                                {% if card.session.id in booked_session_ids %}
+                                    <span class="pill soft-muted">Ya reservado</span>
+                                {% elif card.compatible_recovery_count %}
+                                    <span class="pill soft-warning">Compatible con Recuperacion</span>
+                                {% elif card.action.can_book %}
+                                    <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        <button type="submit" class="button">{{ card.action.label }}</button>
+                                    </form>
+                                {% else %}
+                                    <span class="pill soft-warning">{{ card.action.label }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="support-note">{{ card.action.message }}</div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                {% if primary_section %}
+                    Todavia no hay sesiones futuras cargadas para {{ primary_section.name }}.
+                {% else %}
+                    Necesitamos definir tu actividad principal para mostrar agenda.
+                {% endif %}
+                <div class="empty-actions">
+                    <a href="{% url 'my-bookings' %}" class="button-secondary">Ver mis turnos</a>
+                </div>
+            </div>
+        {% endif %}
+    </article>
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: eunoia
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate && gunicorn config.wsgi --log-file -
+    disk:
+      name: eunoia-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_DATABASE_PATH
+        value: /var/data/db.sqlite3
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "True"
+      - key: EUNOIA_DEFAULT_TEMPORARY_PASSWORD
+        sync: false
+      - key: EUNOIA_ADMIN_EMAIL
+        sync: false
+      - key: EUNOIA_ADMIN_PASSWORD
+        sync: false
