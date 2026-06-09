@@ -1,27 +1,166 @@
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <title>Login | Eunoia</title>
-</head>
-<body>
-    <h1>Ingresar</h1>
-    <p>Entra con tu email y contrasena para seguir en tu portal.</p>
-    <form method="post">
+{% extends "scheduling/auth_base.html" %}
+
+{% block title %}Ingresar | Eunoia{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .auth-shell {
+            width: min(100%, 640px);
+        }
+
+        .auth-layout {
+            grid-template-columns: minmax(320px, 520px);
+            justify-content: center;
+        }
+
+        .auth-panel {
+            display: none;
+        }
+
+        .auth-card {
+            padding: clamp(28px, 5vw, 38px);
+        }
+
+        .auth-brand-inline {
+            padding: 22px 24px;
+            border: 1px solid rgba(105, 132, 119, 0.14);
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(246, 249, 246, 0.98), rgba(255, 255, 255, 0.96));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+        }
+
+        .auth-intro {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .auth-brand-inline .brand-row {
+            align-items: center;
+        }
+
+        .auth-brand-inline p {
+            margin: 0;
+        }
+
+        .auth-header {
+            margin-bottom: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .auth-header h2 {
+            margin-bottom: 0;
+        }
+
+        .auth-header p {
+            margin: 0;
+            color: var(--muted);
+            max-width: 30ch;
+        }
+
+        .auth-note {
+            text-align: center;
+        }
+
+        @media (max-width: 720px) {
+            .auth-shell {
+                width: min(100% - 20px, 640px);
+            }
+
+            .auth-brand-inline {
+                padding: 20px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block auth_branding %}{% endblock %}
+
+{% block auth_hero_eyebrow %}{% endblock %}
+
+{% block auth_hero_title %}{% endblock %}
+
+{% block auth_hero_copy %}{% endblock %}
+
+{% block auth_support %}{% endblock %}
+
+{% block auth_body %}
+    <div class="auth-intro">
+        <div class="brand auth-brand-inline" aria-label="Marca Eunoia">
+            <div class="brand-row">
+                <div class="brand-mark" aria-hidden="true">E</div>
+                <div>
+                    <h3>Eunoia</h3>
+                    <p>Estudio de yoga y pilates</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-header">
+            <h2>Ingresar</h2>
+            <p>Accede a tu agenda y a la informacion de tus clases desde un solo lugar.</p>
+        </div>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="auth-summary" role="alert">
+            <strong>No pudimos iniciar sesion</strong>
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" class="auth-form" novalidate>
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next }}">
-        {{ form.non_field_errors }}
-        <p>
+
+        <div class="field{% if form.email.errors %} has-error{% endif %}">
             <label for="{{ form.email.id_for_label }}">Email</label>
-            {{ form.email }}
-            {{ form.email.errors }}
-        </p>
-        <p>
+            <input
+                type="email"
+                name="email"
+                id="{{ form.email.id_for_label }}"
+                value="{{ form.email.value|default:'' }}"
+                placeholder="nombre@dominio.com"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                {% if form.email.errors %}aria-describedby="email-help email-errors" aria-invalid="true"{% else %}aria-describedby="email-help" aria-invalid="false"{% endif %}
+                required
+            >
+            <div class="field-meta">
+                <p class="field-help" id="email-help">Usa el mismo email con el que coordinas tus clases.</p>
+                {% if form.email.errors %}
+                    <div class="field-errors" id="email-errors" role="alert">{{ form.email.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="field{% if form.password.errors %} has-error{% endif %}">
             <label for="{{ form.password.id_for_label }}">Contrasena</label>
-            {{ form.password }}
-            {{ form.password.errors }}
-        </p>
-        <button type="submit">Ingresar</button>
+            <input
+                type="password"
+                name="password"
+                id="{{ form.password.id_for_label }}"
+                placeholder="Tu contrasena"
+                autocomplete="current-password"
+                {% if form.password.errors %}aria-describedby="password-help password-errors" aria-invalid="true"{% else %}aria-describedby="password-help" aria-invalid="false"{% endif %}
+                required
+            >
+            <div class="field-meta">
+                <p class="field-help" id="password-help">Respeta mayusculas, minusculas y caracteres tal como la definiste.</p>
+                {% if form.password.errors %}
+                    <div class="field-errors" id="password-errors" role="alert">{{ form.password.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="auth-actions">
+            <button type="submit" class="button">Ingresar</button>
+            <p class="auth-note">Si no puedes ingresar, contacta al staff.</p>
+        </div>
     </form>
-</body>
-</html>
+
+{% endblock %}

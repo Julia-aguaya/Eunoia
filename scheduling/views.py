@@ -54,7 +54,7 @@ STAFF_AGENDA_WINDOW_DAYS = 7
 BOOKING_ERROR_MESSAGES = {
     'Student must have a primary section before reserving.': 'Todavia no tenes una actividad principal configurada. Escribinos para habilitar tu agenda.',
     'Student can only reserve sessions in their primary section.': 'Esta clase corresponde a otra actividad. Solo podes reservar dentro de tu actividad principal.',
-    'Student must have active monthly operational access for this session month.': 'Tu acceso operativo no permite reservar esta clase en este mes.',
+    'Student must have active monthly operational access for this session month.': 'Este mes no podes reservar esta clase desde el portal.',
     'This session is closed and cannot be booked.': 'Esta clase ya esta cerrada y no acepta nuevas reservas.',
     'This session has reached its capacity.': 'No quedan cupos disponibles para esta clase.',
     'Student already has an active booking for this session.': 'Ya tenes una reserva activa para esta clase.',
@@ -487,47 +487,47 @@ def _build_operational_status(user, target_date):
 
     if user.primary_section_id is None:
         return {
-            'title': 'Sin actividad asignada',
-            'message': 'Todavia no tenes una actividad principal configurada. Contactanos para habilitar tu agenda.',
+            'title': 'Pendiente',
+            'message': 'Todavia no vemos tu actividad principal en la cuenta. Escribinos y lo resolvemos para que puedas usar el portal con normalidad.',
             'tone': 'warning',
             'can_operate': False,
         }
 
     if access is None:
         return {
-            'title': 'Sin acceso operativo cargado',
-            'message': 'Este mes todavia no tiene un estado operativo confirmado. Escribinos para revisar tu acceso.',
+            'title': 'Pendiente',
+            'message': 'Todavia no confirmamos tu estado de este mes. Si queres revisarlo, escribinos y te ayudamos.',
             'tone': 'warning',
             'can_operate': False,
         }
 
     if access.grants_operational_booking_access():
         return {
-            'title': 'Acceso operativo activo',
-            'message': 'Tu actividad de este mes esta habilitada para ver agenda y gestionar tus proximos turnos.',
+            'title': 'Activa',
+            'message': 'Este mes podes ver horarios, reservar y gestionar tus turnos desde el portal.',
             'tone': 'success',
             'can_operate': True,
         }
 
     if access.status == MonthlyAccessStatusType.PENDING_PAYMENT:
         return {
-            'title': 'Mes pendiente de pago',
-            'message': 'Tu acceso operativo de este mes esta pausado hasta registrar el pago. La agenda sigue visible, pero las acciones quedan bloqueadas.',
+            'title': 'Impaga',
+            'message': 'Este mes figura con pago pendiente. Podes seguir viendo horarios, pero las reservas y cambios quedan pausados hasta regularizarlo.',
             'tone': 'danger',
             'can_operate': False,
         }
 
     if access.status == MonthlyAccessStatusType.SUSPENDED:
         return {
-            'title': 'Acceso operativo suspendido',
-            'message': 'Este mes no tenes acceso operativo para reservar o mover turnos. Si necesitabas operar, contactanos.',
+            'title': 'Suspendida',
+            'message': 'Este mes no podes reservar ni mover turnos desde el portal. Si necesitas ayuda, escribinos.',
             'tone': 'danger',
             'can_operate': False,
         }
 
     return {
-        'title': 'Acceso operativo no disponible',
-        'message': 'Tu estado actual no permite operar turnos desde la web en este momento.',
+        'title': 'No disponible',
+        'message': 'Por ahora este mes no permite hacer cambios desde el portal.',
         'tone': 'warning',
         'can_operate': False,
     }
@@ -536,6 +536,7 @@ def _build_operational_status(user, target_date):
 def _get_student_portal_context(user):
     now = timezone.now()
     today = timezone.localdate()
+    current_week_start, current_week_end = _get_current_workweek_window(today)
     upcoming_bookings = list(
         Booking.objects.select_related('session', 'session__section', 'used_recovery_credit')
         .filter(student=user, status=BookingStatus.BOOKED, session__date__gte=today)
@@ -548,17 +549,22 @@ def _get_student_portal_context(user):
             cancel_action = {
                 'can_cancel': True,
                 'label': 'Cancelar turno',
-                'message': 'Si cambias de plan, podes cancelarlo desde aca y el dominio resuelve la recuperacion cuando corresponde.',
+                'message': 'Si cambias de plan, podes cancelarlo desde aca. Si corresponde, la recuperacion se genera automaticamente.',
                 'tone': 'ready',
             }
         else:
             cancel_action = {
                 'can_cancel': False,
                 'label': 'Ventana cerrada',
-                'message': 'La auto-cancelacion web queda disponible solo hasta 2 horas antes del inicio.',
+                'message': 'La cancelacion online esta disponible solo hasta 2 horas antes del inicio.',
                 'tone': 'blocked',
             }
         upcoming_booking_cards.append({'booking': booking, 'cancel_action': cancel_action})
+    this_week_booking_cards = [
+        card
+        for card in upcoming_booking_cards
+        if current_week_start <= card['booking'].session.date <= current_week_end
+    ]
 
     booked_session_ids = {booking.session_id for booking in upcoming_bookings}
     section = user.primary_section
@@ -603,6 +609,7 @@ def _get_student_portal_context(user):
                 'use_url': reverse('use-recovery', args=[credit.pk]),
             }
         )
+    primary_recovery_credit_card = recovery_credit_cards[0] if recovery_credit_cards else None
 
     operational_status = _build_operational_status(user, today)
     upcoming_session_cards = []
@@ -627,15 +634,19 @@ def _get_student_portal_context(user):
 
     return {
         'today': today,
+        'current_week_start': current_week_start,
+        'current_week_end': current_week_end,
         'primary_section': section,
         'operational_status': operational_status,
         'upcoming_bookings': upcoming_bookings,
         'upcoming_booking_cards': upcoming_booking_cards,
+        'this_week_booking_cards': this_week_booking_cards,
         'booked_session_ids': booked_session_ids,
         'upcoming_sessions': upcoming_sessions,
         'upcoming_session_cards': upcoming_session_cards,
         'available_recovery_credits': available_recovery_credits,
         'recovery_credit_cards': recovery_credit_cards,
+        'primary_recovery_credit_card': primary_recovery_credit_card,
         'upcoming_makeup_bookings_count': len(upcoming_makeup_bookings),
         'expired_recovery_credits': expired_recovery_credits,
     }
@@ -666,6 +677,12 @@ def _booking_preview_is_valid(*, user, session, recovery_credit=None):
     return True
 
 
+def _get_current_workweek_window(reference_date):
+    week_start = reference_date - timedelta(days=reference_date.weekday())
+    week_end = week_start + timedelta(days=4)
+    return week_start, week_end
+
+
 def _build_session_action(*, user, session, recovery_credit=None):
     booking = Booking(session=session, student=user, used_recovery_credit=recovery_credit)
     try:
@@ -674,8 +691,8 @@ def _build_session_action(*, user, session, recovery_credit=None):
         message = _get_booking_error_message(exc)
         if recovery_credit is None and message == 'Ya tenes una reserva activa para esta clase.':
             label = 'Reserva confirmada'
-        elif recovery_credit is None and message == 'Tu acceso operativo no permite reservar esta clase en este mes.':
-            label = 'Acceso no disponible'
+        elif recovery_credit is None and message == 'Este mes no podes reservar esta clase desde el portal.':
+            label = 'No disponible este mes'
         else:
             label = 'No disponible' if recovery_credit is None else 'No compatible'
         return {
@@ -690,8 +707,7 @@ def _build_session_action(*, user, session, recovery_credit=None):
             'can_book': True,
             'label': 'Usar recuperacion',
             'message': (
-                f'Esta clase es compatible con la recuperacion elegida y la reserva se registrara '
-                f'como recupero de {recovery_credit.section.name}.'
+                f'Podes usar esta recuperacion para reservar esta clase de {recovery_credit.section.name}.'
             ),
             'tone': 'ready',
         }
@@ -860,9 +876,16 @@ def use_recovery_view(request, recovery_credit_id):
         )
         return redirect('my-bookings')
 
+    now = timezone.localtime()
+    week_start, week_end = _get_current_workweek_window(today)
     candidate_sessions = list(
         ClassSession.objects.select_related('section')
-        .filter(section=credit.section, date__gte=today, status=SessionStatus.SCHEDULED)
+        .filter(
+            section=credit.section,
+            status=SessionStatus.SCHEDULED,
+            date__range=(week_start, week_end),
+        )
+        .filter(Q(date__gt=today) | Q(date=today, start_time__gt=now.time()))
         .annotate(
             booked_count=Count(
                 'bookings',
@@ -874,19 +897,19 @@ def use_recovery_view(request, recovery_credit_id):
     )
 
     recovery_session_cards = []
-    eligible_sessions_count = 0
     for session in candidate_sessions:
         action = _build_session_action(user=request.user, session=session, recovery_credit=credit)
         if action['can_book']:
-            eligible_sessions_count += 1
-        recovery_session_cards.append({'session': session, 'action': action})
+            recovery_session_cards.append({'session': session, 'action': action})
 
     context.update(
         {
             'recovery_focus_credit': credit,
             'recovery_focus_credit_overdue': credit.is_expired(on_date=today),
             'recovery_session_cards': recovery_session_cards,
-            'eligible_sessions_count': eligible_sessions_count,
+            'eligible_sessions_count': len(recovery_session_cards),
+            'recovery_week_start': week_start,
+            'recovery_week_end': week_end,
         }
     )
     return render(request, 'scheduling/use_recovery.html', context)

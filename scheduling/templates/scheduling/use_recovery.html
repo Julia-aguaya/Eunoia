@@ -1,12 +1,84 @@
 {% extends "scheduling/student_base.html" %}
 
 {% block title %}Usar Recuperacion | Eunoia{% endblock %}
-{% block hero_title %}Usa tu Recuperacion en pocos pasos.{% endblock %}
-{% block hero_copy %}Primero revisas el credito y despues elegis una sesion compatible de la misma actividad.{% endblock %}
+{% block hero_title %}Usar recuperacion{% endblock %}
+{% block hero_copy %}Elegis un horario disponible de esta semana y te mostramos solo opciones que podes usar desde el portal.{% endblock %}
+
+{% block status_banner %}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .shell {
+        width: min(960px, calc(100% - (var(--shell-padding) * 2)));
+    }
+
+    .hero {
+        grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+        gap: 18px;
+        padding: clamp(22px, 4vw, 30px);
+    }
+
+    .hero-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .recovery-layout {
+        width: min(100%, 760px);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+    }
+
+    .portal-card {
+        padding: clamp(20px, 4vw, 28px);
+    }
+
+    .portal-card .section-title {
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .portal-card .section-title h3 {
+        font-size: clamp(1.55rem, 3vw, 1.95rem);
+    }
+
+    .recovery-summary {
+        display: grid;
+        gap: 12px;
+    }
+
+    .recovery-summary .item {
+        padding: 14px;
+    }
+
+    .recovery-session-actions {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        margin-top: 14px;
+    }
+
+    @media (max-width: 720px) {
+        .hero,
+        .recovery-session-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .button,
+        .button-secondary,
+        .button-disabled,
+        .recovery-session-actions form,
+        .recovery-session-actions form button {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="grid">
-    <article class="card span-4">
+<section class="recovery-layout">
+    <article class="card portal-card">
         <div class="section-title">
             <div>
                 <p class="eyebrow">Recuperacion elegida</p>
@@ -18,14 +90,14 @@
                 <span class="pill soft-success">Disponible</span>
             {% endif %}
         </div>
-        <div class="stack">
+        <div class="recovery-summary">
             <div class="item">
                 <strong>Vence el {{ recovery_focus_credit.expires_at|date:"j \d\e F, Y" }}</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Se confirma solo si sigue siendo compatible al guardar.</p>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Vas a ver solo opciones disponibles para usar esta recuperacion.</p>
             </div>
             <div class="item">
-                <strong>{{ eligible_sessions_count }} opcion{{ eligible_sessions_count|pluralize:"es" }} hoy</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Solo sesiones futuras de la misma actividad.</p>
+                <strong>{{ eligible_sessions_count }} opcion{{ eligible_sessions_count|pluralize:"es" }} esta semana</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Horarios con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }} para la misma actividad.</p>
             </div>
             {% if recovery_focus_credit.origin_session %}
                 <div class="item">
@@ -33,15 +105,15 @@
                     <p class="meta" style="margin-top: 8px; line-height: 1.6;">Clase del {{ recovery_focus_credit.origin_session.date|date:"j/m/Y" }} a las {{ recovery_focus_credit.origin_session.start_time|time:"H:i" }}.</p>
                 </div>
             {% endif %}
-            <a href="{% url 'my-bookings' %}" class="button-secondary">Volver a mis turnos</a>
+            <a href="{% url 'dashboard' %}" class="button-secondary">Volver</a>
         </div>
     </article>
 
-    <article class="card span-8">
+    <article class="card portal-card">
         <div class="section-title">
             <div>
-                <p class="eyebrow">Sesiones elegibles</p>
-                <h3>Clases futuras para Recuperacion</h3>
+                <p class="eyebrow">Horarios disponibles</p>
+                <h3>Clases disponibles de esta semana laboral</h3>
             </div>
         </div>
 
@@ -64,13 +136,13 @@
                             </div>
                         </div>
                         <p class="session-note" style="margin: 12px 0 14px; line-height: 1.6;">{{ card.action.message }}</p>
-                        <div class="item-footer">
+                        <div class="recovery-session-actions">
                             <span class="meta">Clase de {{ card.session.section.name }}</span>
                             {% if card.action.can_book %}
                                 <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
                                     {% csrf_token %}
                                     <input type="hidden" name="used_recovery_credit_id" value="{{ recovery_focus_credit.id }}">
-                                    <input type="hidden" name="next" value="{% url 'my-bookings' %}">
+                                    <input type="hidden" name="next" value="{% url 'dashboard' %}">
                                     <button type="submit" class="button">{{ card.action.label }}</button>
                                 </form>
                             {% else %}
@@ -82,9 +154,9 @@
             </div>
         {% else %}
             <div class="empty">
-                No hay sesiones futuras cargadas para esta actividad en este momento.
+                No hay horarios disponibles para recuperar en la semana laboral actual de esta actividad.
                 <div class="empty-actions">
-                    <a href="{% url 'my-bookings' %}" class="button-secondary">Volver a mis turnos</a>
+                    <a href="{% url 'dashboard' %}" class="button-secondary">Volver</a>
                 </div>
             </div>
         {% endif %}

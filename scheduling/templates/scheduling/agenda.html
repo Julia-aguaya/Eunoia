@@ -2,7 +2,33 @@
 
 {% block title %}Agenda | Eunoia{% endblock %}
 {% block hero_title %}Agenda clara para decidir rapido.{% endblock %}
-{% block hero_copy %}Ves sesiones futuras de {{ primary_section.name|default:"tu actividad" }} y, si estas habilitada, podes Reservar desde aca.{% endblock %}
+{% block hero_copy %}Aca ves los proximos horarios de {{ primary_section.name|default:"tu actividad" }} y, cuando tu mes esta activo, podes reservar en el momento.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .agenda-session-body,
+    .agenda-session-actions {
+        display: grid;
+        gap: 12px;
+    }
+
+    .agenda-session-body {
+        margin: 12px 0 0;
+    }
+
+    .agenda-session-actions {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-top: 16px;
+        align-items: center;
+    }
+
+    @media (max-width: 720px) {
+        .agenda-session-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <section class="grid">
@@ -38,17 +64,17 @@
                                     <span class="pill soft-muted">Ya reservado</span>
                                 {% endif %}
                                 {% if card.compatible_recovery_count %}
-                                    <span class="pill soft-warning">Compatible con {{ card.compatible_recovery_count }} recuperacion{{ card.compatible_recovery_count|pluralize:"es" }}</span>
+                                    <span class="pill soft-warning">Se puede usar con {{ card.compatible_recovery_count }} recuperacion{{ card.compatible_recovery_count|pluralize:"es" }}</span>
                                 {% endif %}
                             </div>
                         </div>
-                        <p class="session-note" style="margin: 12px 0 14px; line-height: 1.6;">
-                            {{ card.action.message }}
-                        </p>
-                        {% if card.compatible_recovery_count %}
-                            <p class="meta" style="margin: 0 0 14px; line-height: 1.6;">Para Recuperacion, usa el flujo guiado.</p>
-                        {% endif %}
-                        <div class="item-footer">
+                        <div class="agenda-session-body">
+                            <p class="session-note">{{ card.action.message }}</p>
+                            {% if card.compatible_recovery_count %}
+                                <p class="meta">Si queres usar una recuperacion, te llevamos paso a paso.</p>
+                            {% endif %}
+                        </div>
+                        <div class="agenda-session-actions">
                             <span class="meta">Clase de {{ card.session.section.name }}</span>
                             <div class="badge-row">
                                 {% if card.compatible_recovery_count %}
@@ -92,8 +118,8 @@
         <div class="stack">
             {% if not operational_status.can_operate %}
             <div class="item">
-                <strong>Bloqueo operativo activo</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Podes ver horarios y cupos, pero no Reservar ni Cancelar hasta estar habilitada.</p>
+                <strong>Este mes no permite reservar</strong>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Podes ver horarios y cupos, pero no reservar ni cancelar hasta que tu estado del mes vuelva a estar activo.</p>
             </div>
             {% endif %}
             <div class="item">
@@ -106,7 +132,7 @@
             </div>
             <div class="item">
                 <strong>Recuperacion visible</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si una clase acepta Recuperacion, te llevamos al flujo guiado.</p>
+                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si una clase acepta recuperacion, podes elegirla paso a paso.</p>
             </div>
             <div class="item">
                 <strong>Accion bloqueada</strong>

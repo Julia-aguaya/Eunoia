@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth import authenticate, password_validation
+from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.utils import timezone
 
 from .models import HolidayClosure, RecoveryCredit, Section
@@ -43,6 +43,9 @@ class EmailAuthenticationForm(forms.Form):
         if email and password:
             self.user_cache = authenticate(self.request, username=email, password=password)
             if self.user_cache is None:
+                inactive_user = get_user_model().objects.filter(email__iexact=email, is_active=False).first()
+                if inactive_user is not None and inactive_user.check_password(password):
+                    raise forms.ValidationError(self.error_messages['inactive'])
                 raise forms.ValidationError(self.error_messages['invalid_login'])
             if not self.user_cache.is_active:
                 raise forms.ValidationError(self.error_messages['inactive'])
@@ -140,3 +143,6 @@ class StaffHolidayClosureForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
+
+    def validate_unique(self):
+        return

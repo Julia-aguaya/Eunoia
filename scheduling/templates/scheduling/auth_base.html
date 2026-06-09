@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Acceso | Eunoia{% endblock %}</title>
+    <style>
+        :root {
+            --page: #edf4ee;
+            --page-deep: #dfe9e1;
+            --surface: rgba(252, 253, 251, 0.94);
+            --surface-strong: #ffffff;
+            --text: #23312b;
+            --muted: #64756d;
+            --line: rgba(105, 132, 119, 0.16);
+            --line-strong: rgba(69, 101, 86, 0.28);
+            --primary: #6f8f7f;
+            --primary-strong: #456556;
+            --primary-soft: #dfe8df;
+            --danger: #8f5b5f;
+            --danger-soft: #f4e5e5;
+            --shadow: 0 20px 44px rgba(47, 61, 53, 0.09);
+            --shadow-soft: 0 10px 22px rgba(47, 61, 53, 0.06);
+            --radius-xl: 32px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
+            --radius-sm: 14px;
+            --focus: rgba(69, 101, 86, 0.18);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            font-family: "Source Sans 3", "Trebuchet MS", sans-serif;
+            color: var(--text);
+            line-height: 1.5;
+            background:
+                radial-gradient(circle at top center, rgba(255, 255, 255, 0.62), transparent 30%),
+                linear-gradient(180deg, var(--page) 0%, var(--page-deep) 100%);
+        }
+
+        a { color: inherit; }
+
+        .auth-shell {
+            width: min(1040px, calc(100% - 32px));
+            margin: 0 auto;
+            min-height: 100dvh;
+            display: grid;
+            align-items: center;
+            padding: 32px 0;
+        }
+
+        .auth-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+            gap: 28px;
+        }
+
+        .auth-panel,
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+        }
+
+        .auth-panel {
+            padding: 38px;
+            display: grid;
+            gap: 28px;
+            align-content: space-between;
+            overflow: hidden;
+            position: relative;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(252, 253, 251, 0.82));
+        }
+
+        .auth-panel::after {
+            content: "";
+            position: absolute;
+            inset: auto -48px -72px auto;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(223, 232, 223, 0.58) 0%, rgba(223, 232, 223, 0) 70%);
+            pointer-events: none;
+        }
+
+        .auth-card {
+            padding: 34px;
+            background: var(--surface-strong);
+            box-shadow: var(--shadow-soft), var(--shadow);
+        }
+
+        .brand,
+        .support-item,
+        .field-meta,
+        .trust-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-mark {
+            width: 54px;
+            height: 54px;
+            border-radius: 20px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #f8f2ea, #e3eee5);
+            border: 1px solid rgba(105, 132, 119, 0.14);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+            color: var(--primary-strong);
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .eyebrow,
+        .support-item p,
+        .field-help,
+        .field-errors,
+        .auth-note,
+        .auth-summary p,
+        .trust-list li,
+        .messages li {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        h1,
+        h2,
+        .brand h3 {
+            margin: 0;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .brand h3 {
+            font-size: 1.9rem;
+        }
+
+        .brand p,
+        .auth-copy,
+        .support-item p,
+        .auth-note,
+        .auth-summary p,
+        .field-help,
+        .field-errors,
+        .trust-list li,
+        .messages li {
+            line-height: 1.6;
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 0.78rem;
+        }
+
+        .hero-copy h1 {
+            font-size: clamp(2.3rem, 4vw, 3.7rem);
+            line-height: 0.98;
+            margin-top: 8px;
+            margin-bottom: 12px;
+        }
+
+        .auth-copy {
+            max-width: 34ch;
+            font-size: 1.02rem;
+            overflow-wrap: anywhere;
+        }
+
+        .support-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .support-item {
+            padding: 18px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(105, 132, 119, 0.12);
+            position: relative;
+            z-index: 1;
+        }
+
+        .support-item strong,
+        .auth-summary strong {
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .auth-header {
+            margin-bottom: 18px;
+        }
+
+        .auth-header h2 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .auth-form {
+            display: grid;
+            gap: 18px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field label {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .field input {
+            width: 100%;
+            min-height: 52px;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(105, 132, 119, 0.22);
+            background: var(--surface-strong);
+            color: var(--text);
+            font: inherit;
+            transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+        }
+
+        .field input::placeholder { color: #91a096; }
+
+        .field input:hover {
+            border-color: var(--line-strong);
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--primary-strong);
+            box-shadow: 0 0 0 4px var(--focus);
+        }
+
+        .field.has-error input {
+            border-color: var(--danger);
+            background: #fffafa;
+        }
+
+        .field-meta {
+            gap: 6px;
+        }
+
+        .field-help {
+            font-size: 0.95rem;
+        }
+
+        .field-errors {
+            font-size: 0.95rem;
+            color: var(--danger);
+        }
+
+        .auth-summary,
+        .messages li {
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid transparent;
+        }
+
+        .auth-summary {
+            margin-bottom: 18px;
+            background: linear-gradient(135deg, rgba(244, 229, 229, 0.98), rgba(255, 255, 255, 0.96));
+            border-color: rgba(143, 91, 95, 0.18);
+        }
+
+        .auth-summary strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--danger);
+        }
+
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 18px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .messages li {
+            background: rgba(248, 250, 248, 0.92);
+            border-color: rgba(105, 132, 119, 0.12);
+        }
+
+        .messages li.error {
+            background: var(--danger-soft);
+            border-color: rgba(143, 91, 95, 0.18);
+            color: var(--danger);
+        }
+
+        .messages li.success {
+            background: var(--primary-soft);
+            border-color: rgba(69, 101, 86, 0.14);
+            color: var(--primary-strong);
+        }
+
+        .auth-actions {
+            display: grid;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 50px;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 999px;
+            background: var(--primary-strong);
+            color: #fff;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+            box-shadow: 0 12px 24px rgba(69, 101, 86, 0.14);
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            background: #3b5849;
+        }
+
+        .button:focus {
+            outline: 3px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .auth-note {
+            font-size: 0.96rem;
+        }
+
+        .auth-footer {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(105, 132, 119, 0.12);
+        }
+
+        .trust-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 10px;
+        }
+
+        .trust-list li {
+            position: relative;
+            padding-left: 18px;
+        }
+
+        .trust-list li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        @media (max-width: 920px) {
+            .auth-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-card {
+                order: -1;
+            }
+
+            .auth-copy {
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .auth-shell {
+                width: min(100% - 20px, 1120px);
+                padding: 20px 0;
+            }
+
+            .auth-panel,
+            .auth-card {
+                padding: 22px;
+                border-radius: 24px;
+            }
+
+            .auth-card,
+            .auth-panel,
+            .auth-actions,
+            .auth-actions .button {
+                width: 100%;
+            }
+
+            .support-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-copy h1 {
+                font-size: 2.4rem;
+            }
+
+            .auth-header h2 {
+                font-size: 1.75rem;
+            }
+
+            .brand-row {
+                align-items: flex-start;
+            }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <main class="auth-shell">
+        <div class="auth-layout">
+            <section class="auth-panel" aria-label="Presentacion de Eunoia">
+                {% block auth_branding %}
+                    <div class="brand">
+                        <div class="brand-row">
+                            <div class="brand-mark" aria-hidden="true">E</div>
+                            <div>
+                                <h3>Eunoia</h3>
+                                <p>Estudio de yoga y pilates</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endblock %}
+
+                <div class="hero-copy">
+                    {% block auth_hero_eyebrow %}<p class="eyebrow">Acceso personal</p>{% endblock %}
+                    <h1>{% block auth_hero_title %}Un ingreso claro, sereno y sin friccion.{% endblock %}</h1>
+                    <p class="auth-copy">{% block auth_hero_copy %}Entrar deberia darte contexto y confianza antes de pedirte datos. Por eso priorizamos legibilidad, orden y acompanamiento.{% endblock %}</p>
+                </div>
+
+                <div class="support-grid">
+                    {% block auth_support %}
+                        <article class="support-item">
+                            <strong>Agenda a mano</strong>
+                            <p>Revisa tus clases y tus proximos movimientos desde el mismo portal.</p>
+                        </article>
+                        <article class="support-item">
+                            <strong>Senales claras</strong>
+                            <p>Errores, ayuda y pasos siguientes aparecen donde realmente los necesitas.</p>
+                        </article>
+                    {% endblock %}
+                </div>
+            </section>
+
+            <section class="auth-card">
+                {% if messages %}
+                    <ul class="messages" aria-live="polite">
+                        {% for message in messages %}
+                            <li class="{{ message.tags|default:'success' }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% block auth_body %}{% endblock %}
+            </section>
+        </div>
+    </main>
+</body>
+</html>

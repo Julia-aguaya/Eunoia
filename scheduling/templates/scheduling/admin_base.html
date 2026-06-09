@@ -26,15 +26,17 @@
             --radius-lg: 26px;
             --radius-md: 18px;
             --radius-sm: 14px;
+            --shell-padding: clamp(16px, 3vw, 28px);
         }
 
         * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            min-height: 100vh;
+            min-height: 100dvh;
             font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
             color: var(--text);
+            line-height: 1.5;
             background:
                 radial-gradient(circle at top right, rgba(215, 229, 235, 0.88), transparent 28%),
                 radial-gradient(circle at top left, rgba(245, 228, 208, 0.9), transparent 24%),
@@ -44,9 +46,9 @@
         a { color: inherit; }
 
         .shell {
-            width: min(1200px, calc(100% - 32px));
+            width: min(1200px, calc(100% - (var(--shell-padding) * 2)));
             margin: 0 auto;
-            padding: 28px 0 40px;
+            padding: var(--shell-padding) 0 40px;
         }
 
         .topbar,
@@ -111,6 +113,16 @@
             color: var(--muted);
         }
 
+        .brand p,
+        .muted,
+        .search-copy,
+        .empty,
+        .row-label,
+        .panel p,
+        .hero p {
+            overflow-wrap: anywhere;
+        }
+
         .header-actions {
             display: flex;
             align-items: center;
@@ -135,6 +147,7 @@
             text-decoration: none;
             transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
             cursor: pointer;
+            text-align: center;
         }
 
         .button,
@@ -199,6 +212,7 @@
         .hero-metrics {
             display: grid;
             gap: 12px;
+            align-content: start;
         }
 
         .metric {
@@ -220,6 +234,7 @@
             gap: 10px;
             padding: 10px;
             margin-bottom: 18px;
+            flex-wrap: wrap;
         }
 
         .nav a {
@@ -229,6 +244,9 @@
             border-radius: 18px;
             text-decoration: none;
             border: 1px solid transparent;
+            display: grid;
+            gap: 4px;
+            align-content: center;
         }
 
         .nav a strong {
@@ -323,8 +341,31 @@
                 align-items: flex-start;
             }
 
-            .nav { width: 100%; }
+            .brand,
+            .header-actions,
+            .hero-metrics,
+            .nav,
+            .logout-form,
+            .logout-form button,
+            .button,
+            .button-secondary,
+            .button-danger,
+            .button-search {
+                width: 100%;
+            }
+
+            .header-actions,
+            .hero-metrics,
+            .nav {
+                display: grid;
+                gap: 10px;
+            }
+
             .nav a { width: 100%; }
+
+            .panel {
+                padding: 18px;
+            }
         }
     </style>
     {% block extra_head %}{% endblock %}

@@ -237,6 +237,10 @@
             justify-items: flex-end;
         }
 
+        .wide-form-button {
+            width: 100%;
+        }
+
         .item-meta {
             display: flex;
             gap: 8px;
@@ -281,8 +285,15 @@
             }
 
             .action-form,
-            .action-button {
+            .action-button,
+            .credit-actions,
+            .credit-actions form,
+            .credit-actions .button-secondary {
                 width: 100%;
+            }
+
+            .credit-actions {
+                justify-items: stretch;
             }
         }
     </style>
@@ -469,7 +480,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="q" value="{{ admin_detail_query }}">
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button type="submit" class="action-button {% if is_active %}suspend{% else %}activate{% endif %}">
+                    <button type="submit" class="action-button wide-form-button {% if is_active %}suspend{% else %}activate{% endif %}">
                         {{ action_label }}
                     </button>
                 </form>
@@ -550,7 +561,7 @@
 
                     <div class="panel-actions">
                         <p class="muted">Impacto esperado: suma 1 recuperacion disponible ahora mismo y aparece en el portal de la alumna.</p>
-                        <button type="submit" class="action-button activate">Otorgar recuperacion manual</button>
+                        <button type="submit" class="action-button activate wide-form-button">Otorgar recuperacion manual</button>
                     </div>
                 </form>
 

@@ -2,41 +2,227 @@
 
 {% block title %}Inicio | Eunoia{% endblock %}
 {% block hero_title %}Tu estado del mes{% endblock %}
-{% block hero_copy %}Revisa tu estado operativo y tus turnos de {{ primary_section.name|default:"tu actividad" }}.{% endblock %}
+{% block hero_copy %}Aca ves tu estado del mes, tus turnos de la semana y tus recuperaciones sin vueltas.{% endblock %}
+
+{% block status_banner %}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .shell {
+        width: min(960px, calc(100% - (var(--shell-padding) * 2)));
+    }
+
+    .hero {
+        grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+        gap: 18px;
+        padding: clamp(22px, 4vw, 30px);
+        margin-bottom: 18px;
+    }
+
+    .hero h2 {
+        font-size: clamp(2rem, 4vw, 2.9rem);
+        line-height: 0.96;
+    }
+
+    .hero-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .metric {
+        padding: 14px 16px;
+        border-radius: 16px;
+    }
+
+    .metric strong {
+        font-size: 1.02rem;
+        line-height: 1.25;
+        margin-top: 2px;
+        color: var(--text);
+    }
+
+    .dashboard-layout {
+        width: min(100%, 760px);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+    }
+
+    .portal-card {
+        padding: clamp(20px, 4vw, 28px);
+    }
+
+    .portal-card .section-title {
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .portal-card .section-title h3 {
+        font-size: clamp(1.55rem, 3vw, 1.95rem);
+    }
+
+    .week-window {
+        margin-top: 6px;
+        font-size: 0.95rem;
+        color: var(--muted);
+    }
+
+    .portal-card .item {
+        padding: 14px;
+    }
+
+    .portal-card .item strong {
+        font-size: 1rem;
+    }
+
+    .status-summary {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .status-summary .item {
+        background: rgba(255, 255, 255, 0.7);
+    }
+
+    .session-actions,
+    .recovery-block,
+    .recovery-actions,
+    .empty-state-actions {
+        display: grid;
+        gap: 12px;
+    }
+
+    .session-actions {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+    }
+
+    .session-note {
+        margin-top: 10px;
+        line-height: 1.55;
+    }
+
+    .recovery-block {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+    }
+
+    .recovery-count {
+        display: grid;
+        gap: 6px;
+    }
+
+    .recovery-count strong {
+        font-size: clamp(1.75rem, 4vw, 2.3rem);
+        color: var(--primary-strong);
+    }
+
+    .mini-status {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 0.92rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(105, 132, 119, 0.12);
+    }
+
+    .mini-status.success {
+        color: var(--success);
+    }
+
+    .mini-status.warning,
+    .mini-status.danger {
+        color: var(--danger);
+    }
+
+    .button-secondary,
+    .button-danger,
+    .button-disabled,
+    .button {
+        min-width: 160px;
+    }
+
+    @media (max-width: 720px) {
+        .hero,
+        .recovery-block,
+        .session-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .button-secondary,
+        .button-danger,
+        .button-disabled,
+        .button,
+        .session-actions form,
+        .session-actions form button,
+        .recovery-actions > * {
+            width: 100%;
+        }
+
+        .hero {
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="grid">
-    {% if not operational_status.can_operate %}
-    <article class="card span-12">
+<section class="dashboard-layout">
+    <article class="card portal-card">
         <div class="section-title">
             <div>
-                <p class="eyebrow">Operacion bloqueada</p>
-                <h3>Acciones disponibles</h3>
+                <p class="eyebrow">Este mes</p>
+                <h3>{{ operational_status.title }}</h3>
+            </div>
+            <span class="mini-status {{ operational_status.tone }}">
+                {% if operational_status.can_operate %}Todo disponible{% else %}Solo para ver{% endif %}
+            </span>
+        </div>
+        <div class="status-summary">
+            <div class="item">
+                <strong>{{ primary_section.name|default:"Sin actividad asignada" }}</strong>
+                <p class="meta" style="margin-top: 8px;">Tu actividad principal en el portal.</p>
+            </div>
+            <div class="item">
+                <strong>{{ operational_status.message }}</strong>
+            </div>
+        </div>
+    </article>
+
+    {% if not operational_status.can_operate %}
+    <article class="card portal-card">
+        <div class="section-title">
+            <div>
+                <p class="eyebrow">Por ahora</p>
+                <h3>Solo podes ver la info</h3>
             </div>
         </div>
         <div class="empty">
-            Tu acceso mensual esta bloqueado: no podes reservar ni cancelar desde la web.
-            Cuando vuelva a estar activo, se habilita todo automaticamente.
-            <div class="empty-actions">
-                <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda sin reservar</a>
-                <a href="{% url 'my-bookings' %}" class="button-secondary">Revisar mis turnos</a>
+            Este mes no podes reservar, cancelar ni usar recuperaciones desde aca.
+            <div class="empty-state-actions">
+                <a href="{% url 'agenda' %}" class="button-secondary">Ver horarios</a>
             </div>
         </div>
     </article>
     {% endif %}
 
-    <article class="card span-7">
+    <article class="card portal-card">
         <div class="section-title">
             <div>
-                <p class="eyebrow">Vista rapida</p>
-                <h3>Tus proximas clases</h3>
+                <p class="eyebrow">Semana actual</p>
+                <h3>Turnos de la semana</h3>
+                <p class="week-window">{{ current_week_start|date:"j/m" }} al {{ current_week_end|date:"j/m" }}</p>
             </div>
-            <a href="{% url 'my-bookings' %}" class="button-secondary">Ver mis turnos</a>
         </div>
 
-        {% if upcoming_bookings %}
+        {% if this_week_booking_cards %}
             <div class="list">
-                {% for booking in upcoming_bookings|slice:":3" %}
+                {% for card in this_week_booking_cards %}
+                    {% with booking=card.booking %}
                     <article class="item">
                         <div class="item-header">
                             <div>
@@ -49,102 +235,63 @@
                                 <span class="pill soft-success">Reserva activa</span>
                             {% endif %}
                         </div>
+                        <p class="session-note">{{ card.cancel_action.message }}</p>
+                        <div class="session-actions">
+                            <span class="meta">Clase de {{ booking.session.section.name }}</span>
+                            {% if card.cancel_action.can_cancel %}
+                                <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}">
+                                    <button type="submit" class="button-danger">Cancelar turno</button>
+                                </form>
+                            {% else %}
+                                <span class="button-disabled" aria-disabled="true">{{ card.cancel_action.label }}</span>
+                            {% endif %}
+                        </div>
                     </article>
+                    {% endwith %}
                 {% endfor %}
             </div>
         {% else %}
             <div class="empty">
-                No tenes reservas activas futuras. Revisa agenda para Reservar.
-                <div class="empty-actions">
-                    <a href="{% url 'agenda' %}" class="button-secondary">Ir a la agenda</a>
+                No tenes turnos cargados para esta semana.
+                <div class="empty-state-actions">
+                    <a href="{% url 'agenda' %}" class="button-secondary">Ver horarios</a>
                 </div>
             </div>
         {% endif %}
     </article>
 
-    <article class="card span-5">
+    <article class="card portal-card">
         <div class="section-title">
             <div>
                 <p class="eyebrow">Recuperaciones</p>
-                <h3>Estado de Recuperacion</h3>
+                <h3>Tenes {{ available_recovery_credits|length }} recuperacion{{ available_recovery_credits|length|pluralize:"es" }}</h3>
             </div>
         </div>
-        <div class="stack">
-            <div class="item">
-                <strong>{{ available_recovery_credits|length }} vigentes</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Disponibles para usar antes del vencimiento.</p>
+        <div class="item recovery-block">
+            <div class="recovery-count">
+                <strong>{{ available_recovery_credits|length }}</strong>
+                <p class="meta">
+                    {% if available_recovery_credits %}
+                        Disponibles para usar esta semana en {{ primary_section.name|default:"tu actividad" }}.
+                    {% else %}
+                        No tenes recuperaciones vigentes ahora mismo.
+                    {% endif %}
+                </p>
             </div>
-            <div class="item">
-                <strong>{{ upcoming_makeup_bookings_count }} ya aplicadas</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Reservas confirmadas con Recuperacion.</p>
-            </div>
-            <div class="item">
-                <strong>{{ expired_recovery_credits|length }} vencidas</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Ya no se pueden usar.</p>
-            </div>
-            {% if recovery_credit_cards %}
-                <a href="{{ recovery_credit_cards.0.use_url }}" class="button">Usar Recuperacion</a>
-            {% endif %}
-            <a href="{% url 'my-bookings' %}" class="button-secondary">Revisar recuperaciones</a>
-        </div>
-    </article>
-
-    <article class="card span-12">
-        <div class="section-title">
-            <div>
-                <p class="eyebrow">Agenda de tu actividad</p>
-                <h3>Proximas sesiones visibles</h3>
-            </div>
-            <a href="{% url 'agenda' %}" class="button-secondary">Abrir agenda completa</a>
-        </div>
-
-        {% if upcoming_session_cards %}
-            <div class="list">
-                {% for card in upcoming_session_cards|slice:":3" %}
-                    <article class="item">
-                        <div class="item-header">
-                            <div>
-                                <strong>{{ card.session.date|date:"l j \d\e F" }}</strong>
-                                <p class="meta">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }} - {{ card.session.section.name }}</p>
-                            </div>
-                            <div class="badge-row">
-                                {% if card.session.booked_count >= card.session.capacity %}
-                                    <span class="pill strong-danger">Sin cupo</span>
-                                {% elif card.session.booked_count == card.session.capacity|add:"-1" %}
-                                    <span class="pill strong-warning">Ultimo lugar</span>
-                                {% else %}
-                                    <span class="pill soft-success">{{ card.session.booked_count }}/{{ card.session.capacity }} ocupados</span>
-                                {% endif %}
-                                {% if card.session.id in booked_session_ids %}
-                                    <span class="pill soft-muted">Ya reservado</span>
-                                {% elif card.compatible_recovery_count %}
-                                    <span class="pill soft-warning">Compatible con Recuperacion</span>
-                                {% elif card.action.can_book %}
-                                    <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.path }}">
-                                        <button type="submit" class="button">{{ card.action.label }}</button>
-                                    </form>
-                                {% else %}
-                                    <span class="pill soft-warning">{{ card.action.label }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="support-note">{{ card.action.message }}</div>
-                    </article>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty">
-                {% if primary_section %}
-                    Todavia no hay sesiones futuras cargadas para {{ primary_section.name }}.
+            <div class="recovery-actions">
+                {% if primary_recovery_credit_card %}
+                    <a href="{{ primary_recovery_credit_card.use_url }}" class="button">Usar recuperacion</a>
                 {% else %}
-                    Necesitamos definir tu actividad principal para mostrar agenda.
+                    <span class="button-disabled" aria-disabled="true">Usar recuperacion</span>
                 {% endif %}
-                <div class="empty-actions">
-                    <a href="{% url 'my-bookings' %}" class="button-secondary">Ver mis turnos</a>
-                </div>
             </div>
+        </div>
+        {% if upcoming_makeup_bookings_count or expired_recovery_credits %}
+            <p class="meta" style="margin-top: 14px;">
+                {{ upcoming_makeup_bookings_count }} aplicadas{% if expired_recovery_credits %} · {{ expired_recovery_credits|length }} vencidas{% endif %}
+            </p>
         {% endif %}
     </article>
 </section>

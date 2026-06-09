@@ -4,12 +4,36 @@
 {% block hero_title %}Reservas y Recuperacion, en orden.{% endblock %}
 {% block hero_copy %}Ves tus proximas clases y tu Recuperacion disponible o vencida en una sola pantalla.{% endblock %}
 
+{% block extra_head %}
+<style>
+    .booking-actions,
+    .recovery-actions {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        align-items: center;
+    }
+
+    .booking-note,
+    .recovery-note {
+        margin-top: 12px;
+    }
+
+    @media (max-width: 720px) {
+        .booking-actions,
+        .recovery-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <section class="grid">
     {% if not operational_status.can_operate %}
     <article class="card span-12">
         <div class="empty">
-            Tu acceso mensual esta bloqueado: no podes Reservar ni Cancelar desde la web.
+            Este mes no podes reservar ni cancelar desde el portal.
             Tus turnos activos siguen visibles para seguimiento.
             <div class="empty-actions">
                 <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
@@ -44,14 +68,14 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <p class="session-note" style="margin-top: 12px; line-height: 1.6;">
+                        <p class="session-note booking-note">
                             {% if booking.used_recovery_credit_id %}
                                 Este turno uso una Recuperacion de tu actividad.
                             {% else %}
                                 Reserva regular de tu actividad principal.
                             {% endif %}
                         </p>
-                        <div class="item-footer" style="margin-top: 14px;">
+                        <div class="booking-actions" style="margin-top: 14px;">
                             <span class="meta">{{ card.cancel_action.message }}</span>
                             {% if card.cancel_action.can_cancel %}
                                 <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
@@ -93,14 +117,14 @@
                             <strong>{{ credit.section.name }}</strong>
                             <span class="pill soft-success">Disponible</span>
                         </div>
-                        <p class="meta" style="margin-top: 10px; line-height: 1.6;">
+                        <p class="meta recovery-note">
                             Vence el {{ credit.expires_at|date:"j \d\e F, Y" }}.
                             {% if credit.origin_session %}
                                 Se origino en la clase del {{ credit.origin_session.date|date:"j/m/Y" }}.
                             {% endif %}
                         </p>
-                        <div class="item-footer" style="margin-top: 14px;">
-                             <span class="meta">La reserva se valida antes de confirmar.</span>
+                        <div class="recovery-actions" style="margin-top: 14px;">
+                            <span class="meta">La reserva se valida antes de confirmar.</span>
                             <a href="{% url 'use-recovery' credit.id %}" class="button-secondary">Reservar con Recuperacion</a>
                         </div>
                     </article>
