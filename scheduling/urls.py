@@ -2,13 +2,18 @@ from django.urls import path
 
 from .views import (
     admin_class_agenda_view,
+    admin_create_class_session_view,
     admin_class_session_detail_view,
+    admin_delete_class_session_view,
     admin_create_holiday_closure_view,
     admin_student_detail_view,
     admin_expire_recovery_credit_view,
     admin_grant_manual_recovery_view,
+    admin_mark_student_paid_view,
     admin_student_list_view,
     admin_toggle_student_access_view,
+    admin_update_class_session_view,
+    account_view,
     agenda_view,
     cancel_booking_view,
     change_password_required_view,
@@ -17,6 +22,7 @@ from .views import (
     login_view,
     logout_view,
     my_bookings_view,
+    register_view,
     use_recovery_view,
 )
 
@@ -25,6 +31,9 @@ urlpatterns = [
     path('', dashboard_view, name='dashboard'),
     path('staff/', admin_student_list_view, name='admin-student-list'),
     path('staff/clases/', admin_class_agenda_view, name='admin-class-agenda'),
+    path('staff/clases/crear/', admin_create_class_session_view, name='admin-create-class-session'),
+    path('staff/clases/<int:session_id>/editar/', admin_update_class_session_view, name='admin-update-class-session'),
+    path('staff/clases/<int:session_id>/eliminar/', admin_delete_class_session_view, name='admin-delete-class-session'),
     path('staff/clases/<int:session_id>/', admin_class_session_detail_view, name='admin-class-session-detail'),
     path('staff/feriados/crear/', admin_create_holiday_closure_view, name='admin-create-holiday-closure'),
     path('staff/alumnas/<int:student_id>/', admin_student_detail_view, name='admin-student-detail'),
@@ -39,6 +48,11 @@ urlpatterns = [
         name='admin-expire-recovery-credit',
     ),
     path(
+        'staff/alumnas/<int:student_id>/mark-paid/',
+        admin_mark_student_paid_view,
+        name='admin-mark-student-paid',
+    ),
+    path(
         'staff/alumnas/<int:student_id>/toggle-access/',
         admin_toggle_student_access_view,
         name='admin-toggle-student-access',
@@ -47,8 +61,10 @@ urlpatterns = [
     path('agenda/<int:session_id>/reservar/', create_booking_view, name='create-booking'),
     path('recuperaciones/<int:recovery_credit_id>/usar/', use_recovery_view, name='use-recovery'),
     path('mis-turnos/', my_bookings_view, name='my-bookings'),
+    path('mi-cuenta/', account_view, name='account'),
     path('mis-turnos/<int:booking_id>/cancelar/', cancel_booking_view, name='cancel-booking'),
     path('login/', login_view, name='login'),
+    path('crear-cuenta/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
     path('change-password-required/', change_password_required_view, name='change-password-required'),
 ]

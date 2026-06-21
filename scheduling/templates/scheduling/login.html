@@ -4,12 +4,24 @@
 
 {% block extra_head %}
     <style>
+        :root {
+            --login-shell-border: rgba(108, 127, 112, 0.13);
+            --login-card-shadow: 0 24px 60px rgba(69, 86, 75, 0.08);
+            --login-soft-shadow: 0 10px 30px rgba(69, 86, 75, 0.05);
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top center, rgba(255, 255, 255, 0.88), transparent 34%),
+                linear-gradient(180deg, #f6f3eb 0%, #eef2ea 100%);
+        }
+
         .auth-shell {
-            width: min(100%, 640px);
+            width: min(100%, 680px);
         }
 
         .auth-layout {
-            grid-template-columns: minmax(320px, 520px);
+            grid-template-columns: minmax(320px, 1fr);
             justify-content: center;
         }
 
@@ -18,49 +30,197 @@
         }
 
         .auth-card {
-            padding: clamp(28px, 5vw, 38px);
+            padding: clamp(28px, 5vw, 40px);
+            border-radius: 34px;
+            border: 1px solid var(--login-shell-border);
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: var(--login-card-shadow);
         }
 
         .auth-brand-inline {
             padding: 22px 24px;
-            border: 1px solid rgba(105, 132, 119, 0.14);
-            border-radius: 22px;
-            background: linear-gradient(180deg, rgba(246, 249, 246, 0.98), rgba(255, 255, 255, 0.96));
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(105, 132, 119, 0.12);
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: var(--login-soft-shadow);
         }
 
         .auth-intro {
             display: grid;
-            gap: 20px;
+            gap: 28px;
             margin-bottom: 24px;
         }
 
         .auth-brand-inline .brand-row {
             align-items: center;
+            gap: 22px;
         }
 
         .auth-brand-inline p {
             margin: 0;
+            font-size: 1rem;
+            color: #49524e;
+        }
+
+        .auth-brand-inline h3 {
+            font-size: clamp(2.2rem, 5vw, 3rem);
+            line-height: 0.95;
+            letter-spacing: 0;
+        }
+
+        .auth-brand-inline .brand-mark {
+            width: 84px;
+            height: 84px;
+            border-radius: 22px;
+            font-size: 2.9rem;
+            background: linear-gradient(145deg, #f3efe5, #e2eadf);
         }
 
         .auth-header {
             margin-bottom: 0;
             display: grid;
-            gap: 8px;
+            gap: 14px;
         }
 
         .auth-header h2 {
             margin-bottom: 0;
+            font-size: clamp(2.3rem, 5.4vw, 3.35rem);
+            line-height: 0.98;
         }
 
         .auth-header p {
             margin: 0;
             color: var(--muted);
             max-width: 30ch;
+            font-size: clamp(1.02rem, 2.1vw, 1.24rem);
+            line-height: 1.5;
+        }
+
+        .auth-form {
+            gap: 22px;
+        }
+
+        .field {
+            gap: 10px;
+        }
+
+        .field label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #18211d;
+        }
+
+        .field input {
+            min-height: 64px;
+            padding: 16px 22px;
+            border-radius: 20px;
+            border-color: rgba(116, 130, 118, 0.18);
+            font-size: 1rem;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
+        }
+
+        .field input::placeholder {
+            color: #6f7672;
+        }
+
+        .field-help,
+        .field-errors,
+        .auth-note,
+        .auth-link-row a,
+        .auth-support-copy {
+            font-size: 0.98rem;
+        }
+
+        .field-help {
+            color: #5e6662;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field input {
+            padding-right: 64px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            border: 0;
+            border-radius: 50%;
+            display: inline-grid;
+            place-items: center;
+            background: transparent;
+            color: #a6ae9e;
+            cursor: pointer;
+        }
+
+        .password-toggle:hover {
+            background: rgba(111, 143, 127, 0.08);
+            color: var(--primary-strong);
+        }
+
+        .password-toggle:focus-visible {
+            outline: 3px solid var(--focus);
+            outline-offset: 2px;
+        }
+
+        .auth-link-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .auth-link-row a,
+        .auth-note a {
+            color: var(--primary-strong);
+            text-underline-offset: 4px;
+            text-decoration-thickness: 1px;
+        }
+
+        .auth-actions {
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        .button {
+            min-height: 62px;
+            font-size: clamp(1.08rem, 2vw, 1.25rem);
+            font-weight: 700;
+            letter-spacing: 0;
+            background: #5a7466;
+            box-shadow: 0 16px 30px rgba(69, 101, 86, 0.18);
         }
 
         .auth-note {
             text-align: center;
+            color: #474f4b;
+        }
+
+        .auth-support-copy {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .auth-support-copy strong {
+            color: var(--primary-strong);
+            font-weight: 700;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         @media (max-width: 720px) {
@@ -69,7 +229,31 @@
             }
 
             .auth-brand-inline {
-                padding: 20px;
+                padding: 22px;
+            }
+
+            .auth-card {
+                border-radius: 28px;
+                padding: 24px;
+            }
+
+            .auth-brand-inline .brand-mark {
+                width: 72px;
+                height: 72px;
+                font-size: 2.4rem;
+            }
+
+            .auth-header h2 {
+                font-size: clamp(2.2rem, 10vw, 2.9rem);
+            }
+
+            .field input {
+                min-height: 60px;
+                padding: 16px 18px;
+            }
+
+            .button {
+                min-height: 60px;
             }
         }
     </style>
@@ -140,27 +324,63 @@
 
         <div class="field{% if form.password.errors %} has-error{% endif %}">
             <label for="{{ form.password.id_for_label }}">Contrasena</label>
-            <input
-                type="password"
-                name="password"
-                id="{{ form.password.id_for_label }}"
-                placeholder="Tu contrasena"
-                autocomplete="current-password"
-                {% if form.password.errors %}aria-describedby="password-help password-errors" aria-invalid="true"{% else %}aria-describedby="password-help" aria-invalid="false"{% endif %}
-                required
-            >
+            <div class="password-field">
+                <input
+                    type="password"
+                    name="password"
+                    id="{{ form.password.id_for_label }}"
+                    placeholder="Tu contrasena"
+                    autocomplete="current-password"
+                    {% if form.password.errors %}aria-describedby="password-help password-errors" aria-invalid="true"{% else %}aria-describedby="password-help" aria-invalid="false"{% endif %}
+                    required
+                >
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ form.password.id_for_label }}" aria-label="Mostrar contrasena">
+                    <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span class="visually-hidden">Mostrar contrasena</span>
+                </button>
+            </div>
             <div class="field-meta">
                 <p class="field-help" id="password-help">Respeta mayusculas, minusculas y caracteres tal como la definiste.</p>
                 {% if form.password.errors %}
                     <div class="field-errors" id="password-errors" role="alert">{{ form.password.errors|striptags }}</div>
                 {% endif %}
             </div>
+            <div class="auth-link-row">
+                <a href="https://l.instagram.com/?u=https%3A%2F%2Fwa.me%2Fmessage%2FVDFAO2PZSHYNL1%3Futm_source%3Dig%26utm_medium%3Dsocial%26utm_content%3Dlink_in_bio%26fbclid%3DPAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGn6Jn6oCp_BQiGHtOmufomOpslAKf-8RAERoGa8gUsD8X8mrv0oSEryIF6FDo_aem_N0l1nn6U82NZUL372Bkujg&e=AUC5jMgG6jwYzf0RZLUyoIrB8A0sSDPAS6LEnomUmv9EI35lbnaYQrwy6CoKaBWJP4bfk-zTKI75P9y-OH498g6W58JJ17PJLc8Ik-o_ozvCo2OzdJarNHHxeZN-jyvJFFhKwgM" target="_blank" rel="noopener noreferrer">Olvidé mi contraseña</a>
+            </div>
         </div>
 
         <div class="auth-actions">
             <button type="submit" class="button">Ingresar</button>
-            <p class="auth-note">Si no puedes ingresar, contacta al staff.</p>
+            <div id="support-access" class="auth-note">
+                <p class="auth-support-copy">¿No podés ingresar? <a href="https://l.instagram.com/?u=https%3A%2F%2Fwa.me%2Fmessage%2FVDFAO2PZSHYNL1%3Futm_source%3Dig%26utm_medium%3Dsocial%26utm_content%3Dlink_in_bio%26fbclid%3DPAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGn6Jn6oCp_BQiGHtOmufomOpslAKf-8RAERoGa8gUsD8X8mrv0oSEryIF6FDo_aem_N0l1nn6U82NZUL372Bkujg&e=AUC5jMgG6jwYzf0RZLUyoIrB8A0sSDPAS6LEnomUmv9EI35lbnaYQrwy6CoKaBWJP4bfk-zTKI75P9y-OH498g6W58JJ17PJLc8Ik-o_ozvCo2OzdJarNHHxeZN-jyvJFFhKwgM" target="_blank" rel="noopener noreferrer"><strong>Contactá al staff</strong></a></p>
+                <p class="auth-support-copy">¿Todavía no tenés cuenta? <a href="{% url 'register' %}"><strong>Crear mi cuenta</strong></a></p>
+            </div>
         </div>
     </form>
+
+    <script>
+        (function () {
+            const toggle = document.querySelector('[data-password-toggle]');
+            if (!toggle) return;
+
+            const inputId = toggle.getAttribute('aria-controls');
+            const input = inputId ? document.getElementById(inputId) : null;
+            if (!input) return;
+
+            toggle.addEventListener('click', function () {
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                toggle.setAttribute('aria-label', showing ? 'Mostrar contrasena' : 'Ocultar contrasena');
+                const hiddenText = toggle.querySelector('.visually-hidden');
+                if (hiddenText) {
+                    hiddenText.textContent = showing ? 'Mostrar contrasena' : 'Ocultar contrasena';
+                }
+            });
+        }());
+    </script>
 
 {% endblock %}

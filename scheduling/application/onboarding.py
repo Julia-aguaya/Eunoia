@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.db import transaction
+from django.utils import timezone
 
-from ..models import User, UserRole
+from ..models import MonthlyAccessStatus, MonthlyAccessStatusType, User, UserRole, normalize_month_start
 
 
 @dataclass(frozen=True)
@@ -75,3 +76,29 @@ def reset_temporary_password(*, users, password=None):
             updated_count += 1
 
     return ResetTemporaryPasswordResult(updated_count=updated_count)
+
+
+def create_student_self_signup(*, email, first_name, last_name, primary_section, phone='', password):
+    with transaction.atomic():
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            primary_section=primary_section,
+            phone=phone,
+            role=UserRole.STUDENT,
+            must_change_password=False,
+            is_active=True,
+            is_staff=False,
+        )
+        MonthlyAccessStatus.objects.get_or_create(
+            student=user,
+            month=normalize_month_start(timezone.localdate()),
+            defaults={
+                'status': MonthlyAccessStatusType.PENDING_PAYMENT,
+                'booking_enabled': False,
+            },
+        )
+
+    return user

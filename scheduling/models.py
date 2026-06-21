@@ -389,6 +389,15 @@ class RecoveryCreditManager(models.Manager):
 
 
 class RecoveryCredit(TimeStampedModel):
+    SECTION_COMPATIBILITY = {
+        ActivityType.CADILLAC: frozenset({
+            ActivityType.CADILLAC,
+            ActivityType.REFORMER_UPSTAIRS,
+            ActivityType.REFORMER_DOWNSTAIRS,
+        }),
+        ActivityType.REFORMER_UPSTAIRS: frozenset({ActivityType.REFORMER_UPSTAIRS}),
+        ActivityType.REFORMER_DOWNSTAIRS: frozenset({ActivityType.REFORMER_DOWNSTAIRS}),
+    }
     STATUS_TRANSITIONS = {
         RecoveryCreditStatus.AVAILABLE: frozenset({
             RecoveryCreditStatus.USED,
@@ -554,9 +563,9 @@ class RecoveryCredit(TimeStampedModel):
         if self.student_id != student.pk:
             errors.setdefault('used_recovery_credit', []).append('Recovery credit belongs to another student.')
 
-        if self.section_id != session.section_id:
+        if not self.is_session_compatible(session):
             errors.setdefault('used_recovery_credit', []).append(
-                'Recovery credit can only be used within the same section.'
+                'Recovery credit is not compatible with this section.'
             )
 
         if self.origin_session_id == session.pk:
@@ -578,6 +587,12 @@ class RecoveryCredit(TimeStampedModel):
         self.validate_status_transition(RecoveryCreditStatus.USED)
         self.status = RecoveryCreditStatus.USED
         self.used_at = usage_time
+
+    def compatible_section_codes(self):
+        return self.SECTION_COMPATIBILITY.get(self.section.code, frozenset({self.section.code}))
+
+    def is_session_compatible(self, session):
+        return session.section.code in self.compatible_section_codes()
 
 
 class BookingManager(models.Manager):

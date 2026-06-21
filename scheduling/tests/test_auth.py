@@ -155,6 +155,72 @@ class AuthenticationFlowTests(TestCase):
         follow_response = self.client.get(reverse('dashboard'))
         self.assertContains(follow_response, 'Portal Eunoia')
 
+    def test_student_can_create_own_account_with_activity_and_pending_access(self):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'first_name': 'Meli',
+                'last_name': 'López',
+                'email': 'meli-self-signup@example.com',
+                'phone': '1133445566',
+                'primary_section': self.section.pk,
+                'password1': 'RegistroSeguro2026!',
+                'password2': 'RegistroSeguro2026!',
+            },
+            follow=True,
+        )
+
+        user = User.objects.get(email='meli-self-signup@example.com')
+        access = user.get_monthly_access_for(self.today)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(user.check_password('RegistroSeguro2026!'))
+        self.assertFalse(user.must_change_password)
+        self.assertEqual(user.primary_section, self.section)
+        self.assertIsNotNone(access)
+        self.assertEqual(access.status, MonthlyAccessStatusType.PENDING_PAYMENT)
+        self.assertFalse(access.booking_enabled)
+        self.assertContains(response, 'Tu cuenta quedó creada.')
+
+    def test_register_rejects_duplicate_email(self):
+        self.create_student(
+            email='dup-register@example.com',
+            password='Duplicada2026!',
+            must_change_password=False,
+        )
+
+        response = self.client.post(
+            reverse('register'),
+            {
+                'first_name': 'Otra',
+                'last_name': 'Alumna',
+                'email': 'dup-register@example.com',
+                'phone': '',
+                'primary_section': self.section.pk,
+                'password1': 'RegistroSeguro2026!',
+                'password2': 'RegistroSeguro2026!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ya existe una cuenta con ese email.')
+
+    def test_register_rejects_password_mismatch(self):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'first_name': 'Meli',
+                'last_name': 'López',
+                'email': 'meli-mismatch@example.com',
+                'phone': '1133445566',
+                'primary_section': self.section.pk,
+                'password1': 'RegistroSeguro2026!',
+                'password2': 'OtraClave2026!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Las contraseñas no coinciden.')
+
     def test_login_rejects_invalid_credentials(self):
         user = self.create_student(
             email='login-invalid@example.com',
@@ -224,7 +290,7 @@ class AuthenticationFlowTests(TestCase):
         self.assertIsNone(user.temporary_password_set_at)
         self.assertTrue(user.check_password('DefinitivaSegura2026!'))
         dashboard_response = self.client.get(reverse('dashboard'))
-        self.assertContains(dashboard_response, 'Tu estado del mes')
+        self.assertContains(dashboard_response, 'Tus clases')
 
     def test_change_password_view_redirects_when_reset_is_no_longer_required(self):
         user = self.create_student(
@@ -239,7 +305,7 @@ class AuthenticationFlowTests(TestCase):
         change_password_response = self.client.get(reverse('change-password-required'))
 
         self.assertEqual(dashboard_response.status_code, 200)
-        self.assertContains(dashboard_response, user.get_full_name())
+        self.assertContains(dashboard_response, f'Hola, {user.first_name}')
         self.assertRedirects(change_password_response, reverse('dashboard'))
 
     def test_staff_login_redirects_to_admin_portal(self):

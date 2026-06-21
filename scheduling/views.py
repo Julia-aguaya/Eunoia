@@ -1,4 +1,5 @@
-from datetime import timedelta
+import calendar
+from datetime import date, timedelta
 from functools import wraps
 
 from django.contrib import messages
@@ -14,9 +15,13 @@ from django.utils.http import urlencode, url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from .application.recovery_credits import expire_recovery_credit
+from .application.onboarding import create_student_self_signup
 from .forms import (
+    AccountProfileForm,
     EmailAuthenticationForm,
     RequiredPasswordChangeForm,
+    StudentSelfSignupForm,
+    StaffClassSessionForm,
     StaffHolidayClosureForm,
     StaffManualRecoveryCreditForm,
 )
@@ -35,6 +40,7 @@ from .models import (
     SessionStatus,
     User,
     UserRole,
+    WeeklyClassSlot,
     normalize_month_start,
 )
 from .use_cases import (
@@ -50,16 +56,31 @@ from .use_cases import (
 STUDENT_PORTAL_PREVIEW_LIMIT = 6
 ADMIN_DETAIL_PREVIEW_LIMIT = 5
 STAFF_AGENDA_WINDOW_DAYS = 7
+SPANISH_MONTH_NAMES = {
+    1: 'Enero',
+    2: 'Febrero',
+    3: 'Marzo',
+    4: 'Abril',
+    5: 'Mayo',
+    6: 'Junio',
+    7: 'Julio',
+    8: 'Agosto',
+    9: 'Septiembre',
+    10: 'Octubre',
+    11: 'Noviembre',
+    12: 'Diciembre',
+}
+SPANISH_WEEKDAY_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 BOOKING_ERROR_MESSAGES = {
-    'Student must have a primary section before reserving.': 'Todavia no tenes una actividad principal configurada. Escribinos para habilitar tu agenda.',
-    'Student can only reserve sessions in their primary section.': 'Esta clase corresponde a otra actividad. Solo podes reservar dentro de tu actividad principal.',
-    'Student must have active monthly operational access for this session month.': 'Este mes no podes reservar esta clase desde el portal.',
+    'Student must have a primary section before reserving.': 'Todavía no tenés una actividad principal configurada. Escribinos para habilitar tu agenda.',
+    'Student can only reserve sessions in their primary section.': 'Esta clase corresponde a otra actividad. Solo podés reservar dentro de tu actividad principal.',
+    'Student must have active monthly operational access for this session month.': 'Este mes no podés reservar esta clase desde el portal.',
     'This session is closed and cannot be booked.': 'Esta clase ya esta cerrada y no acepta nuevas reservas.',
     'This session has reached its capacity.': 'No quedan cupos disponibles para esta clase.',
-    'Student already has an active booking for this session.': 'Ya tenes una reserva activa para esta clase.',
+    'Student already has an active booking for this session.': 'Ya tenés una reserva activa para esta clase.',
     'Recovery credit belongs to another student.': 'Esta recuperacion no pertenece a tu cuenta.',
-    'Recovery credit can only be used within the same section.': 'Esta recuperacion corresponde a otra actividad y no aplica a esta clase.',
+    'Recovery credit is not compatible with this section.': 'Esta recuperación no se puede usar en esta actividad.',
     'Recovery credit must be used for another session in the same section.': 'La recuperacion solo sirve para otra clase de la misma actividad, no para la sesion original.',
     'Recovery credit is not available.': 'La recuperacion elegida ya no esta disponible para usar.',
     'Recovery credit is expired.': 'La recuperacion elegida esta vencida y ya no puede usarse.',
@@ -69,7 +90,7 @@ BOOKING_ERROR_MESSAGES = {
 CANCELLATION_ERROR_MESSAGES = {
     'Only active bookings can be cancelled.': 'Esta reserva ya no esta activa, asi que no se puede cancelar de nuevo desde la web.',
     'Self-service cancellation is only allowed more than 2 hours before class start.': 'Esta reserva ya no puede cancelarse desde la web porque faltan 2 horas o menos para la clase.',
-    'Only the booking student can cancel this booking.': 'Solo podes cancelar tus propias reservas.',
+    'Only the booking student can cancel this booking.': 'Solo podés cancelar tus propias reservas.',
 }
 
 RECOVERY_MANAGEMENT_ERROR_MESSAGES = {
@@ -104,38 +125,42 @@ def _build_admin_status_badges(access):
             'action_label': 'Activar acceso',
             'is_active': False,
             'summary_key': 'missing',
+            'filter_key': 'pending',
         }
 
     if access.grants_operational_booking_access():
         return {
             'operational_label': 'Activo',
             'operational_tone': 'success',
-            'payment_label': 'Al dia',
+            'payment_label': 'Al día',
             'payment_tone': 'success',
             'action_label': 'Suspender acceso',
             'is_active': True,
             'summary_key': 'active',
+            'filter_key': 'active',
         }
 
     if access.status == MonthlyAccessStatusType.PENDING_PAYMENT:
         return {
-            'operational_label': 'Pendiente de pago',
+            'operational_label': 'Pendiente',
             'operational_tone': 'warning',
             'payment_label': 'Impaga',
             'payment_tone': 'danger',
             'action_label': 'Activar acceso',
             'is_active': False,
             'summary_key': 'pending',
+            'filter_key': 'pending',
         }
 
     return {
-        'operational_label': 'Suspendido',
+        'operational_label': 'Bloqueado',
         'operational_tone': 'danger',
-        'payment_label': 'Suspendido',
-        'payment_tone': 'danger',
+        'payment_label': 'Al día',
+        'payment_tone': 'success',
         'action_label': 'Activar acceso',
         'is_active': False,
         'summary_key': 'suspended',
+        'filter_key': 'pending',
     }
 
 
@@ -148,16 +173,18 @@ def _build_admin_student_detail_url(student_id, query=''):
 
 def _build_admin_student_row(student, access, *, query=''):
     badges = _build_admin_status_badges(access)
+    initials = ''.join(part[0] for part in [student.first_name, student.last_name] if part).upper()[:2] or student.email[:2].upper()
     return {
         'student': student,
         'current_access': access,
-        'section_name': student.primary_section.name if student.primary_section_id else 'Sin seccion principal',
+        'section_name': student.primary_section.name if student.primary_section_id else 'Sin sección principal',
         'detail_url': _build_admin_student_detail_url(student.pk, query=query),
+        'initials': initials,
         **badges,
     }
 
 
-def _get_admin_students_context(*, query=''):
+def _get_admin_students_context(*, query='', status_filter='all'):
     current_month = normalize_month_start(timezone.localdate())
     students_qs = (
         User.objects.filter(role=UserRole.STUDENT)
@@ -181,17 +208,28 @@ def _get_admin_students_context(*, query=''):
         'pending': 0,
         'suspended': 0,
         'missing': 0,
+        'impaga': 0,
     }
 
     for student in students:
         access = student.current_month_accesses[0] if student.current_month_accesses else None
         row = _build_admin_student_row(student, access, query=query)
-        rows.append(row)
         summary[row['summary_key']] += 1
+        if row['payment_label'] == 'Impaga':
+            summary['impaga'] += 1
+        rows.append(row)
+
+    if status_filter == 'active':
+        rows = [row for row in rows if row['filter_key'] == 'active']
+    elif status_filter == 'pending':
+        rows = [row for row in rows if row['operational_label'] in {'Pendiente', 'Sin estado cargado', 'Bloqueado'}]
+    elif status_filter == 'impaga':
+        rows = [row for row in rows if row['payment_label'] == 'Impaga']
 
     return {
         'admin_students': rows,
         'admin_query': query,
+        'admin_status_filter': status_filter,
         'admin_current_month': current_month,
         'admin_current_month_label': current_month.strftime('%m/%Y'),
         'admin_summary': summary,
@@ -239,7 +277,7 @@ def _parse_staff_agenda_date(raw_value):
         return timezone.localdate()
 
 
-def _build_staff_class_agenda_context(*, data=None, closure_form=None):
+def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_form=None):
     data = data or {}
     anchor_date = _parse_staff_agenda_date(data.get('date'))
     window_end = anchor_date + timedelta(days=STAFF_AGENDA_WINDOW_DAYS - 1)
@@ -314,6 +352,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None):
     )
     recent_closures = list(HolidayClosure.objects.select_related('created_by').order_by('-date')[:5])
     closure_form = closure_form or StaffHolidayClosureForm(initial={'date': anchor_date})
+    class_form = class_form or StaffClassSessionForm(initial={'date': anchor_date})
     closure_focus_date = closure_form['date'].value() or anchor_date
     closure_focus = HolidayClosure.objects.filter(date=_parse_staff_agenda_date(closure_focus_date)).first()
     closure_focus_summary = None
@@ -347,6 +386,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None):
         'staff_agenda_closures': closures,
         'staff_recent_closures': recent_closures,
         'staff_holiday_closure_form': closure_form,
+        'staff_class_session_form': class_form,
         'staff_closure_focus_summary': closure_focus_summary,
     }
 
@@ -397,6 +437,7 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
 
     return {
         'staff_session': session,
+        'staff_session_is_manual': session.slot_id is None,
         'staff_session_back_url': _build_staff_class_agenda_url(date=requested_date, section=requested_section),
         'staff_session_back_date': requested_date,
         'staff_session_back_section_id': requested_section,
@@ -411,6 +452,7 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
         'staff_session_holiday_closure_affected_bookings_count': holiday_closure_affected_bookings_count,
         'staff_session_summary_text': summary_text,
         'staff_session_total_movements_count': booked_count + len(recent_booking_events),
+        'staff_class_session_form': StaffClassSessionForm(session_instance=session),
     }
 
 
@@ -464,7 +506,7 @@ def _get_admin_student_detail_context(student, *, query='', manual_recovery_form
         'admin_detail_current_month': current_month,
         'admin_detail_current_month_label': current_month.strftime('%m/%Y'),
         'admin_detail_current_access': current_access,
-        'admin_detail_section_name': student.primary_section.name if student.primary_section_id else 'Sin seccion principal',
+        'admin_detail_section_name': student.primary_section.name if student.primary_section_id else 'Sin sección principal',
         'admin_detail_upcoming_bookings': upcoming_bookings,
         'admin_detail_available_recoveries': available_recovery_credits,
         'admin_detail_expired_recoveries': expired_recovery_credits,
@@ -488,7 +530,7 @@ def _build_operational_status(user, target_date):
     if user.primary_section_id is None:
         return {
             'title': 'Pendiente',
-            'message': 'Todavia no vemos tu actividad principal en la cuenta. Escribinos y lo resolvemos para que puedas usar el portal con normalidad.',
+            'message': 'Todavía no vemos tu actividad principal en la cuenta. Escribinos y lo resolvemos para que puedas usar el portal con normalidad.',
             'tone': 'warning',
             'can_operate': False,
         }
@@ -496,7 +538,7 @@ def _build_operational_status(user, target_date):
     if access is None:
         return {
             'title': 'Pendiente',
-            'message': 'Todavia no confirmamos tu estado de este mes. Si queres revisarlo, escribinos y te ayudamos.',
+            'message': 'Todavía no confirmamos tu estado de este mes. Si querés revisarlo, escribinos y te ayudamos.',
             'tone': 'warning',
             'can_operate': False,
         }
@@ -504,7 +546,7 @@ def _build_operational_status(user, target_date):
     if access.grants_operational_booking_access():
         return {
             'title': 'Activa',
-            'message': 'Este mes podes ver horarios, reservar y gestionar tus turnos desde el portal.',
+            'message': 'Este mes podés ver horarios, reservar y gestionar tus turnos desde el portal.',
             'tone': 'success',
             'can_operate': True,
         }
@@ -512,7 +554,7 @@ def _build_operational_status(user, target_date):
     if access.status == MonthlyAccessStatusType.PENDING_PAYMENT:
         return {
             'title': 'Impaga',
-            'message': 'Este mes figura con pago pendiente. Podes seguir viendo horarios, pero las reservas y cambios quedan pausados hasta regularizarlo.',
+            'message': 'Tu cuenta está creada, pero todavía no está habilitada para reservar hasta validar la cuenta.',
             'tone': 'danger',
             'can_operate': False,
         }
@@ -520,7 +562,7 @@ def _build_operational_status(user, target_date):
     if access.status == MonthlyAccessStatusType.SUSPENDED:
         return {
             'title': 'Suspendida',
-            'message': 'Este mes no podes reservar ni mover turnos desde el portal. Si necesitas ayuda, escribinos.',
+            'message': 'Este mes no podés reservar ni mover turnos desde el portal. Si necesitás ayuda, escribinos.',
             'tone': 'danger',
             'can_operate': False,
         }
@@ -549,14 +591,14 @@ def _get_student_portal_context(user):
             cancel_action = {
                 'can_cancel': True,
                 'label': 'Cancelar turno',
-                'message': 'Si cambias de plan, podes cancelarlo desde aca. Si corresponde, la recuperacion se genera automaticamente.',
+                'message': 'Si cambiás de plan, podés cancelarlo desde acá. Si corresponde, la recuperación se genera automáticamente.',
                 'tone': 'ready',
             }
         else:
             cancel_action = {
                 'can_cancel': False,
                 'label': 'Ventana cerrada',
-                'message': 'La cancelacion online esta disponible solo hasta 2 horas antes del inicio.',
+                'message': 'La cancelación online está disponible solo hasta 2 horas antes del inicio.',
                 'tone': 'blocked',
             }
         upcoming_booking_cards.append({'booking': booking, 'cancel_action': cancel_action})
@@ -586,12 +628,16 @@ def _get_student_portal_context(user):
 
     recovery_credits = list(
         user.recovery_credits.select_related('section', 'origin_session')
-        .exclude(status__in=[RecoveryCreditStatus.REVOKED, RecoveryCreditStatus.USED])
+        .exclude(status=RecoveryCreditStatus.REVOKED)
         .order_by('expires_at', 'created_at')
     )
     available_recovery_credits = []
     expired_recovery_credits = []
+    used_recovery_credits = []
     for credit in recovery_credits:
+        if credit.status == RecoveryCreditStatus.USED:
+            used_recovery_credits.append(credit)
+            continue
         if credit.is_expired(on_date=today):
             expired_recovery_credits.append(credit)
         else:
@@ -650,6 +696,7 @@ def _get_student_portal_context(user):
         'primary_recovery_credit_card': primary_recovery_credit_card,
         'upcoming_makeup_bookings_count': len(upcoming_makeup_bookings),
         'expired_recovery_credits': expired_recovery_credits,
+        'used_recovery_credits': used_recovery_credits,
     }
 
 
@@ -688,15 +735,175 @@ def _get_current_workweek_window(reference_date):
     return week_start, week_end, False
 
 
+def _parse_agenda_month(raw_value, fallback_date):
+    if not raw_value:
+        return normalize_month_start(fallback_date)
+
+    try:
+        year_str, month_str = raw_value.split('-', 1)
+        return date(int(year_str), int(month_str), 1)
+    except (TypeError, ValueError):
+        return normalize_month_start(fallback_date)
+
+
+def _shift_month(month_start, delta):
+    month_index = (month_start.year * 12 + month_start.month - 1) + delta
+    year = month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, 1)
+
+
+def _build_agenda_calendar_context(*, context, month_start):
+    booked_dates = {booking.session.date for booking in context['upcoming_bookings']}
+    month_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
+    weeks = []
+    for week in month_calendar:
+        week_days = []
+        for day in week:
+            week_days.append(
+                {
+                    'date': day,
+                    'day_number': day.day,
+                    'in_month': day.month == month_start.month,
+                    'has_booking': day in booked_dates,
+                    'is_today': day == context['today'],
+                }
+            )
+        weeks.append(week_days)
+
+    monthly_bookings = [
+        card for card in context['upcoming_booking_cards'] if card['booking'].session.date.year == month_start.year and card['booking'].session.date.month == month_start.month
+    ]
+    fixed_schedule_booking = monthly_bookings[0]['booking'] if monthly_bookings else (context['upcoming_booking_cards'][0]['booking'] if context['upcoming_booking_cards'] else None)
+
+    return {
+        'agenda_month_start': month_start,
+        'agenda_month_label': f"{SPANISH_MONTH_NAMES[month_start.month]} {month_start.year}",
+        'agenda_weekday_labels': SPANISH_WEEKDAY_SHORT,
+        'agenda_calendar_weeks': weeks,
+        'agenda_monthly_booking_cards': monthly_bookings,
+        'agenda_monthly_bookings_count': len(monthly_bookings),
+        'agenda_fixed_schedule_booking': fixed_schedule_booking,
+        'agenda_prev_url': f"{reverse('agenda')}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m')})}",
+        'agenda_next_url': f"{reverse('agenda')}?{urlencode({'month': _shift_month(month_start, 1).strftime('%Y-%m')})}",
+    }
+
+
+def _build_recovery_calendar_context(*, credit_id, recovery_session_cards, fixed_schedule_dates, month_start, selected_date=None, selected_session_id=None):
+    available_dates = {card['session'].date for card in recovery_session_cards}
+    fixed_schedule_dates = set(fixed_schedule_dates)
+    cards_by_date = {}
+    for card in recovery_session_cards:
+        cards_by_date.setdefault(card['session'].date, []).append(card)
+
+    selectable_dates = sorted(available_dates)
+    default_selected_date = selectable_dates[0] if selectable_dates else None
+    selected_date = selected_date if selected_date in available_dates else default_selected_date
+
+    month_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
+    weeks = []
+    for week in month_calendar:
+        week_days = []
+        for day in week:
+            week_days.append(
+                {
+                    'date': day,
+                    'day_number': day.day,
+                    'in_month': day.month == month_start.month,
+                    'has_fixed_schedule': day in fixed_schedule_dates,
+                    'has_availability': day in available_dates,
+                    'is_selected': selected_date == day,
+                    'select_url': (
+                        f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'date': day.isoformat()})}"
+                        if day in available_dates
+                        else ''
+                    ),
+                }
+            )
+        weeks.append(week_days)
+    selected_day_cards = cards_by_date.get(selected_date, []) if selected_date else []
+    selected_session_card = None
+    for card in selected_day_cards:
+        if selected_session_id and str(card['session'].id) == str(selected_session_id):
+            selected_session_card = card
+            break
+    if selected_session_card is None and selected_day_cards:
+        selected_session_card = selected_day_cards[0]
+
+    return {
+        'recovery_month_start': month_start,
+        'recovery_month_label': f"{SPANISH_MONTH_NAMES[month_start.month]} {month_start.year}",
+        'recovery_weekday_labels': SPANISH_WEEKDAY_SHORT,
+        'recovery_calendar_weeks': weeks,
+        'recovery_available_dates': selectable_dates,
+        'recovery_selected_date': selected_date,
+        'recovery_selected_day_cards': selected_day_cards,
+        'recovery_selected_session_card': selected_session_card,
+        'recovery_prev_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m')})}",
+        'recovery_next_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, 1).strftime('%Y-%m')})}",
+    }
+
+
+def _build_booking_detail_modal_context(*, request, context):
+    detail_booking_id = request.GET.get('detail')
+    if not detail_booking_id:
+        return {
+            'detail_booking_card': None,
+            'detail_cancel_deadline': None,
+            'detail_back_url': reverse('dashboard'),
+        }
+
+    selected_card = None
+    for card in context['upcoming_booking_cards']:
+        if str(card['booking'].id) == str(detail_booking_id):
+            selected_card = card
+            break
+
+    if selected_card is None:
+        return {
+            'detail_booking_card': None,
+            'detail_cancel_deadline': None,
+            'detail_back_url': reverse('dashboard'),
+        }
+
+    cancel_deadline = timezone.localtime(selected_card['booking'].session.starts_at() - Booking.SELF_SERVICE_CANCELLATION_WINDOW)
+    return {
+        'detail_booking_card': selected_card,
+        'detail_cancel_deadline': cancel_deadline,
+        'detail_back_url': reverse('dashboard'),
+    }
+
+
+def _build_recovery_detail_modal_context(*, request, context):
+    detail_credit_id = request.GET.get('credit_detail')
+    if not detail_credit_id:
+        return {
+            'detail_recovery_credit': None,
+            'detail_recovery_back_url': reverse('my-bookings'),
+        }
+
+    all_credits = context['available_recovery_credits'] + context['used_recovery_credits'] + context['expired_recovery_credits']
+    selected_credit = None
+    for credit in all_credits:
+        if str(credit.id) == str(detail_credit_id):
+            selected_credit = credit
+            break
+
+    return {
+        'detail_recovery_credit': selected_credit,
+        'detail_recovery_back_url': reverse('my-bookings'),
+    }
+
+
 def _build_session_action(*, user, session, recovery_credit=None):
     booking = Booking(session=session, student=user, used_recovery_credit=recovery_credit)
     try:
         booking.full_clean()
     except ValidationError as exc:
         message = _get_booking_error_message(exc)
-        if recovery_credit is None and message == 'Ya tenes una reserva activa para esta clase.':
+        if recovery_credit is None and message == 'Ya tenés una reserva activa para esta clase.':
             label = 'Reserva confirmada'
-        elif recovery_credit is None and message == 'Este mes no podes reservar esta clase desde el portal.':
+        elif recovery_credit is None and message == 'Este mes no podés reservar esta clase desde el portal.':
             label = 'No disponible este mes'
         else:
             label = 'No disponible' if recovery_credit is None else 'No compatible'
@@ -710,9 +917,9 @@ def _build_session_action(*, user, session, recovery_credit=None):
     if recovery_credit is not None:
         return {
             'can_book': True,
-            'label': 'Usar recuperacion',
+            'label': 'Usar recuperación',
             'message': (
-                f'Podes usar esta recuperacion para reservar esta clase de {recovery_credit.section.name}.'
+                f'Podés usar esta recuperación para reservar esta clase de {recovery_credit.section.name}.'
             ),
             'tone': 'ready',
         }
@@ -720,7 +927,7 @@ def _build_session_action(*, user, session, recovery_credit=None):
     return {
         'can_book': True,
         'label': 'Reservar',
-        'message': 'Si el horario te sirve, podes confirmar la reserva desde esta agenda.',
+        'message': 'Si el horario te sirve, podés confirmar la reserva desde esta agenda.',
         'tone': 'ready',
     }
 
@@ -790,6 +997,33 @@ def login_view(request):
     return render(request, 'scheduling/login.html', {'form': form, 'next': next_url})
 
 
+def register_view(request):
+    if request.user.is_authenticated:
+        if request.user.must_change_password:
+            return redirect('change-password-required')
+        return redirect(_get_default_portal_url(request.user))
+
+    form = StudentSelfSignupForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        user = create_student_self_signup(
+            email=form.cleaned_data['email'],
+            first_name=form.cleaned_data['first_name'],
+            last_name=form.cleaned_data['last_name'],
+            primary_section=form.cleaned_data['primary_section'],
+            phone=form.cleaned_data.get('phone', ''),
+            password=form.cleaned_data['password1'],
+        )
+        login(request, user)
+        messages.success(
+            request,
+            'Tu cuenta quedó creada. Tu actividad ya está registrada y el acceso se habilita cuando el pago esté validado.',
+        )
+        return redirect('dashboard')
+
+    return render(request, 'scheduling/register.html', {'form': form})
+
+
 @login_required
 def logout_view(request):
     logout(request)
@@ -813,19 +1047,46 @@ def change_password_required_view(request):
 @login_required
 def dashboard_view(request):
     context = _get_student_portal_context(request.user)
+    context.update(_build_booking_detail_modal_context(request=request, context=context))
     return render(request, 'scheduling/dashboard.html', context)
 
 
 @login_required
 def agenda_view(request):
     context = _get_student_portal_context(request.user)
+    month_start = _parse_agenda_month(request.GET.get('month'), context['today'])
+    context.update(_build_agenda_calendar_context(context=context, month_start=month_start))
+    context.update(_build_booking_detail_modal_context(request=request, context=context))
+    context['detail_back_url'] = f"{reverse('agenda')}?{urlencode({'month': month_start.strftime('%Y-%m')})}"
     return render(request, 'scheduling/agenda.html', context)
 
 
 @login_required
 def my_bookings_view(request):
     context = _get_student_portal_context(request.user)
+    context.update(_build_recovery_detail_modal_context(request=request, context=context))
     return render(request, 'scheduling/my_bookings.html', context)
+
+
+@login_required
+def account_view(request):
+    context = _get_student_portal_context(request.user)
+    is_editing = request.method == 'POST' or request.GET.get('edit') == '1'
+    form = AccountProfileForm(request.user, request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        messages.success(request, 'Actualizamos tus datos de la cuenta.')
+        return redirect('account')
+
+    context.update(
+        {
+            'account_form': form,
+            'account_is_editing': is_editing,
+        }
+    )
+    return render(request, 'scheduling/account.html', context)
 
 
 @login_required
@@ -883,10 +1144,32 @@ def use_recovery_view(request, recovery_credit_id):
 
     now = timezone.localtime()
     week_start, week_end, recovery_week_is_next = _get_current_workweek_window(today)
+    month_start = _parse_agenda_month(request.GET.get('month'), today)
+    month_end = date(month_start.year, month_start.month, calendar.monthrange(month_start.year, month_start.month)[1])
+    fixed_schedule_dates = set()
+    fixed_slots = WeeklyClassSlot.objects.filter(section=credit.section, is_active=True)
+    day_cursor = month_start
+    while day_cursor <= month_end:
+        for slot in fixed_slots:
+            if slot.is_effective_on(day_cursor):
+                fixed_schedule_dates.add(day_cursor)
+                break
+        day_cursor += timedelta(days=1)
+
+    if not fixed_schedule_dates:
+        fixed_schedule_dates = {
+            session.date
+            for session in ClassSession.objects.filter(
+                section__code__in=credit.compatible_section_codes(),
+                status=SessionStatus.SCHEDULED,
+                date__range=(month_start, month_end),
+            )
+        }
+
     candidate_sessions = list(
         ClassSession.objects.select_related('section')
         .filter(
-            section=credit.section,
+            section__code__in=credit.compatible_section_codes(),
             status=SessionStatus.SCHEDULED,
             date__range=(week_start, week_end),
         )
@@ -900,12 +1183,29 @@ def use_recovery_view(request, recovery_credit_id):
         )
         .order_by('date', 'start_time')
     )
-
     recovery_session_cards = []
     for session in candidate_sessions:
         action = _build_session_action(user=request.user, session=session, recovery_credit=credit)
         if action['can_book']:
             recovery_session_cards.append({'session': session, 'action': action})
+
+    selected_date = None
+    raw_date = request.GET.get('date')
+    if raw_date:
+        try:
+            selected_date = date.fromisoformat(raw_date)
+        except ValueError:
+            selected_date = None
+    selected_session_id = request.GET.get('session')
+
+    recovery_calendar_context = _build_recovery_calendar_context(
+        credit_id=credit.id,
+        recovery_session_cards=recovery_session_cards,
+        fixed_schedule_dates=fixed_schedule_dates,
+        month_start=month_start,
+        selected_date=selected_date,
+        selected_session_id=selected_session_id,
+    )
 
     context.update(
         {
@@ -916,6 +1216,8 @@ def use_recovery_view(request, recovery_credit_id):
             'recovery_week_start': week_start,
             'recovery_week_end': week_end,
             'recovery_workweek_is_next': recovery_week_is_next,
+            'recovery_month_end': month_end,
+            **recovery_calendar_context,
         }
     )
     return render(request, 'scheduling/use_recovery.html', context)
@@ -952,7 +1254,8 @@ def cancel_booking_view(request, booking_id):
 @staff_required
 def admin_student_list_view(request):
     query = request.GET.get('q', '').strip()
-    context = _get_admin_students_context(query=query)
+    status_filter = request.GET.get('status', 'all').strip() or 'all'
+    context = _get_admin_students_context(query=query, status_filter=status_filter)
     return render(request, 'scheduling/admin_student_list.html', context)
 
 
@@ -971,6 +1274,62 @@ def admin_class_session_detail_view(request, session_id):
         section=request.GET.get('section', '').strip(),
     )
     return render(request, 'scheduling/admin_class_session_detail.html', context)
+
+
+@staff_required
+def admin_update_class_session_view(request, session_id):
+    session = get_object_or_404(ClassSession.objects.select_related('section', 'holiday_closure', 'slot'), pk=session_id)
+    if request.method != 'POST':
+        return redirect('admin-class-session-detail', session_id=session.pk)
+
+    if session.slot_id is not None:
+        messages.error(request, 'Solo podés editar clases creadas manualmente desde el admin.')
+        return redirect('admin-class-session-detail', session_id=session.pk)
+
+    form = StaffClassSessionForm(data=request.POST, session_instance=session)
+    if form.is_valid():
+        updated_session = form.save()
+        messages.success(
+            request,
+            (
+                f'Se actualizó la clase de {updated_session.section.name} del {updated_session.date:%d/%m/%Y} '
+                f'de {updated_session.start_time:%H:%M} a {updated_session.end_time:%H:%M}.'
+            ),
+        )
+        return redirect('admin-class-session-detail', session_id=updated_session.pk)
+
+    context = _build_staff_class_session_detail_context(
+        session,
+        date=request.GET.get('date', '').strip(),
+        section=request.GET.get('section', '').strip(),
+    )
+    context['staff_class_session_form'] = form
+    return render(request, 'scheduling/admin_class_session_detail.html', context, status=200)
+
+
+@staff_required
+def admin_delete_class_session_view(request, session_id):
+    session = get_object_or_404(ClassSession.objects.select_related('section', 'slot'), pk=session_id)
+    if request.method != 'POST':
+        return redirect('admin-class-session-detail', session_id=session.pk)
+
+    if session.slot_id is not None:
+        messages.error(request, 'Solo podés eliminar clases creadas manualmente desde el admin.')
+        return redirect('admin-class-session-detail', session_id=session.pk)
+
+    if session.bookings.exists():
+        messages.error(request, 'No podés eliminar una clase que ya tiene reservas asociadas.')
+        return redirect('admin-class-session-detail', session_id=session.pk)
+
+    section_name = session.section.name
+    session_date = session.date
+    start_time = session.start_time
+    session.delete()
+    messages.success(
+        request,
+        f'Se eliminó la clase de {section_name} del {session_date:%d/%m/%Y} a las {start_time:%H:%M}.',
+    )
+    return redirect(_build_staff_class_agenda_url(date=session_date, section=''))
 
 
 @staff_required
@@ -1009,6 +1368,36 @@ def admin_create_holiday_closure_view(request):
             'section': requested_section,
         },
         closure_form=form,
+    )
+    return render(request, 'scheduling/admin_class_agenda.html', context, status=200)
+
+
+@staff_required
+def admin_create_class_session_view(request):
+    if request.method != 'POST':
+        return redirect('admin-class-agenda')
+
+    form = StaffClassSessionForm(data=request.POST)
+    requested_section = request.POST.get('section_filter', '').strip()
+
+    if form.is_valid():
+        session = form.save()
+        messages.success(
+            request,
+            (
+                f'Se creó la clase de {session.section.name} del {session.date:%d/%m/%Y} '
+                f'de {session.start_time:%H:%M} a {session.end_time:%H:%M}.'
+            ),
+        )
+        redirect_url = f'{reverse("admin-class-agenda")}?{urlencode({"date": session.date.isoformat(), "section": session.section_id})}'
+        return redirect(redirect_url)
+
+    context = _build_staff_class_agenda_context(
+        data={
+            'date': request.POST.get('date') or timezone.localdate().isoformat(),
+            'section': requested_section,
+        },
+        class_form=form,
     )
     return render(request, 'scheduling/admin_class_agenda.html', context, status=200)
 
@@ -1089,6 +1478,32 @@ def admin_expire_recovery_credit_view(request, student_id, recovery_credit_id):
         else:
             messages.success(request, 'La recuperacion ya estaba vencida.')
 
+    return redirect(redirect_url)
+
+
+@staff_required
+def admin_mark_student_paid_view(request, student_id):
+    if request.method != 'POST':
+        return redirect('admin-student-list')
+
+    query = request.POST.get('q', '').strip()
+    redirect_url = _get_safe_redirect_url(request, default_name='admin-student-list')
+    if redirect_url == reverse('admin-student-list') and query:
+        redirect_url = _build_admin_redirect_url(query=query)
+
+    student = get_object_or_404(User.objects.select_related('primary_section'), pk=student_id, role=UserRole.STUDENT)
+    current_month = normalize_month_start(timezone.localdate())
+    change = activate_student_monthly_access(
+        student=student,
+        actor=request.user,
+        month=current_month,
+        record_audit=True,
+    )
+
+    messages.success(
+        request,
+        f'Se registró el pago de {student.get_full_name() or student.email} y el acceso quedó activo para {change.access.month:%m/%Y}.',
+    )
     return redirect(redirect_url)
 
 

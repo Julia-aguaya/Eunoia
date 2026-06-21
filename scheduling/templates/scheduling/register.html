@@ -1,0 +1,81 @@
+{% extends "scheduling/auth_base.html" %}
+
+{% block title %}Crear mi cuenta | Eunoia{% endblock %}
+
+{% block auth_body %}
+    <div class="auth-header">
+        <h2>Crear mi cuenta</h2>
+        <p>Completá tus datos, elegí tu actividad y después validamos el pago para habilitar reservas.</p>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="auth-summary" role="alert">
+            <strong>No pudimos crear la cuenta</strong>
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" class="auth-form" novalidate>
+        {% csrf_token %}
+
+        <div class="field{% if form.first_name.errors %} has-error{% endif %}">
+            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div class="field-errors" role="alert">{{ form.first_name.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="field{% if form.last_name.errors %} has-error{% endif %}">
+            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<div class="field-errors" role="alert">{{ form.last_name.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="field{% if form.email.errors %} has-error{% endif %}">
+            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+            {{ form.email }}
+            <div class="field-meta">
+                <p class="field-help">Usá el email con el que coordinás tus clases.</p>
+                {% if form.email.errors %}<div class="field-errors" role="alert">{{ form.email.errors|striptags }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="field{% if form.phone.errors %} has-error{% endif %}">
+            <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}<div class="field-errors" role="alert">{{ form.phone.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="field{% if form.primary_section.errors %} has-error{% endif %}">
+            <label for="{{ form.primary_section.id_for_label }}">{{ form.primary_section.label }}</label>
+            {{ form.primary_section }}
+            <div class="field-meta">
+                <p class="field-help">Elegí la actividad principal con la que vas a tomar clases.</p>
+                {% if form.primary_section.errors %}<div class="field-errors" role="alert">{{ form.primary_section.errors|striptags }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="field{% if form.password1.errors %} has-error{% endif %}">
+            <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+            {{ form.password1 }}
+            <div class="field-meta">
+                <p class="field-help">Definí una contraseña segura para entrar después.</p>
+                {% if form.password1.errors %}<div class="field-errors" role="alert">{{ form.password1.errors|striptags }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="field{% if form.password2.errors %} has-error{% endif %}">
+            <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}<div class="field-errors" role="alert">{{ form.password2.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="auth-actions">
+            <button type="submit" class="button">Crear mi cuenta</button>
+            <div class="auth-note">
+                <p>¿Ya tenés cuenta? <a href="{% url 'login' %}"><strong>Ingresar</strong></a></p>
+            </div>
+        </div>
+    </form>
+{% endblock %}

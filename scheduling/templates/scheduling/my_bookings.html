@@ -1,159 +1,622 @@
 {% extends "scheduling/student_base.html" %}
 
-{% block title %}Mis turnos | Eunoia{% endblock %}
-{% block hero_title %}Reservas y Recuperacion, en orden.{% endblock %}
-{% block hero_copy %}Ves tus proximas clases y tu Recuperacion disponible o vencida en una sola pantalla.{% endblock %}
+{% block title %}Recuperaciones | Eunoia{% endblock %}
+{% block hero_title %}Recuperaciones{% endblock %}
+{% block hero_copy %}{% endblock %}
+{% block hero_class %}recovery-hero{% endblock %}
+
+{% block topbar_context %}{% endblock %}
+
+{% block topbar_logout %}
+    <button type="submit" class="button-secondary icon-button" aria-label="Salir del portal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path>
+            <path d="M10 17l5-5-5-5"></path>
+            <path d="M15 12H3"></path>
+        </svg>
+    </button>
+{% endblock %}
+
+{% block hero_actions %}{% endblock %}
+{% block hero_stats %}{% endblock %}
+{% block status_banner %}{% endblock %}
 
 {% block extra_head %}
 <style>
-    .booking-actions,
-    .recovery-actions {
+    .shell {
+        width: min(860px, calc(100% - (var(--shell-padding) * 2)));
+        padding-bottom: 110px;
+    }
+
+    .recovery-hero {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        margin-bottom: 14px;
+    }
+
+    .recovery-hero .hero-main {
+        gap: 10px;
+    }
+
+    .recovery-hero .hero-copy-stack {
+        gap: 6px;
+    }
+
+    .recovery-hero h2 {
+        font-size: clamp(3rem, 9vw, 4.6rem);
+        line-height: 0.92;
+        margin: 0;
+    }
+
+    .recovery-layout {
         display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+
+    .recovery-card {
+        padding: 22px;
+    }
+
+    .section-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .section-head h3 {
+        margin: 0;
+        font-size: clamp(1.85rem, 5vw, 2.6rem);
+        line-height: 0.96;
+    }
+
+    .summary-card {
+        display: grid;
+        gap: 18px;
+    }
+
+    .summary-top {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .summary-icon,
+    .step-icon,
+    .history-icon,
+    .detail-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg, #eff5ef, #e5eee3);
+        color: var(--primary-strong);
+    }
+
+    .summary-icon {
+        width: 88px;
+        height: 88px;
+    }
+
+    .summary-icon svg,
+    .step-icon svg,
+    .history-icon svg,
+    .detail-icon svg,
+    .bottom-nav svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .summary-count {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: clamp(3rem, 10vw, 4.8rem);
+        line-height: 0.88;
+        color: var(--text);
+    }
+
+    .summary-count-label {
+        font-size: clamp(1.2rem, 4vw, 1.9rem);
+        color: var(--primary-strong);
+        font-weight: 600;
+    }
+
+    .detail-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .detail-row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 14px;
         align-items: center;
     }
 
-    .booking-note,
-    .recovery-note {
-        margin-top: 12px;
+    .detail-copy {
+        font-size: 1rem;
+        color: var(--text);
     }
 
-    @media (max-width: 720px) {
-        .booking-actions,
-        .recovery-actions {
+    .helper-note {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(105, 132, 119, 0.14);
+        color: var(--muted);
+        line-height: 1.5;
+    }
+
+    .helper-note .detail-icon {
+        width: 28px;
+        height: 28px;
+        background: transparent;
+    }
+
+    .helper-note .detail-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .primary-action {
+        min-height: 58px;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .steps-list,
+    .history-list {
+        display: grid;
+        gap: 0;
+    }
+
+    .step-row,
+    .history-row {
+        display: grid;
+        grid-template-columns: 44px 44px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(105, 132, 119, 0.14);
+    }
+
+    .history-row {
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+    }
+
+    .step-row:last-child,
+    .history-row:last-child {
+        border-bottom: 0;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg, #eff5ef, #e5eee3);
+        color: var(--primary-strong);
+        font-weight: 700;
+    }
+
+    .history-meta {
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    .history-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 14px;
+        border-radius: 999px;
+        background: rgba(233, 237, 234, 0.9);
+        color: #59665f;
+        font-weight: 600;
+    }
+
+    .history-status.warning {
+        background: var(--warning-soft);
+        color: var(--warning);
+    }
+
+    .history-status.success {
+        background: var(--success-soft);
+        color: var(--success);
+    }
+
+    .history-detail-link {
+        min-height: 40px;
+        padding: 0 14px;
+        font-size: 0.94rem;
+    }
+
+    .empty-copy {
+        line-height: 1.55;
+    }
+
+    .detail-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(22, 28, 25, 0.44);
+        backdrop-filter: blur(4px);
+        z-index: 40;
+    }
+
+    .detail-sheet {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: min(860px, 100%);
+        padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+        z-index: 41;
+    }
+
+    .detail-sheet-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(105, 132, 119, 0.16);
+        border-radius: 32px 32px 0 0;
+        box-shadow: 0 -18px 44px rgba(22, 28, 25, 0.16);
+        padding: 14px 18px 18px;
+    }
+
+    .detail-handle { width: 72px; height: 6px; border-radius: 999px; background: rgba(105, 132, 119, 0.28); margin: 0 auto 16px; }
+    .detail-sheet-card h3 { margin: 0 0 16px; text-align: center; font-size: clamp(2rem, 5vw, 2.7rem); line-height: 0.98; }
+    .detail-grid { display: grid; gap: 0; border: 1px solid rgba(105, 132, 119, 0.14); border-radius: 22px; overflow: hidden; background: rgba(255, 255, 255, 0.84); }
+    .detail-row-sheet { display: grid; grid-template-columns: 44px minmax(120px, 0.9fr) minmax(0, 1.1fr); gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(105, 132, 119, 0.12); }
+    .detail-row-sheet:last-child { border-bottom: 0; }
+    .detail-modal-icon { width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center; background: linear-gradient(145deg, #eff5ef, #e5eee3); color: var(--primary-strong); }
+    .detail-modal-icon svg { width: 20px; height: 20px; }
+    .detail-label { color: var(--text); font-size: 1rem; }
+    .detail-value { color: var(--text); font-size: 1rem; text-align: right; }
+    .detail-actions { display: grid; gap: 12px; margin-top: 18px; }
+    .detail-actions .button,
+    .detail-actions .button-secondary { width: 100%; min-height: 56px; font-weight: 700; }
+
+    .bottom-nav {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        width: min(860px, calc(100% - 20px));
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(105, 132, 119, 0.14);
+        border-radius: 26px;
+        box-shadow: 0 18px 42px rgba(47, 61, 53, 0.12);
+        backdrop-filter: blur(12px);
+        z-index: 20;
+    }
+
+    .bottom-nav a {
+        display: grid;
+        place-items: center;
+        gap: 6px;
+        min-height: 60px;
+        border-radius: 18px;
+        text-decoration: none;
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    .bottom-nav a.active {
+        color: var(--primary-strong);
+        font-weight: 700;
+        background: rgba(223, 232, 223, 0.42);
+    }
+
+    @media (max-width: 560px) {
+        .shell {
+            width: min(100% - 14px, 860px);
+            padding-bottom: 104px;
+        }
+
+        .recovery-card {
+            padding: 18px;
+            border-radius: 24px;
+        }
+
+        .summary-top,
+        .history-row {
             grid-template-columns: 1fr;
+        }
+
+        .step-row {
+            grid-template-columns: 40px 40px minmax(0, 1fr);
+            gap: 10px;
+        }
+
+        .history-status {
+            width: fit-content;
+        }
+
+        .detail-sheet { padding: 10px 8px calc(12px + env(safe-area-inset-bottom, 0px)); }
+        .detail-sheet-card { padding: 12px 14px 16px; }
+        .detail-row-sheet { grid-template-columns: 36px minmax(0, 1fr); }
+        .detail-value { text-align: left; grid-column: 2; }
+
+        .bottom-nav {
+            width: calc(100% - 14px);
+        }
+
+        .bottom-nav a {
+            font-size: 0.82rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="grid">
+<section class="recovery-layout">
     {% if not operational_status.can_operate %}
-    <article class="card span-12">
-        <div class="empty">
-            Este mes no podes reservar ni cancelar desde el portal.
-            Tus turnos activos siguen visibles para seguimiento.
-            <div class="empty-actions">
-                <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+        <article class="card recovery-card">
+            <div class="empty">
+                <p class="empty-copy"><strong>Este mes no podés reservar ni cancelar desde el portal.</strong></p>
+                <p class="meta">Tus turnos activos siguen visibles para seguimiento y podés revisar la agenda cuando necesites contexto.</p>
             </div>
-        </div>
-    </article>
+        </article>
     {% endif %}
 
-    <article class="card span-7">
-        <div class="section-title">
-            <div>
-                <p class="eyebrow">Reservas activas</p>
-                <h3>Proximos turnos</h3>
-            </div>
-        </div>
+    <article class="card recovery-card">
+        {% if available_recovery_credits %}
+            {% with credit=available_recovery_credits.0 %}
+                <div class="summary-card">
+                    <div class="summary-top">
+                        <div class="summary-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path>
+                                <path d="m12 8 1.2 2.4 2.7.4-1.95 1.9.46 2.7L12 14.1l-2.41 1.3.46-2.7-1.95-1.9 2.7-.4L12 8z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="summary-count">{{ available_recovery_credits|length }}</div>
+                            <div class="summary-count-label">disponible{% if available_recovery_credits|length != 1 %}s{% endif %}</div>
+                        </div>
+                    </div>
 
-        {% if upcoming_booking_cards %}
-            <div class="list">
-                {% for card in upcoming_booking_cards %}
-                    {% with booking=card.booking %}
-                    <article class="item">
-                        <div class="item-header">
-                            <div>
-                                <strong>{{ booking.session.date|date:"l j \d\e F" }}</strong>
-                                <p class="meta">{{ booking.session.start_time|time:"H:i" }} a {{ booking.session.end_time|time:"H:i" }} - {{ booking.session.section.name }}</p>
-                            </div>
-                            <div class="badge-row">
-                                {% if booking.source == 'makeup' %}
-                                    <span class="pill soft-warning">Recuperacion aplicada</span>
+                    <div class="detail-list">
+                        <div class="detail-row">
+                            <span class="detail-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                                    <path d="M16 2v4M8 2v4M3 10h18"></path>
+                                </svg>
+                            </span>
+                            <div class="detail-copy">Vence el <strong>{{ credit.expires_at|date:"d/m" }}</strong></div>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10V6a2 2 0 0 0-2-2h-4"></path>
+                                    <path d="m14 2 4 4-4 4"></path>
+                                    <path d="M4 14v4a2 2 0 0 0 2 2h4"></path>
+                                    <path d="m10 22-4-4 4-4"></path>
+                                </svg>
+                            </span>
+                            <div class="detail-copy">
+                                {% if credit.origin_session %}
+                                    Generada por cancelación del <strong>{{ credit.origin_session.date|date:"d/m" }}</strong>
                                 {% else %}
-                                    <span class="pill soft-success">Reserva activa</span>
+                                    Generada por cancelación de tu actividad
                                 {% endif %}
                             </div>
                         </div>
-                        <p class="session-note booking-note">
-                            {% if booking.used_recovery_credit_id %}
-                                Este turno uso una Recuperacion de tu actividad.
-                            {% else %}
-                                Reserva regular de tu actividad principal.
-                            {% endif %}
-                        </p>
-                        <div class="booking-actions" style="margin-top: 14px;">
-                            <span class="meta">{{ card.cancel_action.message }}</span>
-                            {% if card.cancel_action.can_cancel %}
-                                <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ request.path }}">
-                                    <button type="submit" class="button-danger">{{ card.cancel_action.label }}</button>
-                                </form>
-                            {% else %}
-                                <span class="pill soft-warning">{{ card.cancel_action.label }}</span>
-                            {% endif %}
-                        </div>
-                    </article>
-                    {% endwith %}
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty">
-                No tenes reservas activas futuras por ahora.
-                <div class="empty-actions">
-                    <a href="{% url 'agenda' %}" class="button-secondary">Buscar una clase</a>
+                    </div>
+
+                    <div class="helper-note">
+                        <span class="detail-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 8h.01"></path>
+                                <path d="M11 12h1v4h1"></path>
+                            </svg>
+                        </span>
+                        <span>Usala antes de su vencimiento.</span>
+                    </div>
+
+                    <div class="empty-actions">
+                        <a href="{% url 'use-recovery' credit.id %}" class="button primary-action">Ver horarios</a>
+                        <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary">Ver detalle</a>
+                    </div>
                 </div>
+            {% endwith %}
+        {% else %}
+            <div class="summary-card">
+                <div class="summary-top">
+                    <div class="summary-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path>
+                            <path d="M8 12h8"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="summary-count">0</div>
+                        <div class="summary-count-label">disponibles</div>
+                    </div>
+                </div>
+
+                <p class="empty-copy"><strong>No tenés recuperaciones disponibles por ahora.</strong></p>
+                <p class="meta">Si cancelás una clase a tiempo, puede aparecer una acá.</p>
+                <span class="button-disabled primary-action" aria-disabled="true">Ver horarios</span>
             </div>
         {% endif %}
     </article>
 
-    <article class="card span-5">
-        <div class="section-title">
+    <article class="card recovery-card">
+        <div class="section-head">
             <div>
-                <p class="eyebrow">Recuperaciones</p>
-                <h3>Disponibles y vencidas</h3>
+                <h3>Cómo usarla</h3>
             </div>
         </div>
 
-        <div class="stack">
-            {% if available_recovery_credits %}
-                {% for credit in available_recovery_credits %}
-                    <article class="item">
-                        <div class="item-header">
-                            <strong>{{ credit.section.name }}</strong>
-                            <span class="pill soft-success">Disponible</span>
-                        </div>
-                        <p class="meta recovery-note">
-                            Vence el {{ credit.expires_at|date:"j \d\e F, Y" }}.
-                            {% if credit.origin_session %}
-                                Se origino en la clase del {{ credit.origin_session.date|date:"j/m/Y" }}.
-                            {% endif %}
-                        </p>
-                        <div class="recovery-actions" style="margin-top: 14px;">
-                            <span class="meta">La reserva se valida antes de confirmar.</span>
-                            <a href="{% url 'use-recovery' credit.id %}" class="button-secondary">Reservar con Recuperacion</a>
-                        </div>
-                    </article>
-                {% endfor %}
-            {% endif %}
-
-            {% if expired_recovery_credits %}
-                {% for credit in expired_recovery_credits %}
-                    <article class="item">
-                        <div class="item-header">
-                            <strong>{{ credit.section.name }}</strong>
-                            <span class="pill soft-danger">Vencida</span>
-                        </div>
-                        <p class="meta" style="margin-top: 10px; line-height: 1.6;">
-                            Vencio el {{ credit.expires_at|date:"j \d\e F, Y" }}.
-                        </p>
-                    </article>
-                {% endfor %}
-            {% endif %}
-
-            {% if not available_recovery_credits and not expired_recovery_credits %}
-                <div class="empty">
-                    No tenes Recuperacion registrada en este momento.
-                    <div class="empty-actions">
-                        <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                    </div>
-                </div>
-            {% endif %}
+        <div class="steps-list">
+            <div class="step-row">
+                <span class="step-number">1</span>
+                <span class="step-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                        <path d="M16 2v4M8 2v4M3 10h18"></path>
+                    </svg>
+                </span>
+                <div class="detail-copy">Elegí un horario</div>
+            </div>
+            <div class="step-row">
+                <span class="step-number">2</span>
+                <span class="step-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="m8.5 12.5 2.5 2.5 4.5-5"></path>
+                    </svg>
+                </span>
+                <div class="detail-copy">Confirmá la clase</div>
+            </div>
+            <div class="step-row">
+                <span class="step-number">3</span>
+                <span class="step-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12a9 9 0 0 1-15.5 6.36L3 21"></path>
+                        <path d="M3 12A9 9 0 0 1 18.5 5.64L21 3"></path>
+                        <path d="M3 16v5h5"></path>
+                        <path d="M21 8V3h-5"></path>
+                    </svg>
+                </span>
+                <div class="detail-copy">Se descuenta automáticamente</div>
+            </div>
         </div>
     </article>
+
+    <article class="card recovery-card">
+        <div class="section-head" style="justify-content: space-between; align-items: center;">
+            <div>
+                <h3>Historial</h3>
+            </div>
+            {% if used_recovery_credits or expired_recovery_credits %}
+                <a href="#history-list" class="button-quiet">Ver todo</a>
+            {% endif %}
+        </div>
+
+        {% if used_recovery_credits or expired_recovery_credits %}
+            <div class="history-list" id="history-list">
+                {% for credit in used_recovery_credits %}
+                    <div class="history-row">
+                        <span class="history-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 7v6l4 2"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <div class="detail-copy"><strong>Generada por cancelación</strong></div>
+                            <div class="history-meta">
+                                {% if credit.origin_session %}{{ credit.origin_session.date|date:"d/m" }}{% else %}Sin fecha de origen{% endif %}
+                                {% if credit.expires_at %} · Vencía el {{ credit.expires_at|date:"d/m" }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="badge-row">
+                            <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary history-detail-link">Ver detalle</a>
+                            <span class="history-status">Usada</span>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {% for credit in expired_recovery_credits %}
+                    <div class="history-row">
+                        <span class="history-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 7v6l4 2"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <div class="detail-copy"><strong>Generada por cancelación</strong></div>
+                            <div class="history-meta">
+                                {% if credit.origin_session %}{{ credit.origin_session.date|date:"d/m" }}{% else %}Sin fecha de origen{% endif %}
+                                {% if credit.expires_at %} · Venció el {{ credit.expires_at|date:"d/m" }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="badge-row">
+                            <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary history-detail-link">Ver detalle</a>
+                            <span class="history-status warning">Vencida</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">
+                <p class="empty-copy"><strong>Todavía no tenés historial de recuperaciones.</strong></p>
+                <p class="meta">Cuando uses o se venza una recuperación, la vas a ver listada acá.</p>
+            </div>
+        {% endif %}
+    </article>
 </section>
+
+{% if detail_recovery_credit %}
+    <a href="{{ detail_recovery_back_url }}" class="detail-overlay" aria-label="Cerrar detalle de recuperación"></a>
+    <section class="detail-sheet" aria-label="Detalle de recuperación">
+        <div class="detail-sheet-card">
+            <div class="detail-handle" aria-hidden="true"></div>
+            <h3>Detalle de la recuperación</h3>
+            <div class="detail-grid">
+                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path><path d="m12 8 1.2 2.4 2.7.4-1.95 1.9.46 2.7L12 14.1l-2.41 1.3.46-2.7-1.95-1.9 2.7-.4L12 8z"></path></svg></span><span class="detail-label">Actividad</span><span class="detail-value">{{ detail_recovery_credit.section.name }}</span></div>
+                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Vence</span><span class="detail-value">{{ detail_recovery_credit.expires_at|date:"d/m/Y" }}</span></div>
+                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10V6a2 2 0 0 0-2-2h-4"></path><path d="m14 2 4 4-4 4"></path><path d="M4 14v4a2 2 0 0 0 2 2h4"></path><path d="m10 22-4-4 4-4"></path></svg></span><span class="detail-label">Origen</span><span class="detail-value">{% if detail_recovery_credit.origin_session %}Cancelación del {{ detail_recovery_credit.origin_session.date|date:"d/m" }}{% else %}Sin origen visible{% endif %}</span></div>
+                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-3-6 3z"></path></svg></span><span class="detail-label">Estado</span><span class="detail-value">{{ detail_recovery_credit.get_status_display }}</span></div>
+            </div>
+            <div class="detail-actions">
+                {% if detail_recovery_credit.status == 'available' %}
+                    <a href="{% url 'use-recovery' detail_recovery_credit.id %}" class="button">Ver horarios</a>
+                {% endif %}
+                <a href="{{ detail_recovery_back_url }}" class="button-secondary">Cerrar</a>
+            </div>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}
+
+{% block bottom_nav %}
+    <nav class="bottom-nav" aria-label="Navegación principal del portal alumna">
+        <a href="{% url 'dashboard' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 10.5 12 3l9 7.5"></path>
+                <path d="M5 9.5V21h14V9.5"></path>
+            </svg>
+            <span>Inicio</span>
+        </a>
+        <a href="{% url 'agenda' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+            <span>Agenda</span>
+        </a>
+        <a href="{% url 'my-bookings' %}" class="active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 0 1-15.5 6.36L3 21"></path>
+                <path d="M3 12A9 9 0 0 1 18.5 5.64L21 3"></path>
+                <path d="M3 16v5h5"></path>
+                <path d="M21 8V3h-5"></path>
+            </svg>
+            <span>Recuperaciones</span>
+        </a>
+        <a href="{% url 'account' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21a8 8 0 1 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Mi cuenta</span>
+        </a>
+    </nav>
 {% endblock %}

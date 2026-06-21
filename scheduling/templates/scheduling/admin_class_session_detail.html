@@ -1,84 +1,131 @@
 {% extends "scheduling/admin_base.html" %}
 
-{% block title %}{{ staff_session.section.name }} {{ staff_session.date|date:"d/m/Y" }} | Portal staff Eunoia{% endblock %}
+{% block title %}{{ staff_session.section.name }} {{ staff_session.date|date:"d/m/Y" }} | Portal admin Eunoia{% endblock %}
 
 {% block extra_head %}
     <style>
+        .hero-metrics {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .metric.metric-summary {
+            min-height: 98px;
+            padding: 14px;
+            display: grid;
+            grid-template-columns: 46px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+        }
+
+        .metric-summary.warning {
+            border-color: rgba(138, 104, 60, 0.18);
+            background: linear-gradient(180deg, rgba(255, 252, 245, 0.98), rgba(244, 235, 218, 0.72));
+        }
+
+        .metric-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: rgba(225, 239, 232, 0.9);
+            color: var(--success);
+        }
+
+        .metric-summary.warning .metric-icon {
+            background: rgba(244, 235, 218, 0.96);
+            color: #c98208;
+        }
+
+        .metric-copy {
+            display: grid;
+            gap: 3px;
+        }
+
+        .metric-copy strong {
+            margin: 0;
+            font-family: "Fraunces", Georgia, serif;
+            font-size: 1.75rem;
+            line-height: 1;
+            color: var(--primary-strong);
+        }
+
+        .metric-copy span,
+        .tiny-copy,
+        .eyebrow-copy,
+        .booking-copy p,
+        .info-block p,
+        .fact dt,
+        .summary-card p {
+            margin: 0;
+            color: var(--muted);
+        }
+
         .page-actions,
-        .panel-header,
+        .panel-head,
         .facts,
-        .fact,
         .summary-grid,
-        .summary-card,
         .detail-grid,
-        .booking-row,
-        .booking-copy,
+        .booking-top,
         .booking-meta,
-        .info-stack,
-        .info-block {
+        .info-grid,
+        .manual-actions {
             display: flex;
-            gap: 14px;
+            gap: 12px;
             justify-content: space-between;
             align-items: flex-start;
             flex-wrap: wrap;
         }
 
+        .facts,
+        .summary-grid,
+        .detail-grid,
+        .booking-list,
+        .stack,
+        .info-grid {
+            display: grid;
+            gap: 14px;
+        }
+
         .page-actions {
-            margin-bottom: 18px;
+            margin-bottom: 14px;
+            align-items: center;
         }
 
         .back-link {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            min-height: 44px;
+            min-height: 42px;
             text-decoration: none;
             color: var(--primary-strong);
         }
 
-        .facts,
-        .summary-grid,
-        .detail-grid,
-        .info-stack {
-            display: grid;
-        }
-
         .facts {
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 18px;
         }
 
         .fact,
         .summary-card,
-        .info-block,
-        .booking-row {
-            padding: 16px;
-            border-radius: var(--radius-md);
-            border: 1px solid rgba(63, 85, 97, 0.12);
-            background: rgba(255, 255, 255, 0.7);
+        .booking-row,
+        .info-block {
+            padding: 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(63, 85, 97, 0.1);
+            background: rgba(255, 255, 255, 0.84);
         }
 
         .fact,
         .summary-card,
         .info-block {
-            flex-direction: column;
-            align-items: flex-start;
-            min-height: 110px;
-        }
-
-        .fact dt,
-        .summary-card span,
-        .eyebrow-copy,
-        .tiny-copy,
-        .booking-copy p,
-        .info-block p {
-            margin: 0;
-            color: var(--muted);
+            display: grid;
+            gap: 4px;
+            align-content: start;
+            min-height: 104px;
         }
 
         .fact dt {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
         }
@@ -90,59 +137,100 @@
             color: var(--primary-strong);
         }
 
-        .fact dd {
-            font-size: 1rem;
-            line-height: 1.55;
-        }
-
         .summary-grid {
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
 
         .summary-card strong {
-            font-size: 1.9rem;
+            font-size: 1.75rem;
+            line-height: 1;
         }
 
         .detail-grid {
-            grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.85fr);
-            gap: 18px;
+            grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
         }
 
-        .stack,
         .booking-list,
-        .info-stack {
-            display: grid;
-            gap: 18px;
-        }
-
-        .booking-list {
+        .stack,
+        .info-grid {
             gap: 12px;
         }
 
         .booking-row {
+            display: grid;
+            gap: 10px;
+        }
+
+        .booking-top {
             align-items: center;
         }
 
         .booking-copy {
             display: grid;
             gap: 4px;
+            min-width: 0;
         }
 
         .booking-copy strong,
-        .info-block h3,
-        .panel h3 {
+        .panel h3,
+        .info-block h3 {
             margin: 0;
         }
 
         .booking-meta {
             justify-content: flex-start;
+            gap: 8px;
         }
 
-        .booking-meta .status-badge,
-        .page-actions .booking-meta {
-            flex-wrap: wrap;
+        .manual-actions {
+            justify-content: flex-start;
+        }
+
+        .manual-actions > * {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .inline-form,
+        .field-stack,
+        .field-row {
+            display: grid;
+            gap: 12px;
+        }
+
+        .field-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .field-stack label,
+        .field-help,
+        .field-errors {
+            margin: 0;
+        }
+
+        .field-stack label {
+            font-weight: 600;
+        }
+
+        .field-stack input,
+        .field-stack select {
+            width: 100%;
+            min-height: 44px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(63, 85, 97, 0.2);
+            background: rgba(255, 255, 255, 0.88);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .field-help {
+            color: var(--muted);
+        }
+
+        .field-errors {
+            color: var(--danger);
         }
 
         .mono {
@@ -150,18 +238,20 @@
         }
 
         .tone-note {
-            margin-top: 18px;
-            padding: 16px;
-            border-radius: var(--radius-md);
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 18px;
             background: var(--primary-soft);
             color: var(--primary-strong);
-            line-height: 1.6;
+            line-height: 1.55;
         }
 
         @media (max-width: 960px) {
+            .hero-metrics,
             .facts,
             .summary-grid,
-            .detail-grid {
+            .detail-grid,
+            .info-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -171,17 +261,49 @@
         }
 
         @media (max-width: 720px) {
+            .hero-metrics,
             .facts,
-            .summary-grid {
+            .summary-grid,
+            .info-grid {
                 grid-template-columns: 1fr;
             }
 
+            .metric.metric-summary {
+                min-height: 92px;
+                grid-template-columns: 42px minmax(0, 1fr);
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .metric-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 14px;
+            }
+
+            .metric-copy strong {
+                font-size: 1.55rem;
+            }
+
             .page-actions,
-            .booking-row,
+            .panel-head,
+            .booking-top,
             .booking-meta,
-            .panel-header {
+            .manual-actions {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
+            }
+
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+
+            .fact,
+            .summary-card,
+            .booking-row,
+            .info-block {
+                padding: 12px;
+                border-radius: 18px;
             }
 
             .button-secondary {
@@ -191,21 +313,64 @@
     </style>
 {% endblock %}
 
-{% block hero_title %}Detalle operativo de clase.{% endblock %}
-{% block hero_copy %}Revisa cupo, reservas y cierres de la sesion en una vista.{% endblock %}
+{% block topbar_context %}
+    <div class="topbar-context-chip" aria-label="Fecha de la sesión">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 2v4"></path>
+            <path d="M16 2v4"></path>
+            <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+            <path d="M3 10h18"></path>
+        </svg>
+        <strong>{{ staff_session.date|date:"d/m/Y" }}</strong>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+        </svg>
+    </div>
+{% endblock %}
+
+{% block hero_title %}Detalle de clase{% endblock %}
+{% block hero_copy %}Revisá cupo, reservas y cierre del día en una sola vista.{% endblock %}
 
 {% block hero_metrics %}
-    <div class="metric">
-        <span>Fecha</span>
-        <strong>{{ staff_session.date|date:"d/m" }}</strong>
+    <div class="metric metric-summary">
+        <div class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+                <path d="M3 10h18"></path>
+            </svg>
+        </div>
+        <div class="metric-copy">
+            <strong>{{ staff_session.date|date:"d/m" }}</strong>
+            <span>Fecha</span>
+        </div>
     </div>
-    <div class="metric">
-        <span>Ocupacion actual</span>
-        <strong>{{ staff_session_booked_count }}/{{ staff_session.capacity }}</strong>
+    <div class="metric metric-summary">
+        <div class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12h16"></path>
+                <path d="M4 7h16"></path>
+                <path d="M4 17h10"></path>
+            </svg>
+        </div>
+        <div class="metric-copy">
+            <strong>{{ staff_session_booked_count }}/{{ staff_session.capacity }}</strong>
+            <span>Ocupacion actual</span>
+        </div>
     </div>
-    <div class="metric">
-        <span>Estado</span>
-        <strong>{{ staff_session.get_status_display }}</strong>
+    <div class="metric metric-summary warning">
+        <div class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+            </svg>
+        </div>
+        <div class="metric-copy">
+            <strong>{{ staff_session.get_status_display }}</strong>
+            <span>Estado</span>
+        </div>
     </div>
 {% endblock %}
 
@@ -219,10 +384,10 @@
         </div>
     </div>
 
-    <section class="panel" style="margin-bottom: 18px;">
-        <div class="panel-header">
+    <section class="panel" style="margin-bottom: 16px;">
+        <div class="panel-head">
             <div>
-                <p class="eyebrow-copy">Sesion #{{ staff_session.pk }}</p>
+                <p class="eyebrow-copy">Sesión #{{ staff_session.pk }}</p>
                 <h3>{{ staff_session.section.name }} · <span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></h3>
             </div>
             <span class="status-badge {% if staff_session_available_spots > 0 and staff_session.status == 'scheduled' %}success{% else %}warning{% endif %}">
@@ -230,7 +395,7 @@
             </span>
         </div>
 
-        <dl class="facts">
+        <dl class="facts" style="margin-top: 14px;">
             <div class="fact">
                 <dt>Fecha</dt>
                 <dd>{{ staff_session.date|date:"l j \\d\\e F \\d\\e Y" }}</dd>
@@ -240,7 +405,7 @@
                 <dd><span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></dd>
             </div>
             <div class="fact">
-                <dt>Seccion</dt>
+                <dt>Sección</dt>
                 <dd>{{ staff_session.section.name }}</dd>
             </div>
             <div class="fact">
@@ -260,11 +425,70 @@
         <div class="tone-note">{{ staff_session_summary_text }}</div>
     </section>
 
+    {% if staff_session_is_manual %}
+        <section class="panel" style="margin-bottom: 16px;">
+            <div class="panel-head" style="margin-bottom: 14px;">
+                <div>
+                    <h3>Editar clase manual</h3>
+                    <p class="tiny-copy">Podés cambiar actividad, día, horario y cupo.</p>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'admin-update-class-session' staff_session.pk %}" class="inline-form" style="margin-bottom: 14px;">
+                {% csrf_token %}
+
+                {% if staff_class_session_form.non_field_errors %}
+                    <p class="field-errors">{{ staff_class_session_form.non_field_errors|join:", " }}</p>
+                {% endif %}
+
+                <div class="field-stack">
+                    <label for="{{ staff_class_session_form.section.id_for_label }}">{{ staff_class_session_form.section.label }}</label>
+                    {{ staff_class_session_form.section }}
+                    {% if staff_class_session_form.section.errors %}<p class="field-errors">{{ staff_class_session_form.section.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="field-stack">
+                    <label for="{{ staff_class_session_form.date.id_for_label }}">{{ staff_class_session_form.date.label }}</label>
+                    {{ staff_class_session_form.date }}
+                    {% if staff_class_session_form.date.errors %}<p class="field-errors">{{ staff_class_session_form.date.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="field-row">
+                    <div class="field-stack">
+                        <label for="{{ staff_class_session_form.start_time.id_for_label }}">{{ staff_class_session_form.start_time.label }}</label>
+                        {{ staff_class_session_form.start_time }}
+                        {% if staff_class_session_form.start_time.errors %}<p class="field-errors">{{ staff_class_session_form.start_time.errors|join:", " }}</p>{% endif %}
+                    </div>
+                    <div class="field-stack">
+                        <label for="{{ staff_class_session_form.end_time.id_for_label }}">{{ staff_class_session_form.end_time.label }}</label>
+                        {{ staff_class_session_form.end_time }}
+                        {% if staff_class_session_form.end_time.errors %}<p class="field-errors">{{ staff_class_session_form.end_time.errors|join:", " }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="field-stack">
+                    <label for="{{ staff_class_session_form.capacity.id_for_label }}">{{ staff_class_session_form.capacity.label }}</label>
+                    {{ staff_class_session_form.capacity }}
+                    {% if staff_class_session_form.capacity.errors %}<p class="field-errors">{{ staff_class_session_form.capacity.errors|join:", " }}</p>{% endif %}
+                </div>
+
+                <div class="manual-actions">
+                    <button type="submit" class="button-search">Guardar cambios</button>
+                </div>
+            </form>
+
+            <form method="post" action="{% url 'admin-delete-class-session' staff_session.pk %}" class="manual-actions">
+                {% csrf_token %}
+                <button type="submit" class="button-danger">Eliminar clase</button>
+            </form>
+        </section>
+    {% endif %}
+
     <div class="summary-grid">
         <article class="summary-card">
             <span>Reservas activas</span>
             <strong>{{ staff_session_booked_count }}</strong>
-            <p>Reservas activas de esta sesion.</p>
+            <p>Reservas activas de esta sesión.</p>
         </article>
         <article class="summary-card">
             <span>Lugares libres</span>
@@ -272,9 +496,9 @@
             <p>Lugares disponibles ahora.</p>
         </article>
         <article class="summary-card">
-            <span>Con recuperacion</span>
+            <span>Con recuperación</span>
             <strong>{{ staff_session_makeup_bookings_count }}</strong>
-            <p>Reservas activas con recuperacion.</p>
+            <p>Reservas activas con recuperación.</p>
         </article>
         <article class="summary-card">
             <span>Movimientos visibles</span>
@@ -286,46 +510,48 @@
     <div class="detail-grid">
         <div class="stack">
             <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
+                <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
                         <h3>Alumnas anotadas</h3>
-                        <p class="tiny-copy">Reservas activas de esta sesion.</p>
+                        <p class="tiny-copy">Reservas activas de esta sesión.</p>
                     </div>
-                    <span class="status-badge muted">{{ staff_session_regular_bookings_count }} sin recuperacion</span>
+                    <span class="status-badge muted">{{ staff_session_regular_bookings_count }} sin recuperación</span>
                 </div>
 
                 {% if staff_session_active_bookings %}
                     <div class="booking-list">
                         {% for booking in staff_session_active_bookings %}
                             <article class="booking-row">
-                                <div class="booking-copy">
-                                    <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
-                                    <p>{{ booking.student.email }}</p>
-                                    {% if booking.used_recovery_credit %}
-                                        <p>Reserva por recuperacion {{ booking.used_recovery_credit.get_source_display|lower }}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
-                                    {% else %}
-                                        <p>Reserva regular sin recuperacion asociada.</p>
-                                    {% endif %}
-                                </div>
-                                <div class="booking-meta">
-                                    <span class="status-badge success">{{ booking.get_status_display }}</span>
-                                    <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
-                                        {% if booking.used_recovery_credit %}Con recuperacion{% else %}Regular{% endif %}
-                                    </span>
+                                <div class="booking-top">
+                                    <div class="booking-copy">
+                                        <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                        <p>{{ booking.student.email }}</p>
+                                        {% if booking.used_recovery_credit %}
+                                            <p>Reserva por recuperación {{ booking.used_recovery_credit.get_source_display|lower }}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
+                                        {% else %}
+                                            <p>Reserva regular sin recuperación asociada.</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="booking-meta">
+                                        <span class="status-badge success">{{ booking.get_status_display }}</span>
+                                        <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
+                                            {% if booking.used_recovery_credit %}Con recuperación{% else %}Regular{% endif %}
+                                        </span>
+                                    </div>
                                 </div>
                             </article>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="empty">Todavia no hay reservas activas para esta sesion.</div>
+                    <div class="empty">Todavía no hay reservas activas para esta sesión.</div>
                 {% endif %}
             </section>
 
             <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
+                <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
-                        <h3>Reservas relevantes recientes</h3>
-                        <p class="tiny-copy">Cancelaciones y otros estados no activos de esta sesion.</p>
+                        <h3>Reservas recientes</h3>
+                        <p class="tiny-copy">Cancelaciones y otros estados no activos de esta sesión.</p>
                     </div>
                 </div>
 
@@ -333,37 +559,39 @@
                     <div class="booking-list">
                         {% for booking in staff_session_recent_booking_events %}
                             <article class="booking-row">
-                                <div class="booking-copy">
-                                    <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
-                                    <p>{{ booking.student.email }}</p>
-                                    {% if booking.used_recovery_credit %}
-                                        <p>Quedo asociada a una recuperacion previa.</p>
-                                    {% else %}
-                                        <p>Sin recuperacion asociada.</p>
-                                    {% endif %}
-                                </div>
-                                <div class="booking-meta">
-                                    <span class="status-badge danger">{{ booking.get_status_display }}</span>
+                                <div class="booking-top">
+                                    <div class="booking-copy">
+                                        <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                        <p>{{ booking.student.email }}</p>
+                                        {% if booking.used_recovery_credit %}
+                                            <p>Quedó asociada a una recuperación previa.</p>
+                                        {% else %}
+                                            <p>Sin recuperación asociada.</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="booking-meta">
+                                        <span class="status-badge danger">{{ booking.get_status_display }}</span>
+                                    </div>
                                 </div>
                             </article>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="empty">No hay otros movimientos relevantes cargados para esta sesion.</div>
+                    <div class="empty">No hay otros movimientos relevantes cargados para esta sesión.</div>
                 {% endif %}
             </section>
         </div>
 
         <div class="stack">
             <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
+                <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
                         <h3>Resumen de estado</h3>
-                        <p class="tiny-copy">Lectura rapida para decidir la siguiente accion.</p>
+                        <p class="tiny-copy">Lectura rápida para decidir la siguiente acción.</p>
                     </div>
                 </div>
 
-                <div class="info-stack">
+                <div class="info-grid">
                     <article class="info-block">
                         <span class="eyebrow-copy">Capacidad</span>
                         <strong>{{ staff_session_booked_count }} / {{ staff_session.capacity }}</strong>
@@ -372,41 +600,40 @@
                     <article class="info-block">
                         <span class="eyebrow-copy">Recuperaciones visibles</span>
                         <strong>{{ staff_session_makeup_bookings_count }}</strong>
-                        <p>{{ staff_session_generated_recovery_credits_count }} credito{{ staff_session_generated_recovery_credits_count|pluralize }} generado{{ staff_session_generated_recovery_credits_count|pluralize }} por cierres asociados.</p>
+                        <p>{{ staff_session_generated_recovery_credits_count }} crédito{{ staff_session_generated_recovery_credits_count|pluralize }} generado{{ staff_session_generated_recovery_credits_count|pluralize }} por cierres asociados.</p>
                     </article>
                     {% if staff_session.holiday_closure %}
                         <article class="info-block">
                             <span class="eyebrow-copy">Impacto del cierre</span>
                             <strong>{{ staff_session_holiday_closure_affected_bookings_count }} reserva{{ staff_session_holiday_closure_affected_bookings_count|pluralize }} activa{{ staff_session_holiday_closure_affected_bookings_count|pluralize }}</strong>
-                            <p>Sesion cerrada por feriado con {{ staff_session_generated_recovery_credits_count }} recuperaciones asociadas.</p>
+                            <p>Sesión cerrada por feriado con {{ staff_session_generated_recovery_credits_count }} recuperaciones asociadas.</p>
                         </article>
                     {% endif %}
                 </div>
             </section>
 
             <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
+                <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
-                        <h3>Notas y cierre asociado</h3>
-                        <p class="tiny-copy">Solo muestra datos ya cargados.</p>
+                        <h3>Notas y cierre del día</h3>
+                        <p class="tiny-copy">Solo muestra datos ya registrados.</p>
                     </div>
                 </div>
 
-                <div class="info-stack">
+                <div class="info-grid">
                     <article class="info-block">
-                        <span class="eyebrow-copy">Notas de la sesion</span>
+                        <span class="eyebrow-copy">Notas de la sesión</span>
                         <strong>{% if staff_session.notes %}Cargadas{% else %}Sin notas{% endif %}</strong>
-                        <p>{% if staff_session.notes %}{{ staff_session.notes }}{% else %}No hay observaciones guardadas para esta sesion.{% endif %}</p>
+                        <p>{% if staff_session.notes %}{{ staff_session.notes }}{% else %}No hay observaciones guardadas para esta sesión.{% endif %}</p>
                     </article>
-
                     <article class="info-block">
-                        <span class="eyebrow-copy">Cierre por feriado</span>
-                        <strong>{% if staff_session.holiday_closure %}Asociado{% else %}No aplica{% endif %}</strong>
+                        <span class="eyebrow-copy">Cierre del día</span>
+                        <strong>{% if staff_session.holiday_closure %}Registrado{% else %}No aplica{% endif %}</strong>
                         <p>
                             {% if staff_session.holiday_closure %}
                                 {{ staff_session.holiday_closure.reason }}{% if staff_session.holiday_closure.notes %} · {{ staff_session.holiday_closure.notes }}{% endif %}
                             {% else %}
-                                Esta sesion no tiene cierre por feriado vinculado.
+                                Esta sesión no tiene un cierre del día vinculado.
                             {% endif %}
                         </p>
                     </article>

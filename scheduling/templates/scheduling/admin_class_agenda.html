@@ -1,24 +1,25 @@
 {% extends "scheduling/admin_base.html" %}
 
-{% block title %}Clases y feriados | Portal staff Eunoia{% endblock %}
+{% block title %}Clases y feriados | Portal admin Eunoia{% endblock %}
 
 {% block extra_head %}
     <style>
+        .hero {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .hero-metrics {
+            display: none;
+        }
+
         .agenda-grid,
-        .filters-row,
-        .filters-form,
-        .panel-header,
-        .session-row,
-        .session-meta,
-        .summary-strip,
-        .summary-card,
-        .closure-list,
-        .closure-item,
-        .field-stack,
-        .field-row,
-        .impact-grid,
-        .impact-card,
-        .panel-actions {
+        .panel-head,
+        .filters-grid,
+        .session-top,
+        .session-status,
+        .session-actions {
             display: flex;
             gap: 12px;
             justify-content: space-between;
@@ -26,28 +27,45 @@
             flex-wrap: wrap;
         }
 
-        .agenda-grid {
+        .agenda-grid,
+        .day-stack,
+        .session-list,
+        .side-stack,
+        .closure-summary {
             display: grid;
-            grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
-            gap: 18px;
+            gap: 14px;
         }
 
-        .stack,
-        .day-stack,
+        .agenda-grid {
+            grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+        }
+
+        .filters-panel,
+        .agenda-panel,
+        .closure-panel,
+        .impact-panel {
+            margin-bottom: 16px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
         .field-stack {
             display: grid;
-            gap: 18px;
+            gap: 6px;
         }
 
-        .filters-form,
-        .field-row {
-            width: 100%;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        .field-stack label,
+        .tiny-copy,
+        .session-copy p,
+        .closure-summary p {
+            margin: 0;
         }
 
         .field-stack label {
-            display: grid;
-            gap: 6px;
             font-weight: 600;
         }
 
@@ -57,271 +75,199 @@
             width: 100%;
             min-height: 44px;
             padding: 12px 14px;
-            border-radius: 14px;
-            border: 1px solid rgba(63, 85, 97, 0.2);
-            background: rgba(255, 255, 255, 0.88);
+            border-radius: 16px;
+            border: 1px solid rgba(63, 85, 97, 0.18);
+            background: rgba(255, 255, 255, 0.9);
             color: var(--text);
             font: inherit;
         }
 
         .field-stack textarea {
-            min-height: 96px;
+            min-height: 92px;
             resize: vertical;
         }
 
-        .field-help,
-        .field-errors,
         .tiny-copy,
-        .session-copy p,
-        .session-meta p,
-        .closure-item p {
-            margin: 0;
-        }
-
-        .field-help,
-        .tiny-copy {
+        .field-help {
             color: var(--muted);
-            line-height: 1.55;
         }
 
         .field-errors {
+            margin: 0;
             color: var(--danger);
         }
 
-        .summary-strip,
-        .impact-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+        .day-block,
+        .session-row,
+        .closure-summary {
+            padding: 14px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid rgba(63, 85, 97, 0.1);
         }
 
-        .summary-card,
-        .impact-card {
-            padding: 16px;
-            border-radius: var(--radius-md);
-            background: var(--surface-strong);
-            border: 1px solid rgba(47, 85, 102, 0.12);
-            flex-direction: column;
+        .day-header {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
             align-items: flex-start;
-            min-height: 116px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
         }
 
-        .summary-card strong,
-        .impact-card strong {
-            font-size: 1.9rem;
-            color: var(--primary-strong);
-        }
-
-        .day-block {
-            padding: 18px;
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.62);
-            border: 1px solid rgba(63, 85, 97, 0.12);
-        }
-
-        .day-block h3,
-        .panel h3 {
+        .day-header h3,
+        .panel h3,
+        .session-copy strong,
+        .closure-summary strong {
             margin: 0;
         }
 
-        .session-list,
-        .closure-list {
-            display: grid;
-            gap: 12px;
-        }
-
-        .session-row,
-        .closure-item {
-            padding: 14px 16px;
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.78);
-            border: 1px solid rgba(63, 85, 97, 0.12);
-        }
-
-        .session-copy,
-        .closure-copy {
+        .session-copy {
             display: grid;
             gap: 4px;
         }
 
-        .session-copy strong,
-        .closure-copy strong {
-            font-size: 1rem;
-        }
-
-        .session-meta {
+        .session-status {
             justify-content: flex-start;
+            gap: 8px;
         }
 
-        .session-meta .button-secondary {
-            margin-left: auto;
-        }
-
-        .mono {
-            font-variant-numeric: tabular-nums;
+        .session-actions {
+            margin-top: 10px;
+            justify-content: flex-start;
         }
 
         .tone-note {
             padding: 14px 16px;
-            border-radius: var(--radius-md);
-            line-height: 1.6;
+            border-radius: 18px;
             background: var(--warning-soft);
             color: var(--warning);
             border: 1px solid rgba(138, 104, 60, 0.18);
+            line-height: 1.55;
         }
 
-        @media (max-width: 960px) {
+        @media (max-width: 860px) {
             .agenda-grid,
-            .summary-strip,
-            .impact-grid,
-            .field-row,
-            .filters-form {
+            .filters-grid {
                 grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 760px) {
-            .filters-row,
-            .panel-header,
-            .session-row,
-            .closure-item,
-            .panel-actions,
-            .session-meta {
+        @media (max-width: 720px) {
+            .hero {
+                padding: 16px;
+            }
+
+            .panel-head,
+            .session-top,
+            .session-status,
+            .day-header,
+            .session-actions {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
             }
 
             .button-search,
             .button-secondary,
-            .button,
             .button-danger {
                 width: 100%;
-            }
-
-            .session-meta {
-                width: 100%;
-            }
-
-            .session-meta .button-secondary {
-                margin-left: 0;
             }
         }
     </style>
 {% endblock %}
 
-{% block hero_title %}Agenda staff de sesiones y cierres.{% endblock %}
-{% block hero_copy %}Filtra por fecha o seccion para ver sesiones y cierres rapido.{% endblock %}
-
-{% block hero_metrics %}
-    <div class="metric">
-        <span>Ventana visible</span>
-        <strong>{{ staff_agenda_anchor_date|date:"d/m" }} - {{ staff_agenda_window_end|date:"d/m" }}</strong>
-    </div>
-    <div class="metric">
-        <span>Sesiones en foco</span>
-        <strong>{{ staff_agenda_sessions_count }}</strong>
-    </div>
-    <div class="metric">
-        <span>Ya cerradas</span>
-        <strong>{{ staff_agenda_closed_sessions_count }}</strong>
+{% block topbar_context %}
+    <div class="topbar-context-chip" aria-label="Fecha foco actual">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 2v4"></path>
+            <path d="M16 2v4"></path>
+            <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+            <path d="M3 10h18"></path>
+        </svg>
+        <strong>{{ staff_agenda_anchor_date|date:"d/m/Y" }}</strong>
     </div>
 {% endblock %}
 
+{% block hero_title %}Clases y feriados{% endblock %}
+{% block hero_copy %}Filtrá actividades, revisá clases habilitadas y cerrá el día cuando haga falta.{% endblock %}
+
+{% block hero_metrics %}{% endblock %}
+
 {% block content %}
-    <section class="panel" style="margin-bottom: 18px;">
-        <div class="filters-row" style="margin-bottom: 14px;">
-            <div>
-                <h3>Agenda operativa cercana</h3>
-                <p class="tiny-copy">Muestra {{ staff_agenda_window_days }} dias desde la fecha elegida.</p>
-            </div>
-            <span class="status-badge muted">{{ staff_agenda_booked_count }} reservas activas en la ventana</span>
-        </div>
-
-        <form method="get" class="filters-form">
-            <div class="field-stack">
-                <label for="agenda-date">Fecha base</label>
-                <input id="agenda-date" type="date" name="date" value="{{ staff_agenda_anchor_date|date:'Y-m-d' }}">
-            </div>
-            <div class="field-stack">
-                <label for="agenda-section">Seccion</label>
-                <select id="agenda-section" name="section">
-                    <option value="">Todas las secciones</option>
-                    {% for section in staff_agenda_sections %}
-                        <option value="{{ section.pk }}" {% if staff_agenda_section_id == section.pk|stringformat:'s' %}selected{% endif %}>{{ section.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="panel-actions" style="grid-column: 1 / -1;">
-                <p class="tiny-copy">Elegi fecha y seccion para actualizar la agenda.</p>
-                <div class="panel-actions">
-                    <button type="submit" class="button-search">Actualizar vista</button>
-                    <a href="{% url 'admin-class-agenda' %}" class="button-secondary">Volver a hoy</a>
-                </div>
-            </div>
-        </form>
-    </section>
-
     <div class="agenda-grid">
-        <div class="stack">
-            <section class="panel">
-                <div class="summary-strip" style="margin-bottom: 16px;">
-                    <div class="summary-card">
-                        <span>Sesiones listadas</span>
-                        <strong>{{ staff_agenda_sessions_count }}</strong>
-                        <p class="tiny-copy">Entre {{ staff_agenda_anchor_date|date:"d/m/Y" }} y {{ staff_agenda_window_end|date:"d/m/Y" }}.</p>
-                    </div>
-                    <div class="summary-card">
-                        <span>Sesiones cerradas</span>
-                        <strong>{{ staff_agenda_closed_sessions_count }}</strong>
-                        <p class="tiny-copy">Ya marcadas como cerradas por feriado.</p>
-                    </div>
-                    <div class="summary-card">
-                        <span>Reservas activas</span>
-                        <strong>{{ staff_agenda_booked_count }}</strong>
-                        <p class="tiny-copy">Total de reservas activas en la ventana.</p>
+        <div class="day-stack">
+            <section class="panel filters-panel">
+                <div class="panel-head" style="margin-bottom: 14px;">
+                    <div>
+                        <h3>Clases habilitadas</h3>
+                        <p class="tiny-copy">Filtrá por fecha y actividad para ver las clases del período.</p>
                     </div>
                 </div>
 
+                <form method="get" class="day-stack">
+                    <div class="filters-grid">
+                        <div class="field-stack">
+                            <label for="agenda-date">Fecha base</label>
+                            <input id="agenda-date" type="date" name="date" value="{{ staff_agenda_anchor_date|date:'Y-m-d' }}">
+                        </div>
+                        <div class="field-stack">
+                            <label for="agenda-section">Actividad</label>
+                            <select id="agenda-section" name="section">
+                                <option value="">Todas las actividades</option>
+                                {% for section in staff_agenda_sections %}
+                                    <option value="{{ section.pk }}" {% if staff_agenda_section_id == section.pk|stringformat:'s' %}selected{% endif %}>{{ section.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="panel-head">
+                        <p class="tiny-copy">Mostrando {{ staff_agenda_window_days }} días desde la fecha elegida.</p>
+                        <div class="panel-head" style="justify-content:flex-start; gap:8px;">
+                            <button type="submit" class="button-search">Actualizar</button>
+                            <a href="{% url 'admin-class-agenda' %}" class="button-secondary">Volver a hoy</a>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel agenda-panel">
                 {% if staff_agenda_groups %}
                     <div class="day-stack">
                         {% for group in staff_agenda_groups %}
                             <article class="day-block">
-                                <div class="panel-header" style="margin-bottom: 12px;">
+                                <div class="day-header">
                                     <div>
                                         <h3>{{ group.date|date:"l j \\d\\e F" }}</h3>
-                                        <p class="tiny-copy">{{ group.sessions|length }} clase{{ group.sessions|length|pluralize }} visible{{ group.sessions|length|pluralize }} para esta fecha.</p>
+                                        <p class="tiny-copy">{{ group.sessions|length }} clase{{ group.sessions|length|pluralize }} para esta fecha.</p>
                                     </div>
-                                    {% if group.date == staff_agenda_anchor_date %}
-                                        <span class="status-badge warning">Fecha foco</span>
-                                    {% endif %}
                                 </div>
 
                                 <div class="session-list">
                                     {% for row in group.sessions %}
                                         <article class="session-row">
-                                            <div class="session-copy">
-                                                <strong>{{ row.session.section.name }}</strong>
-                                                <p><span class="mono">{{ row.session.start_time|time:"H:i" }} - {{ row.session.end_time|time:"H:i" }}</span> · cupo {{ row.session.capacity }}</p>
-                                                {% if row.session.holiday_closure %}
-                                                    <p class="tiny-copy">Cierre aplicado: {{ row.session.holiday_closure.reason }}.</p>
-                                                {% else %}
-                                                    <p class="tiny-copy">Sesion abierta.</p>
-                                                {% endif %}
+                                            <div class="session-top">
+                                                <div class="session-copy">
+                                                    <strong>{{ row.session.section.name }}</strong>
+                                                    <p><span class="mono">{{ row.session.start_time|time:"H:i" }} - {{ row.session.end_time|time:"H:i" }}</span> · cupo {{ row.session.capacity }}</p>
+                                                </div>
+                                                <div class="session-status">
+                                                    <span class="status-badge {% if row.session.status == 'scheduled' %}success{% elif row.session.status == 'holiday_closed' %}danger{% else %}warning{% endif %}">{% if row.session.status == 'scheduled' %}Habilitada{% elif row.session.status == 'holiday_closed' %}Cerrada{% else %}{{ row.session.get_status_display }}{% endif %}</span>
+                                                    {% if row.available_spots <= 0 %}
+                                                        <span class="status-badge danger">Sin cupo</span>
+                                                    {% elif row.available_spots == 1 %}
+                                                        <span class="status-badge warning">Último lugar</span>
+                                                    {% endif %}
+                                                    {% if row.makeup_bookings_count %}
+                                                        <span class="status-badge warning">{{ row.makeup_bookings_count }} con recuperación</span>
+                                                    {% endif %}
+                                                    {% if row.generated_recoveries_count %}
+                                                        <span class="status-badge muted">{{ row.generated_recoveries_count }} recuperaciones generadas</span>
+                                                    {% endif %}
+                                                </div>
                                             </div>
-                                            <div class="session-meta">
-                                                <span class="status-badge {% if row.session.status == 'scheduled' %}success{% else %}danger{% endif %}">{{ row.session.get_status_display }}</span>
-                                                {% if row.available_spots <= 0 %}
-                                                    <span class="status-badge danger">Sin cupo</span>
-                                                {% elif row.available_spots == 1 %}
-                                                    <span class="status-badge warning">Ultimo lugar</span>
-                                                {% endif %}
-                                                <span class="status-badge muted">{{ row.booked_count }} reservas</span>
-                                                {% if row.makeup_bookings_count %}
-                                                    <span class="status-badge warning">{{ row.makeup_bookings_count }} con recuperacion</span>
-                                                {% endif %}
-                                                {% if row.generated_recoveries_count %}
-                                                    <span class="status-badge muted">{{ row.generated_recoveries_count }} recuperaciones generadas</span>
-                                                {% endif %}
-                                                <span class="status-badge muted">{{ row.available_spots }} lugares libres</span>
+
+                                            <div class="session-actions">
                                                 <a href="{{ row.detail_url }}" class="button-secondary">Ver detalle</a>
                                             </div>
                                         </article>
@@ -336,141 +282,115 @@
             </section>
         </div>
 
-        <div class="stack">
-            <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
+        <div class="side-stack">
+            <section class="panel closure-panel">
+                <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
-                        <h3>Marcar feriado o cierre completo</h3>
-                        <p class="tiny-copy">Aplica cierre de dia completo.</p>
+                        <h3>Nueva clase</h3>
+                        <p class="tiny-copy">Agregá una clase manual si ese horario todavía no existe.</p>
                     </div>
-                    <span class="status-badge muted">Dia completo</span>
                 </div>
 
-                <div class="tone-note" style="margin-bottom: 16px;">
-                    Impacto: las sesiones del dia quedan cerradas y cada reserva activa genera recuperacion si no existia.
-                </div>
-
-                <form method="post" action="{% url 'admin-create-holiday-closure' %}" class="field-stack">
+                <form method="post" action="{% url 'admin-create-class-session' %}" class="day-stack">
                     {% csrf_token %}
+                    <input type="hidden" name="section_filter" value="{{ staff_agenda_section_id }}">
+
+                    {% if staff_class_session_form.non_field_errors %}
+                        <p class="field-errors">{{ staff_class_session_form.non_field_errors|join:", " }}</p>
+                    {% endif %}
+
+                    <div class="field-stack">
+                        <label for="{{ staff_class_session_form.section.id_for_label }}">{{ staff_class_session_form.section.label }}</label>
+                        {{ staff_class_session_form.section }}
+                        {% if staff_class_session_form.section.errors %}<p class="field-errors">{{ staff_class_session_form.section.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="field-stack">
+                        <label for="{{ staff_class_session_form.date.id_for_label }}">{{ staff_class_session_form.date.label }}</label>
+                        {{ staff_class_session_form.date }}
+                        {% if staff_class_session_form.date.errors %}<p class="field-errors">{{ staff_class_session_form.date.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="filters-grid">
+                        <div class="field-stack">
+                            <label for="{{ staff_class_session_form.start_time.id_for_label }}">{{ staff_class_session_form.start_time.label }}</label>
+                            {{ staff_class_session_form.start_time }}
+                            {% if staff_class_session_form.start_time.errors %}<p class="field-errors">{{ staff_class_session_form.start_time.errors|join:", " }}</p>{% endif %}
+                        </div>
+                        <div class="field-stack">
+                            <label for="{{ staff_class_session_form.end_time.id_for_label }}">{{ staff_class_session_form.end_time.label }}</label>
+                            {{ staff_class_session_form.end_time }}
+                            {% if staff_class_session_form.end_time.errors %}<p class="field-errors">{{ staff_class_session_form.end_time.errors|join:", " }}</p>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="field-stack">
+                        <label for="{{ staff_class_session_form.capacity.id_for_label }}">{{ staff_class_session_form.capacity.label }}</label>
+                        {{ staff_class_session_form.capacity }}
+                        {% if staff_class_session_form.capacity.errors %}<p class="field-errors">{{ staff_class_session_form.capacity.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <button type="submit" class="button-search">Agregar clase</button>
+                </form>
+            </section>
+
+            <section class="panel closure-panel">
+                <div class="panel-head" style="margin-bottom: 14px;">
+                    <div>
+                        <h3>Cerrar todo el día</h3>
+                        <p class="tiny-copy">Elegí una fecha y el motivo del cierre.</p>
+                    </div>
+                </div>
+
+                <div class="tone-note" style="margin-bottom: 14px;">
+                    Cuando cerrás un día, las clases quedan cerradas y cada alumna agendada recibe su recuperación automáticamente.
+                </div>
+
+                <form method="post" action="{% url 'admin-create-holiday-closure' %}" class="day-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="section" value="{{ staff_agenda_section_id }}">
 
                     {% if staff_holiday_closure_form.non_field_errors %}
                         <p class="field-errors">{{ staff_holiday_closure_form.non_field_errors|join:", " }}</p>
                     {% endif %}
 
-                    <input type="hidden" name="section" value="{{ staff_agenda_section_id }}">
-
                     <div class="field-stack">
                         <label for="{{ staff_holiday_closure_form.date.id_for_label }}">{{ staff_holiday_closure_form.date.label }}</label>
                         {{ staff_holiday_closure_form.date }}
-                        {% if staff_holiday_closure_form.date.errors %}
-                            <p class="field-errors">{{ staff_holiday_closure_form.date.errors|join:", " }}</p>
-                        {% endif %}
                     </div>
 
                     <div class="field-stack">
                         <label for="{{ staff_holiday_closure_form.reason.id_for_label }}">{{ staff_holiday_closure_form.reason.label }}</label>
                         {{ staff_holiday_closure_form.reason }}
-                        {% if staff_holiday_closure_form.reason.help_text %}
-                            <p class="field-help">{{ staff_holiday_closure_form.reason.help_text }}</p>
-                        {% endif %}
-                        {% if staff_holiday_closure_form.reason.errors %}
-                            <p class="field-errors">{{ staff_holiday_closure_form.reason.errors|join:", " }}</p>
-                        {% endif %}
                     </div>
 
                     <div class="field-stack">
                         <label for="{{ staff_holiday_closure_form.notes.id_for_label }}">{{ staff_holiday_closure_form.notes.label }}</label>
                         {{ staff_holiday_closure_form.notes }}
-                        {% if staff_holiday_closure_form.notes.help_text %}
-                            <p class="field-help">{{ staff_holiday_closure_form.notes.help_text }}</p>
-                        {% endif %}
-                        {% if staff_holiday_closure_form.notes.errors %}
-                            <p class="field-errors">{{ staff_holiday_closure_form.notes.errors|join:", " }}</p>
-                        {% endif %}
                     </div>
 
-                    <button type="submit" class="button-danger">Aplicar cierre del dia</button>
+                    <button type="submit" class="button-danger">Aplicar cierre del día</button>
                 </form>
             </section>
 
-            <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
-                    <div>
-                        <h3>Impacto del dia elegido</h3>
-                        <p class="tiny-copy">Si hay cierre cargado, aca ves su impacto real.</p>
-                    </div>
-                </div>
-
-                {% if staff_closure_focus_summary %}
-                    <div class="impact-grid" style="margin-bottom: 16px;">
-                        <div class="impact-card">
-                            <span>Sesiones cerradas</span>
-                            <strong>{{ staff_closure_focus_summary.closed_sessions_count }}</strong>
-                            <p class="tiny-copy">Fecha {{ staff_closure_focus_summary.closure.date|date:"d/m/Y" }}</p>
-                        </div>
-                        <div class="impact-card">
-                            <span>Reservas afectadas</span>
-                            <strong>{{ staff_closure_focus_summary.affected_bookings_count }}</strong>
-                            <p class="tiny-copy">Reservas activas asociadas a esas sesiones.</p>
-                        </div>
-                        <div class="impact-card">
-                            <span>Recuperaciones generadas</span>
-                            <strong>{{ staff_closure_focus_summary.generated_recoveries_count }}</strong>
-                            <p class="tiny-copy">Generadas para las reservas impactadas de ese dia.</p>
+            {% if staff_closure_focus_summary %}
+                <section class="panel impact-panel">
+                    <div class="panel-head" style="margin-bottom: 14px;">
+                        <div>
+                            <h3>Resumen del cierre</h3>
+                            <p class="tiny-copy">Impacto del día seleccionado.</p>
                         </div>
                     </div>
 
-                    <div class="closure-item">
-                        <div class="closure-copy">
-                            <strong>{{ staff_closure_focus_summary.closure.reason }}</strong>
-                            <p>{{ staff_closure_focus_summary.closure.date|date:"d/m/Y" }}</p>
-                            {% if staff_closure_focus_summary.closure.notes %}
-                                <p class="tiny-copy">{{ staff_closure_focus_summary.closure.notes }}</p>
-                            {% endif %}
-                        </div>
-                        <div class="session-meta">
-                            <span class="status-badge {% if staff_closure_focus_summary.closure.recovery_credits_processed %}success{% else %}warning{% endif %}">
-                                {% if staff_closure_focus_summary.closure.recovery_credits_processed %}Procesado{% else %}Pendiente{% endif %}
-                            </span>
-                        </div>
+                    <div class="closure-summary">
+                        <strong>{{ staff_closure_focus_summary.closure.reason }}</strong>
+                        <p>{{ staff_closure_focus_summary.closure.date|date:"d/m/Y" }}</p>
+                        <p class="tiny-copy">Sesiones cerradas: {{ staff_closure_focus_summary.closed_sessions_count }}</p>
+                        <p class="tiny-copy">Reservas afectadas: {{ staff_closure_focus_summary.affected_bookings_count }}</p>
+                        <p class="tiny-copy">Recuperaciones generadas: {{ staff_closure_focus_summary.generated_recoveries_count }}</p>
                     </div>
-                {% else %}
-                    <div class="empty">Para la fecha seleccionada todavia no hay un cierre cargado.</div>
-                {% endif %}
-            </section>
-
-            <section class="panel">
-                <div class="panel-header" style="margin-bottom: 16px;">
-                    <div>
-                        <h3>Cierres recientes</h3>
-                        <p class="tiny-copy">Ultimos cierres cargados.</p>
-                    </div>
-                    <span class="status-badge muted">{{ staff_recent_closures|length }} recientes</span>
-                </div>
-
-                {% if staff_recent_closures %}
-                    <div class="closure-list">
-                        {% for closure in staff_recent_closures %}
-                            <article class="closure-item">
-                                <div class="closure-copy">
-                                    <strong>{{ closure.reason }}</strong>
-                                    <p>{{ closure.date|date:"d/m/Y" }}</p>
-                                    {% if closure.created_by %}
-                                        <p class="tiny-copy">Carga inicial por {{ closure.created_by.get_full_name|default:closure.created_by.email }}</p>
-                                    {% endif %}
-                                </div>
-                                <div class="session-meta">
-                                    <span class="status-badge {% if closure.recovery_credits_processed %}success{% else %}warning{% endif %}">
-                                        {% if closure.recovery_credits_processed %}Procesado{% else %}Pendiente{% endif %}
-                                    </span>
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty">Todavia no hay cierres recientes cargados.</div>
-                {% endif %}
-            </section>
+                </section>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

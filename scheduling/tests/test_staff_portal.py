@@ -369,7 +369,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Ada Lovelace')
         self.assertContains(response, self.section.name)
-        self.assertContains(response, 'Al dia')
+        self.assertContains(response, 'Al día')
         self.assertNotContains(response, 'Grace Hopper')
 
     def test_staff_list_links_to_student_detail(self):
@@ -386,16 +386,13 @@ class AdminPortalViewTests(TestCase):
         response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]), {'q': 'ada'})
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Ficha operativa de alumna.')
+        self.assertContains(response, 'Detalle de alumna')
         self.assertContains(response, 'Ada Lovelace')
         self.assertContains(response, self.active_student.email)
+        self.assertContains(response, 'Sin teléfono cargado')
         self.assertContains(response, self.section.name)
-        self.assertContains(response, 'Proximas reservas')
-        self.assertContains(response, 'Recuperaciones')
-        self.assertContains(response, 'Vencida')
-        self.assertContains(response, 'Resumen reciente')
+        self.assertContains(response, 'Pago del mes')
         self.assertContains(response, 'Volver al listado')
-        self.assertContains(response, 'Auditoria reciente')
 
     def test_staff_can_grant_manual_recovery_from_detail(self):
         self.client.force_login(self.staff_user)
@@ -425,8 +422,6 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(audit_log.payload['status'], RecoveryCreditStatus.AVAILABLE)
         self.assertEqual(audit_log.payload['notes'], 'Cortesia operativa')
         self.assertContains(response, 'Se otorgo una recuperacion manual para Ada Lovelace')
-        self.assertContains(response, 'Cortesia operativa')
-        self.assertContains(response, 'Staff otorgo una recuperacion manual para Ada Lovelace')
 
     def test_staff_manual_recovery_ignores_unsafe_next_url(self):
         self.client.force_login(self.staff_user)
@@ -456,8 +451,6 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Actividad de la recuperacion')
-        self.assertContains(response, 'Este campo es obligatorio.')
         self.assertFalse(RecoveryCredit.objects.filter(student=self.active_student, notes='Sin actividad').exists())
 
     def test_non_staff_user_cannot_manage_recoveries_from_detail(self):
@@ -514,7 +507,6 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(audit_log.payload['status'], RecoveryCreditStatus.EXPIRED)
         self.assertEqual(audit_log.payload['section_name'], self.section.name)
         self.assertContains(response, 'Se marco como vencida la recuperacion de Ada Lovelace')
-        self.assertContains(response, 'Vencida')
 
     def test_staff_cannot_manually_expire_used_recovery(self):
         used_credit = RecoveryCredit.objects.create(
@@ -558,8 +550,7 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(audit_log.payload['booking_enabled'])
         self.assertEqual(response.request['PATH_INFO'], reverse('admin-student-detail', args=[self.active_student.pk]))
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
-        self.assertContains(response, 'Suspendido')
-        self.assertContains(response, 'Staff suspendio el acceso mensual de Ada Lovelace')
+        self.assertContains(response, 'Bloqueado')
 
     def test_staff_can_suspend_current_month_access(self):
         self.client.force_login(self.staff_user)
@@ -575,7 +566,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
-        self.assertContains(response, 'Suspendido')
+        self.assertContains(response, 'Bloqueado')
 
     def test_staff_can_activate_student_without_current_month_access(self):
         student_without_status = User.objects.create_user(
@@ -606,6 +597,25 @@ class AdminPortalViewTests(TestCase):
         self.assertTrue(audit_log.payload['booking_enabled'])
         self.assertContains(response, 'Se activo el acceso operativo de Katherine Johnson')
 
+    def test_staff_can_mark_student_paid_and_activate_access(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-mark-student-paid', args=[self.pending_student.pk]),
+            {'q': 'grace'},
+            follow=True,
+        )
+
+        access = self.pending_student.get_monthly_access_for(self.current_month)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(access.booking_enabled)
+        self.assertEqual(access.activated_by, self.staff_user)
+        audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk, action=AuditAction.STATUS_CHANGE)
+        self.assertEqual(audit_log.actor, self.staff_user)
+        self.assertEqual(audit_log.payload['status'], MonthlyAccessStatusType.ACTIVE)
+        self.assertContains(response, 'Se registró el pago de Grace Hopper y el acceso quedó activo')
+
     def test_admin_class_agenda_requires_login(self):
         response = self.client.get(reverse('admin-class-agenda'))
 
@@ -630,10 +640,103 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Agenda operativa cercana')
+        self.assertContains(response, 'Clases habilitadas')
         self.assertContains(response, self.section.name)
         self.assertContains(response, self.upcoming_session.start_time.strftime('%H:%M'))
         self.assertNotContains(response, self.other_upcoming_session.start_time.strftime('%H:%M'))
+
+    def test_staff_can_create_manual_class_session_from_agenda(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-create-class-session'),
+            {
+                'section': self.section.pk,
+                'date': self.today.isoformat(),
+                'start_time': '15:00',
+                'end_time': '16:00',
+                'capacity': 7,
+                'section_filter': self.section.pk,
+            },
+            follow=True,
+        )
+
+        session = ClassSession.objects.get(section=self.section, date=self.today, start_time=time(15, 0))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(session.end_time, time(16, 0))
+        self.assertEqual(session.capacity, 7)
+        self.assertEqual(session.status, SessionStatus.SCHEDULED)
+        self.assertContains(response, 'Se creó la clase de')
+        self.assertContains(response, '15:00 - 16:00')
+
+    def test_staff_cannot_create_duplicate_manual_class_session(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-create-class-session'),
+            {
+                'section': self.section.pk,
+                'date': self.upcoming_session.date.isoformat(),
+                'start_time': self.upcoming_session.start_time.strftime('%H:%M'),
+                'end_time': self.upcoming_session.end_time.strftime('%H:%M'),
+                'capacity': self.upcoming_session.capacity,
+                'section_filter': self.section.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ya existe una clase para esa actividad en ese día y horario.')
+
+    def test_staff_can_update_manual_class_session(self):
+        manual_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today + timedelta(days=4),
+            start_time=time(15, 0),
+            end_time=time(16, 0),
+            capacity=5,
+            status=SessionStatus.SCHEDULED,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-class-session', args=[manual_session.pk]),
+            {
+                'section': self.other_section.pk,
+                'date': manual_session.date.isoformat(),
+                'start_time': '17:00',
+                'end_time': '18:00',
+                'capacity': 8,
+            },
+            follow=True,
+        )
+
+        manual_session.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(manual_session.section, self.other_section)
+        self.assertEqual(manual_session.start_time, time(17, 0))
+        self.assertEqual(manual_session.end_time, time(18, 0))
+        self.assertEqual(manual_session.capacity, 8)
+        self.assertContains(response, 'Se actualizó la clase de')
+
+    def test_staff_can_delete_manual_class_session_without_bookings(self):
+        manual_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today + timedelta(days=5),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=4,
+            status=SessionStatus.SCHEDULED,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-delete-class-session', args=[manual_session.pk]),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ClassSession.objects.filter(pk=manual_session.pk).exists())
+        self.assertContains(response, 'Se eliminó la clase de')
 
     def test_staff_agenda_links_to_class_session_detail(self):
         self.client.force_login(self.staff_user)
@@ -710,7 +813,7 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Detalle operativo de clase.')
+        self.assertContains(response, 'Detalle de clase')
         self.assertContains(response, self.section.name)
         self.assertContains(response, self.upcoming_session.date.strftime('%d/%m/%Y'))
         self.assertContains(response, 'Ocupacion actual')
@@ -718,9 +821,9 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Alumnas anotadas')
         self.assertContains(response, 'Ada Lovelace')
         self.assertContains(response, 'Katherine Johnson')
-        self.assertContains(response, 'Reserva por recuperacion manual')
-        self.assertContains(response, 'Con recuperacion')
-        self.assertContains(response, 'Reservas relevantes recientes')
+        self.assertContains(response, 'Reserva por recuperación manual')
+        self.assertContains(response, 'Con recuperación')
+        self.assertContains(response, 'Reservas recientes')
         self.assertContains(response, 'Grace Hopper')
         self.assertContains(response, 'Volver a la agenda')
         self.assertContains(
@@ -807,7 +910,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(audit_log.payload['created_credits'], 2)
         self.assertContains(response, 'Sesiones cerradas: 2.')
         self.assertContains(response, 'Recuperaciones nuevas: 2.')
-        self.assertContains(response, 'Impacto del dia elegido')
+        self.assertContains(response, 'Resumen del cierre')
         self.assertContains(response, 'Feriado puente')
 
     def test_staff_can_reapply_holiday_closure_without_duplicate_recoveries(self):
@@ -909,7 +1012,7 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '1 con recuperacion')
+        self.assertContains(response, '1 con recuperación')
         self.assertContains(response, '1 recuperaciones generadas')
 
     def test_staff_session_detail_surfaces_holiday_closure_impact(self):
@@ -940,4 +1043,4 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Impacto del cierre')
         self.assertContains(response, '1 reserva activa')
-        self.assertContains(response, 'Cierre por feriado')
+        self.assertContains(response, 'Cierre del día')

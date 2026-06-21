@@ -1,165 +1,548 @@
 {% extends "scheduling/student_base.html" %}
 
-{% block title %}Usar Recuperacion | Eunoia{% endblock %}
-{% block hero_title %}Usar recuperacion{% endblock %}
-{% block hero_copy %}Elegis un horario disponible de {% if recovery_workweek_is_next %}la proxima semana{% else %}esta semana{% endif %} y te mostramos solo opciones que podes usar desde el portal.{% endblock %}
+{% block title %}Usar recuperación | Eunoia{% endblock %}
+{% block hero_title %}Usar recuperación{% endblock %}
+{% block hero_copy %}Elegí un día y horario disponible de {% if recovery_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %}.{% endblock %}
+{% block hero_class %}recovery-picker-hero{% endblock %}
 
+{% block topbar_context %}{% endblock %}
+
+{% block topbar_logout %}
+    <button type="submit" class="button-secondary icon-button" aria-label="Salir del portal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21a8 8 0 1 0-16 0"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+    </button>
+{% endblock %}
+
+{% block hero_actions %}{% endblock %}
+{% block hero_stats %}{% endblock %}
 {% block status_banner %}{% endblock %}
 
 {% block extra_head %}
 <style>
     .shell {
-        width: min(960px, calc(100% - (var(--shell-padding) * 2)));
+        width: min(860px, calc(100% - (var(--shell-padding) * 2)));
+        padding-bottom: 110px;
     }
 
-    .hero {
-        grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
-        gap: 18px;
-        padding: clamp(22px, 4vw, 30px);
-    }
-
-    .hero-stats {
+    .recovery-picker-hero {
         grid-template-columns: 1fr;
-    }
-
-    .recovery-layout {
-        width: min(100%, 760px);
-        margin: 0 auto;
-        display: grid;
-        gap: 18px;
-    }
-
-    .portal-card {
-        padding: clamp(20px, 4vw, 28px);
-    }
-
-    .portal-card .section-title {
-        align-items: center;
+        gap: 8px;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        backdrop-filter: none;
         margin-bottom: 14px;
     }
 
-    .portal-card .section-title h3 {
-        font-size: clamp(1.55rem, 3vw, 1.95rem);
+    .recovery-picker-hero .hero-main {
+        gap: 8px;
     }
 
-    .recovery-summary {
+    .recovery-picker-hero .hero-copy-stack {
+        gap: 6px;
+    }
+
+    .recovery-picker-hero h2 {
+        font-size: clamp(3rem, 9vw, 4.6rem);
+        line-height: 0.92;
+        margin: 0;
+    }
+
+    .recovery-picker-layout {
         display: grid;
-        gap: 12px;
+        gap: 16px;
     }
 
-    .recovery-summary .item {
-        padding: 14px;
+    .picker-card {
+        padding: 22px;
     }
 
-    .recovery-session-actions {
+    .credit-summary {
         display: grid;
-        gap: 12px;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: 72px minmax(0, 1fr) auto;
+        gap: 14px;
         align-items: center;
-        margin-top: 14px;
     }
 
-    @media (max-width: 720px) {
-        .hero,
-        .recovery-session-actions {
+    .summary-icon,
+    .info-icon,
+    .confirm-icon,
+    .bottom-nav svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    .summary-icon-wrap,
+    .info-icon-wrap,
+    .confirm-icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg, #eff5ef, #e5eee3);
+        color: var(--primary-strong);
+    }
+
+    .summary-copy strong {
+        display: block;
+        color: var(--text);
+        font-size: clamp(1.45rem, 4vw, 1.9rem);
+    }
+
+    .summary-copy p {
+        margin: 2px 0 0;
+        color: var(--muted);
+    }
+
+    .activity-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: linear-gradient(145deg, #eff5ef, #e5eee3);
+        color: var(--primary-strong);
+        font-weight: 600;
+    }
+
+    .helper-copy {
+        margin: 0;
+        color: var(--text);
+        font-size: 1rem;
+    }
+
+    .calendar-header {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) 48px;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .calendar-header h3 {
+        margin: 0;
+        text-align: center;
+        font-size: clamp(2rem, 6vw, 2.8rem);
+        line-height: 0.96;
+        color: var(--primary-strong);
+    }
+
+    .calendar-nav {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid rgba(105, 132, 119, 0.14);
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--primary-strong);
+        text-decoration: none;
+    }
+
+    .calendar-weekdays,
+    .calendar-week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .calendar-weekdays {
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(105, 132, 119, 0.16);
+        margin-bottom: 12px;
+    }
+
+    .calendar-weekdays span {
+        text-align: center;
+        color: var(--muted);
+        font-weight: 600;
+    }
+
+    .calendar-day {
+        min-height: 56px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        color: var(--text);
+    }
+
+    .calendar-day.muted {
+        color: rgba(100, 117, 109, 0.35);
+    }
+
+    .calendar-day.fixed span,
+    .calendar-day.fixed a,
+    .calendar-day.available a,
+    .calendar-day.selected a {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .calendar-day.fixed span,
+    .calendar-day.fixed a {
+        background: #5a7466;
+        color: #fff;
+    }
+
+    .calendar-day.available a {
+        background: rgba(196, 213, 194, 0.54);
+    }
+
+    .calendar-day.selected a {
+        background: #86aa90;
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba(90, 116, 102, 0.18);
+    }
+
+    .calendar-day.fixed.available.selected a {
+        background: #86aa90;
+        color: #fff;
+    }
+
+    .slots-title {
+        margin: 0;
+        color: var(--primary-strong);
+        font-size: 1rem;
+    }
+
+    .selected-date-label {
+        margin: 4px 0 14px;
+        color: var(--text);
+        font-weight: 600;
+    }
+
+    .slot-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .slot-button {
+        min-height: 58px;
+        border-radius: 18px;
+        border: 1px solid rgba(105, 132, 119, 0.22);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--text);
+        font: inherit;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .slot-button.active {
+        background: #5a7466;
+        color: #fff;
+        border-color: #5a7466;
+    }
+
+    .confirm-card {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr) 120px;
+        gap: 14px;
+        align-items: start;
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(105, 132, 119, 0.12);
+    }
+
+    .confirm-copy {
+        color: var(--text);
+    }
+
+    .confirm-copy strong {
+        display: block;
+        font-size: clamp(1.6rem, 4vw, 2.1rem);
+        line-height: 0.98;
+    }
+
+    .confirm-copy p {
+        margin: 4px 0 0;
+        color: var(--primary-strong);
+        font-size: 1rem;
+    }
+
+    .discount-note {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(105, 132, 119, 0.14);
+        color: var(--muted);
+        line-height: 1.45;
+    }
+
+    .picker-actions {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .picker-actions .button,
+    .picker-actions .button-secondary,
+    .picker-actions form button {
+        width: 100%;
+        min-height: 56px;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .empty-copy {
+        line-height: 1.55;
+    }
+
+    .bottom-nav {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        width: min(860px, calc(100% - 20px));
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(105, 132, 119, 0.14);
+        border-radius: 26px;
+        box-shadow: 0 18px 42px rgba(47, 61, 53, 0.12);
+        backdrop-filter: blur(12px);
+        z-index: 20;
+    }
+
+    .bottom-nav a {
+        display: grid;
+        place-items: center;
+        gap: 6px;
+        min-height: 60px;
+        border-radius: 18px;
+        text-decoration: none;
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    .bottom-nav a.active {
+        color: var(--primary-strong);
+        font-weight: 700;
+        background: rgba(223, 232, 223, 0.42);
+    }
+
+    @media (max-width: 560px) {
+        .shell {
+            width: min(100% - 14px, 860px);
+            padding-bottom: 104px;
+        }
+
+        .picker-card {
+            padding: 18px;
+            border-radius: 24px;
+        }
+
+        .credit-summary,
+        .confirm-card {
             grid-template-columns: 1fr;
         }
 
-        .button,
-        .button-secondary,
-        .button-disabled,
-        .recovery-session-actions form,
-        .recovery-session-actions form button {
-            width: 100%;
+        .slot-grid {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .bottom-nav {
+            width: calc(100% - 14px);
+        }
+
+        .bottom-nav a {
+            font-size: 0.82rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="recovery-layout">
-    <article class="card portal-card">
-        <div class="section-title">
-            <div>
-                <p class="eyebrow">Recuperacion elegida</p>
-                <h3>{{ recovery_focus_credit.section.name }}</h3>
+<section class="recovery-picker-layout">
+    <article class="card picker-card">
+        <div class="credit-summary">
+            <div class="summary-icon-wrap" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3c4 2.4 6 4.9 6 8.4 0 4.4-3.2 7.6-6 9.6-2.8-2-6-5.2-6-9.6C6 7.9 8 5.4 12 3Z"></path>
+                    <path d="M12 8v8"></path>
+                    <path d="M8.8 11.2c1.8.1 4.6-.6 6.6-2.6"></path>
+                </svg>
             </div>
-            {% if recovery_focus_credit_overdue %}
-                <span class="pill soft-danger">Vencida</span>
-            {% else %}
-                <span class="pill soft-success">Disponible</span>
-            {% endif %}
+            <div class="summary-copy">
+                <strong>{{ available_recovery_credits|length }} recuperación{{ available_recovery_credits|length|pluralize:"es" }} disponible{{ available_recovery_credits|length|pluralize:"s" }}</strong>
+                <p>Vence el {{ recovery_focus_credit.expires_at|date:"d/m" }}</p>
+            </div>
+            <div class="activity-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path>
+                    <path d="M2 18h20"></path>
+                    <path d="M6 14h12"></path>
+                </svg>
+                <span>{{ recovery_focus_credit.section.name }}</span>
+            </div>
         </div>
-        <div class="recovery-summary">
-            <div class="item">
-                <strong>Vence el {{ recovery_focus_credit.expires_at|date:"j \d\e F, Y" }}</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Vas a ver solo opciones disponibles para usar esta recuperacion.</p>
-            </div>
-            <div class="item">
-                <strong>{{ eligible_sessions_count }} opcion{{ eligible_sessions_count|pluralize:"es" }} {% if recovery_workweek_is_next %}la proxima semana{% else %}esta semana{% endif %}</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Horarios con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }} para la misma actividad.</p>
-            </div>
-            {% if recovery_focus_credit.origin_session %}
-                <div class="item">
-                    <strong>Origen</strong>
-                    <p class="meta" style="margin-top: 8px; line-height: 1.6;">Clase del {{ recovery_focus_credit.origin_session.date|date:"j/m/Y" }} a las {{ recovery_focus_credit.origin_session.start_time|time:"H:i" }}.</p>
-                </div>
-            {% endif %}
-            <a href="{% url 'dashboard' %}" class="button-secondary">Volver</a>
-        </div>
+        <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} opción{{ eligible_sessions_count|pluralize:"es" }} con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }} para esta actividad.</p>
     </article>
 
-    <article class="card portal-card">
-        <div class="section-title">
-            <div>
-                <p class="eyebrow">Horarios disponibles</p>
-                <h3>Clases disponibles de {% if recovery_workweek_is_next %}la proxima semana laboral{% else %}esta semana laboral{% endif %}</h3>
-            </div>
+    <p class="helper-copy">Elegí un día y horario disponible.</p>
+
+    <article class="card picker-card">
+        <div class="calendar-header">
+            <a href="{{ recovery_prev_url }}" class="calendar-nav" aria-label="Ver mes anterior">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+            </a>
+            <h3>{{ recovery_month_label }}</h3>
+            <a href="{{ recovery_next_url }}" class="calendar-nav" aria-label="Ver mes siguiente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 18 6-6-6-6"></path>
+                </svg>
+            </a>
         </div>
 
-        {% if recovery_session_cards %}
-            <div class="list">
-                {% for card in recovery_session_cards %}
-                    <article class="item">
-                        <div class="item-header">
-                            <div>
-                                <strong>{{ card.session.date|date:"l j \d\e F" }}</strong>
-                                <p class="meta">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }}</p>
-                            </div>
-                            <div class="badge-row">
-                                <span class="pill soft-success">{{ card.session.booked_count }}/{{ card.session.capacity }} ocupados</span>
-                                {% if card.action.can_book %}
-                                    <span class="pill soft-warning">Compatible</span>
-                                {% else %}
-                                    <span class="pill soft-muted">No disponible</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <p class="session-note" style="margin: 12px 0 14px; line-height: 1.6;">{{ card.action.message }}</p>
-                        <div class="recovery-session-actions">
-                            <span class="meta">Clase de {{ card.session.section.name }}</span>
-                            {% if card.action.can_book %}
-                                <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="used_recovery_credit_id" value="{{ recovery_focus_credit.id }}">
-                                    <input type="hidden" name="next" value="{% url 'dashboard' %}">
-                                    <button type="submit" class="button">{{ card.action.label }}</button>
-                                </form>
-                            {% else %}
-                                <span class="button-disabled" aria-disabled="true">{{ card.action.label }}</span>
-                            {% endif %}
-                        </div>
-                    </article>
+        <div class="calendar-weekdays">
+            {% for label in recovery_weekday_labels %}
+                <span>{{ label }}</span>
+            {% endfor %}
+        </div>
+
+        {% for week in recovery_calendar_weeks %}
+            <div class="calendar-week">
+                {% for day in week %}
+                    <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_fixed_schedule %} fixed{% endif %}{% if day.has_availability %} available{% endif %}{% if day.is_selected %} selected{% endif %}">
+                        {% if day.select_url %}
+                            <a href="{{ day.select_url }}">{{ day.day_number }}</a>
+                        {% else %}
+                            <span>{{ day.day_number }}</span>
+                        {% endif %}
+                    </div>
                 {% endfor %}
             </div>
+        {% endfor %}
+    </article>
+
+    <article class="card picker-card">
+        <h3 class="slots-title">Horarios disponibles</h3>
+        {% if recovery_selected_date %}
+            <p class="selected-date-label">{{ recovery_selected_date|date:"D d/m"|capfirst }}</p>
+            {% if recovery_selected_day_cards %}
+                <div class="slot-grid">
+                    {% for card in recovery_selected_day_cards %}
+                        <a class="slot-button{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}">{{ card.session.start_time|time:"H:i" }}</a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty" style="margin-top: 8px;">
+                    <p class="empty-copy"><strong>Ese día forma parte de tu horario fijo, pero no tiene recuperación disponible esta semana.</strong></p>
+                    <p class="meta" style="margin-top: 8px;">Probá con otra fecha marcada que caiga dentro de la semana actual.</p>
+                </div>
+            {% endif %}
         {% else %}
             <div class="empty">
-                No hay horarios disponibles para recuperar en {% if recovery_workweek_is_next %}la proxima semana laboral{% else %}la semana laboral actual{% endif %} de esta actividad.
-                <div class="empty-actions">
-                    <a href="{% url 'dashboard' %}" class="button-secondary">Volver</a>
-                </div>
+                <p class="empty-copy"><strong>No hay horarios disponibles para usar esta recuperación en la semana actual.</strong></p>
+                {% if recovery_workweek_is_next %}
+                    <p class="meta" style="margin-top: 8px;">No hay horarios disponibles para usar esta recuperación la próxima semana.</p>
+                {% else %}
+                <p class="meta" style="margin-top: 8px;">Probá más adelante o revisá tus turnos para seguir el estado de tus créditos.</p>
+                {% endif %}
             </div>
         {% endif %}
     </article>
+
+    {% if recovery_selected_session_card %}
+        {% with session=recovery_selected_session_card.session %}
+        <article class="card picker-card">
+            <div class="confirm-card">
+                <div class="confirm-icon-wrap" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                        <path d="M16 2v4M8 2v4M3 10h18"></path>
+                    </svg>
+                </div>
+                <div class="confirm-copy">
+                    <div class="meta">Vas a reservar:</div>
+                    <strong>{{ session.date|date:"D d/m"|capfirst }} · {{ session.start_time|time:"H:i" }}</strong>
+                    <p>{{ session.section.name }}</p>
+                    <div class="discount-note">
+                        <span class="info-icon-wrap" aria-hidden="true" style="width:24px;height:24px;background:transparent;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 8h.01"></path>
+                                <path d="M11 12h1v4h1"></path>
+                            </svg>
+                        </span>
+                        <span>Se descontará 1 recuperación.</span>
+                    </div>
+                </div>
+                <div class="confirm-icon-wrap" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 37h32l7 9"></path>
+                        <path d="M17 37V25l9-6h18l6 18"></path>
+                        <path d="M22 53V37"></path>
+                        <path d="M46 53V37"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="picker-actions">
+                <form method="post" action="{% url 'create-booking' session.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="used_recovery_credit_id" value="{{ recovery_focus_credit.id }}">
+                    <input type="hidden" name="next" value="{% url 'dashboard' %}">
+                    <button type="submit" class="button">Confirmar recuperación</button>
+                </form>
+                <a href="{% url 'my-bookings' %}" class="button-secondary">← Volver</a>
+            </div>
+        </article>
+        {% endwith %}
+    {% endif %}
 </section>
+{% endblock %}
+
+{% block bottom_nav %}
+    <nav class="bottom-nav" aria-label="Navegación principal del portal alumna">
+        <a href="{% url 'dashboard' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 10.5 12 3l9 7.5"></path>
+                <path d="M5 9.5V21h14V9.5"></path>
+            </svg>
+            <span>Inicio</span>
+        </a>
+        <a href="{% url 'agenda' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+            <span>Agenda</span>
+        </a>
+        <a href="{% url 'my-bookings' %}" class="active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 0 1-15.5 6.36L3 21"></path>
+                <path d="M3 12A9 9 0 0 1 18.5 5.64L21 3"></path>
+                <path d="M3 16v5h5"></path>
+                <path d="M21 8V3h-5"></path>
+            </svg>
+            <span>Recuperaciones</span>
+        </a>
+        <a href="{% url 'account' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21a8 8 0 1 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Mi cuenta</span>
+        </a>
+    </nav>
 {% endblock %}

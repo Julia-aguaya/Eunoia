@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.utils import timezone
 
-from .models import HolidayClosure, RecoveryCredit, Section
+from .models import ClassSession, HolidayClosure, RecoveryCredit, Section, SessionStatus
 
 
 class EmailAuthenticationForm(forms.Form):
@@ -56,6 +56,47 @@ class EmailAuthenticationForm(forms.Form):
         return self.user_cache
 
 
+class StudentSelfSignupForm(forms.Form):
+    first_name = forms.CharField(label='Nombre', max_length=100)
+    last_name = forms.CharField(label='Apellido', max_length=100)
+    email = forms.EmailField(label='Email')
+    phone = forms.CharField(label='Teléfono', max_length=50, required=False)
+    primary_section = forms.ModelChoiceField(
+        queryset=Section.objects.none(),
+        label='Actividad',
+        empty_label=None,
+    )
+    password1 = forms.CharField(label='Contraseña', strip=False, widget=forms.PasswordInput)
+    password2 = forms.CharField(label='Repetir contraseña', strip=False, widget=forms.PasswordInput)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['primary_section'].queryset = Section.objects.filter(is_active=True).order_by('name')
+        self.fields['email'].widget.attrs.update({'autocomplete': 'email', 'autocapitalize': 'none', 'spellcheck': 'false'})
+        self.fields['phone'].widget.attrs.update({'autocomplete': 'tel'})
+        self.fields['password1'].widget.attrs.update({'autocomplete': 'new-password'})
+        self.fields['password2'].widget.attrs.update({'autocomplete': 'new-password'})
+
+    def clean_email(self):
+        email = get_user_model().objects.normalize_email(self.cleaned_data['email'])
+        if get_user_model().objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('Ya existe una cuenta con ese email.')
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+
+        if password1 and password2 and password1 != password2:
+            self.add_error('password2', 'Las contraseñas no coinciden.')
+
+        if password1:
+            password_validation.validate_password(password1)
+
+        return cleaned_data
+
+
 class RequiredPasswordChangeForm(forms.Form):
     new_password1 = forms.CharField(
         label='Nueva contrasena',
@@ -89,6 +130,86 @@ class RequiredPasswordChangeForm(forms.Form):
         self.user.set_initial_password(self.cleaned_data['new_password1'], require_password_change=False)
         self.user.save(update_fields=['password', 'must_change_password', 'temporary_password_set_at', 'updated_at'])
         return self.user
+
+
+class AccountProfileForm(forms.ModelForm):
+    current_password = forms.CharField(
+        required=False,
+        label='Contrasena actual',
+        strip=False,
+        widget=forms.PasswordInput,
+    )
+    new_password1 = forms.CharField(
+        required=False,
+        label='Nueva contrasena',
+        strip=False,
+        widget=forms.PasswordInput,
+    )
+    new_password2 = forms.CharField(
+        required=False,
+        label='Repetir nueva contrasena',
+        strip=False,
+        widget=forms.PasswordInput,
+    )
+
+    class Meta:
+        model = get_user_model()
+        fields = ['first_name', 'last_name', 'email', 'phone']
+        labels = {
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'email': 'Email',
+            'phone': 'Telefono',
+        }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, instance=user, **kwargs)
+        self.user = user
+        self.fields['email'].widget.attrs.update({'autocomplete': 'email'})
+        self.fields['phone'].widget.attrs.update({'autocomplete': 'tel'})
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if get_user_model().objects.exclude(pk=self.user.pk).filter(email__iexact=email).exists():
+            raise forms.ValidationError('Ya existe una cuenta con ese email.')
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        current_password = cleaned_data.get('current_password')
+        new_password1 = cleaned_data.get('new_password1')
+        new_password2 = cleaned_data.get('new_password2')
+        wants_password_change = bool(current_password or new_password1 or new_password2)
+
+        if not wants_password_change:
+            return cleaned_data
+
+        if not current_password:
+            self.add_error('current_password', 'Ingresa tu contrasena actual para cambiarla.')
+        elif not self.user.check_password(current_password):
+            self.add_error('current_password', 'La contrasena actual no coincide.')
+
+        if not new_password1:
+            self.add_error('new_password1', 'Ingresa una nueva contrasena.')
+
+        if not new_password2:
+            self.add_error('new_password2', 'Repeti la nueva contrasena.')
+
+        if new_password1 and new_password2 and new_password1 != new_password2:
+            self.add_error('new_password2', 'Las contrasenas nuevas no coinciden.')
+
+        if new_password1:
+            password_validation.validate_password(new_password1, self.user)
+
+        return cleaned_data
+
+    def save(self):
+        user = super().save(commit=False)
+        new_password1 = self.cleaned_data.get('new_password1')
+        if new_password1:
+            user.set_initial_password(new_password1, require_password_change=False)
+        user.save()
+        return user
 
 
 class StaffManualRecoveryCreditForm(forms.Form):
@@ -146,3 +267,83 @@ class StaffHolidayClosureForm(forms.ModelForm):
 
     def validate_unique(self):
         return
+
+
+class StaffClassSessionForm(forms.Form):
+    section = forms.ModelChoiceField(
+        queryset=Section.objects.none(),
+        label='Actividad',
+        empty_label=None,
+    )
+    date = forms.DateField(
+        label='Día',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    start_time = forms.TimeField(
+        label='Hora de inicio',
+        widget=forms.TimeInput(attrs={'type': 'time'}),
+    )
+    end_time = forms.TimeField(
+        label='Hora de fin',
+        widget=forms.TimeInput(attrs={'type': 'time'}),
+    )
+    capacity = forms.IntegerField(
+        label='Cupo',
+        min_value=1,
+    )
+
+    def __init__(self, *args, session_instance=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session_instance = session_instance
+        self.fields['section'].queryset = Section.objects.filter(is_active=True).order_by('name')
+        if session_instance is not None:
+            self.fields['section'].initial = session_instance.section_id
+            self.fields['date'].initial = session_instance.date
+            self.fields['start_time'].initial = session_instance.start_time
+            self.fields['end_time'].initial = session_instance.end_time
+            self.fields['capacity'].initial = session_instance.capacity
+        else:
+            self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        section = cleaned_data.get('section')
+        session_date = cleaned_data.get('date')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_time and end_time and end_time <= start_time:
+            self.add_error('end_time', 'La hora de fin tiene que ser posterior al inicio.')
+
+        if section and session_date and start_time:
+            duplicate_qs = ClassSession.objects.filter(
+                section=section,
+                date=session_date,
+                start_time=start_time,
+            )
+            if self.session_instance is not None:
+                duplicate_qs = duplicate_qs.exclude(pk=self.session_instance.pk)
+            if duplicate_qs.exists():
+                self.add_error('start_time', 'Ya existe una clase para esa actividad en ese día y horario.')
+
+        return cleaned_data
+
+    def save(self):
+        if self.session_instance is None:
+            return ClassSession.objects.create(
+                section=self.cleaned_data['section'],
+                date=self.cleaned_data['date'],
+                start_time=self.cleaned_data['start_time'],
+                end_time=self.cleaned_data['end_time'],
+                capacity=self.cleaned_data['capacity'],
+                status=SessionStatus.SCHEDULED,
+            )
+
+        session = self.session_instance
+        session.section = self.cleaned_data['section']
+        session.date = self.cleaned_data['date']
+        session.start_time = self.cleaned_data['start_time']
+        session.end_time = self.cleaned_data['end_time']
+        session.capacity = self.cleaned_data['capacity']
+        session.save(update_fields=['section', 'date', 'start_time', 'end_time', 'capacity', 'updated_at'])
+        return session

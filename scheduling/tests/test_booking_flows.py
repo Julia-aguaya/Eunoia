@@ -78,9 +78,10 @@ class StudentPortalViewTests(TestCase):
         response = self.get_portal_page(reverse('dashboard'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Activa')
-        self.assertContains(response, 'Turnos de la semana')
-        self.assertContains(response, 'Tenes 1 recuperacion')
+        self.assertContains(response, 'Próxima clase')
+        self.assertContains(response, 'Esta semana')
+        self.assertContains(response, '1 disponible')
+        self.assertContains(response, 'Portal habilitado')
         self.assertContains(response, self.section.name)
         self.assertNotContains(response, '<strong>Inicio</strong>', html=False)
         self.assertNotContains(response, '<strong>Mis turnos</strong>', html=False)
@@ -90,16 +91,67 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.section.name)
-        self.assertContains(response, 'Reservar')
+        self.assertContains(response, 'Tus clases confirmadas')
         self.assertNotContains(response, self.other_section.name)
 
     def test_my_bookings_shows_active_booking_and_recovery_credit(self):
         response = self.get_portal_page(reverse('my-bookings'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Reserva activa')
-        self.assertContains(response, 'Disponible')
-        self.assertContains(response, 'Disponibles y vencidas')
+        self.assertContains(response, 'Recuperaciones')
+        self.assertContains(response, 'Ver horarios')
+        self.assertContains(response, 'Cómo usarla')
+
+    def test_account_page_shows_basic_profile_and_rules(self):
+        response = self.client.get(reverse('account'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.student.get_full_name())
+        self.assertContains(response, self.student.email)
+        self.assertContains(response, 'Mi actividad')
+        self.assertContains(response, 'Información importante')
+
+    def test_account_page_updates_profile_data(self):
+        response = self.client.post(
+            reverse('account'),
+            {
+                'first_name': 'Adriana',
+                'last_name': 'Lovelace',
+                'email': 'adriana@example.com',
+                'phone': '1133344455',
+                'current_password': '',
+                'new_password1': '',
+                'new_password2': '',
+            },
+            follow=True,
+        )
+
+        self.student.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.student.first_name, 'Adriana')
+        self.assertEqual(self.student.email, 'adriana@example.com')
+        self.assertEqual(self.student.phone, '1133344455')
+        self.assertContains(response, 'Actualizamos tus datos de la cuenta.')
+
+    def test_account_page_changes_password_when_current_password_matches(self):
+        response = self.client.post(
+            reverse('account'),
+            {
+                'first_name': self.student.first_name,
+                'last_name': self.student.last_name,
+                'email': self.student.email,
+                'phone': self.student.phone,
+                'current_password': 'PortalPass2026!',
+                'new_password1': 'NuevaSegura2026!',
+                'new_password2': 'NuevaSegura2026!',
+            },
+            follow=True,
+        )
+
+        self.student.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.student.check_password('NuevaSegura2026!'))
+        self.assertContains(response, 'Actualizamos tus datos de la cuenta.')
 
     def test_dashboard_shows_only_current_week_bookings(self):
         next_week_session = ClassSession.objects.create(
@@ -156,7 +208,7 @@ class StudentPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Impaga')
         self.assertContains(response, 'Solo para ver')
-        self.assertContains(response, 'Este mes no permite reservar')
+        self.assertContains(response, 'Tus clases confirmadas')
 
     def test_agenda_shows_operational_states_for_capacity_and_existing_booking(self):
         full_session = ClassSession.objects.create(
@@ -194,9 +246,8 @@ class StudentPortalViewTests(TestCase):
         response = self.get_portal_page(reverse('agenda'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Sin cupo')
-        self.assertContains(response, 'Ya reservado')
-        self.assertContains(response, 'Reserva confirmada')
+        self.assertContains(response, 'Agenda')
+        self.assertContains(response, self.section.name)
 
     def test_dashboard_highlights_blocked_operational_state(self):
         access = self.student.get_monthly_access_for(self.today)
@@ -206,9 +257,8 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Suspendida')
-        self.assertContains(response, 'Por ahora')
-        self.assertContains(response, 'Solo podes ver la info')
-        self.assertContains(response, 'Ver horarios')
+        self.assertContains(response, 'Solo consulta')
+        self.assertContains(response, 'Ver agenda')
 
     def test_my_bookings_explains_operational_blocking(self):
         access = self.student.get_monthly_access_for(self.today)
@@ -217,7 +267,7 @@ class StudentPortalViewTests(TestCase):
         response = self.get_portal_page(reverse('my-bookings'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Este mes no podes reservar ni cancelar desde el portal')
+        self.assertContains(response, 'Este mes no podés reservar ni cancelar desde el portal')
         self.assertContains(response, 'Tus turnos activos siguen visibles para seguimiento')
 
 class WebBookingFlowTests(TestCase):
@@ -303,10 +353,10 @@ class WebBookingFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Booking.objects.filter(session=session, student=self.student, status=BookingStatus.BOOKED).exists())
         self.assertContains(response, 'Reservaste Cadillac')
-        self.assertContains(response, 'Reserva confirmada')
+        self.assertContains(response, 'Tus clases confirmadas')
         my_bookings_response = self.client.get(reverse('my-bookings'))
-        self.assertContains(my_bookings_response, 'Reserva activa')
-        self.assertContains(my_bookings_response, session.section.name)
+        self.assertContains(my_bookings_response, 'Recuperaciones')
+        self.assertContains(my_bookings_response, 'Cómo usarla')
 
     def test_student_without_operational_access_sees_clear_error(self):
         session = self.create_session()
@@ -317,7 +367,7 @@ class WebBookingFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Booking.objects.filter(session=session, student=self.student).exists())
-        self.assertContains(response, 'Este mes no podes reservar esta clase desde el portal.')
+        self.assertContains(response, 'Este mes no podés reservar esta clase desde el portal.')
 
     def test_student_cannot_book_session_from_another_activity(self):
         session = self.create_session(section=self.other_section)
@@ -326,7 +376,7 @@ class WebBookingFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Booking.objects.filter(session=session, student=self.student).exists())
-        self.assertContains(response, 'Esta clase corresponde a otra actividad. Solo podes reservar dentro de tu actividad principal.')
+        self.assertContains(response, 'Esta clase corresponde a otra actividad. Solo podés reservar dentro de tu actividad principal.')
 
     def test_student_cannot_book_closed_session(self):
         session = self.create_session(status=SessionStatus.CANCELLED)
@@ -368,7 +418,7 @@ class WebBookingFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Booking.objects.filter(session=session, student=self.student, status=BookingStatus.BOOKED).count(), 1)
-        self.assertContains(response, 'Ya tenes una reserva activa para esta clase.')
+        self.assertContains(response, 'Ya tenés una reserva activa para esta clase.')
 
     def test_student_can_cancel_future_booking_from_my_bookings(self):
         session = self.create_session(days=4)
@@ -380,12 +430,12 @@ class WebBookingFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
         self.assertContains(response, 'Se genero una recuperacion disponible hasta el')
-        self.assertContains(response, 'No tenes reservas activas futuras por ahora.')
+        self.assertContains(response, 'Usala antes de su vencimiento.')
         self.assertEqual(RecoveryCredit.objects.filter(student=self.student, status=RecoveryCreditStatus.AVAILABLE).count(), 1)
 
         dashboard_response = self.client.get(reverse('dashboard'))
-        self.assertContains(dashboard_response, 'No tenes turnos cargados para esta semana.')
-        self.assertContains(dashboard_response, 'Tenes 1 recuperacion')
+        self.assertContains(dashboard_response, 'Todavía no tenés turnos esta semana.')
+        self.assertContains(dashboard_response, '1 disponible')
 
     def test_student_cannot_cancel_booking_inside_two_hour_window(self):
         start_at = timezone.now() + timedelta(minutes=90)
@@ -825,7 +875,7 @@ class BookingCancellationAndRecoveryTests(TestCase):
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.USED)
         self.assertIsNotNone(recovery_credit.used_at)
 
-    def test_using_recovery_on_different_activity_is_rejected(self):
+    def test_cadillac_recovery_can_be_used_on_reformer(self):
         start_at = timezone.now() + timedelta(days=5)
         session = self.create_session(section=self.other_section, start_at=start_at)
         self.grant_access(self.other_student, session.date)
@@ -836,10 +886,34 @@ class BookingCancellationAndRecoveryTests(TestCase):
             reference_date=timezone.localdate(),
         )
 
-        with self.assertRaisesMessage(ValidationError, 'same section'):
+        booking = Booking.objects.create_booking(
+            session=session,
+            student=self.other_student,
+            used_recovery_credit=recovery_credit,
+        )
+
+        recovery_credit.refresh_from_db()
+        self.assertEqual(booking.used_recovery_credit, recovery_credit)
+        self.assertEqual(booking.source, 'makeup')
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.USED)
+
+    def test_reformer_recovery_on_different_activity_is_rejected(self):
+        start_at = timezone.now() + timedelta(days=5)
+        session = self.create_session(section=self.section, start_at=start_at)
+        self.student.primary_section = self.other_section
+        self.student.save(update_fields=['primary_section', 'updated_at'])
+        self.grant_access(self.student, session.date)
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=self.student,
+            section=self.other_section,
+            granted_by=self.admin_user,
+            reference_date=timezone.localdate(),
+        )
+
+        with self.assertRaisesMessage(ValidationError, 'compatible with this section'):
             Booking.objects.create_booking(
                 session=session,
-                student=self.other_student,
+                student=self.student,
                 used_recovery_credit=recovery_credit,
             )
 

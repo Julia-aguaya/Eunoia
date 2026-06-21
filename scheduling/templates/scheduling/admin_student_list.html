@@ -4,118 +4,186 @@
 
 {% block extra_head %}
     <style>
-        .search-panel {
-            margin-bottom: 18px;
+        .hero {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 20px;
         }
 
-        .search-header,
-        .row,
-        .row-main,
-        .row-state,
-        .row-actions,
-        .search-form,
+        .hero-metrics {
+            display: none;
+        }
+
+        .search-panel,
+        .students-panel {
+            margin-bottom: 16px;
+        }
+
+        .search-stack,
+        .inline-input,
         .search-tools,
-        .section-title {
+        .section-title,
+        .section-tools,
+        .row-top,
+        .row-main,
+        .row-status,
+        .row-actions,
+        .status-pair {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
         }
 
-        .search-form {
+        .search-stack {
+            flex-direction: column;
             align-items: stretch;
+            gap: 6px;
         }
 
-        .search-form label {
-            font-weight: 600;
+        .search-panel .section-title {
+            justify-content: flex-start;
+        }
+
+        .search-panel .section-title h3,
+        .students-panel .section-title h3 {
+            margin: 0;
+        }
+
+        .search-copy,
+        .search-label,
+        .chip-scroller,
+        .list {
+            margin-top: 0;
+        }
+
+        .inline-input {
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .search-field {
+            flex: 1 1 320px;
+            min-width: 0;
+        }
+
+        .input-shell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 46px;
+            padding: 0 14px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .input-shell svg {
+            width: 18px;
+            height: 18px;
+            color: var(--muted);
+            flex: 0 0 auto;
         }
 
         .search-input {
-            min-width: min(420px, 100%);
-            min-height: 46px;
-            padding: 0 14px;
-            border-radius: 14px;
-            border: 1px solid var(--line);
-            background: rgba(255, 255, 255, 0.9);
+            width: 100%;
+            min-width: 0;
+            height: 44px;
+            border: 0;
+            background: transparent;
             color: var(--text);
             font: inherit;
+            padding: 0;
         }
 
-        .search-input:focus,
-        .action-button:focus,
-        .button-search:focus,
-        .button-secondary:focus {
-            outline: 3px solid rgba(47, 85, 102, 0.2);
-            outline-offset: 2px;
+        .search-input:focus {
+            outline: none;
         }
 
-        .section-title {
-            margin-bottom: 16px;
+        .search-tools {
+            gap: 8px;
+            justify-content: flex-start;
         }
 
-        .section-title h3 {
-            font-size: 1.9rem;
+        .chip-scroller {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+
+        .chip-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--text);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .filter-pill.active {
+            background: var(--primary-strong);
+            border-color: var(--primary-strong);
+            color: #fff;
+        }
+
+        .sort-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 38px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--primary-strong);
         }
 
         .list {
             display: grid;
-            gap: 12px;
+            gap: 10px;
         }
 
         .row {
-            padding: 18px;
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.74);
-            border: 1px solid rgba(63, 85, 97, 0.12);
+            padding: 14px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(63, 85, 97, 0.1);
         }
 
-        .row-main {
-            align-items: flex-start;
-            flex: 1 1 320px;
-        }
-
-        .row-main strong {
-            display: block;
-            font-size: 1.08rem;
-            margin-bottom: 4px;
+        .row-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #eef4ef, #e4ece1);
+            color: var(--primary-strong);
+            font-size: 1.1rem;
+            flex: 0 0 auto;
         }
 
         .student-meta {
             display: grid;
-            gap: 4px;
-            line-height: 1.55;
+            gap: 2px;
+            line-height: 1.35;
+            min-width: 0;
+            flex: 1 1 auto;
         }
 
-        .row-state {
-            flex: 1 1 320px;
-            justify-content: flex-start;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .state-group {
-            display: grid;
-            gap: 6px;
-            min-width: 150px;
-        }
-
-        .row-label {
-            font-size: 0.84rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .row-actions {
-            flex: 0 0 auto;
-            align-items: flex-end;
-            gap: 10px;
-            min-width: 220px;
-        }
-
-        .action-form {
-            margin: 0;
+        .student-meta strong {
+            font-size: 1.04rem;
+            color: var(--text);
         }
 
         .student-link {
@@ -123,160 +191,213 @@
             color: inherit;
         }
 
-        .student-link:hover strong {
-            text-decoration: underline;
-            text-decoration-color: rgba(32, 61, 75, 0.35);
+        .status-pair {
+            justify-content: flex-start;
+            gap: 6px;
         }
 
-        .action-button {
+        .status-pair strong {
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .row-actions {
+            margin-top: 10px;
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+
+        .row-actions > * {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .row-actions.single-action {
+            grid-template-columns: 1fr;
+        }
+
+        .action-form {
+            margin: 0;
+        }
+
+        .action-button,
+        .button-primary-link {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 44px;
-            padding: 0 16px;
+            width: 100%;
+            min-height: 42px;
+            padding: 0 14px;
             border: 1px solid transparent;
             border-radius: 999px;
             font: inherit;
+            text-decoration: none;
             cursor: pointer;
-            transition: transform 180ms ease, background-color 180ms ease;
-        }
-
-        .action-button:hover { transform: translateY(-1px); }
-
-        .action-button.activate {
             background: var(--primary-strong);
             color: #fff;
         }
 
-        .action-button.suspend {
-            background: var(--danger);
-            color: #fff;
+        .row-actions .button-secondary {
+            width: 100%;
+            min-height: 42px;
         }
 
-        @media (max-width: 860px) {
-            .row,
-            .row-main,
-            .row-state,
-            .row-actions,
-            .search-form,
-            .search-tools,
-            .section-title {
+        @media (max-width: 720px) {
+            .hero {
+                padding: 16px;
+            }
+
+            .inline-input,
+            .section-title,
+            .section-tools,
+            .row-top,
+            .row-status {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
             }
 
-            .search-input,
-            .search-form,
             .search-tools,
-            .action-form,
-            .action-button,
-            .row-state,
             .row-actions {
-                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
             }
 
-            .row-state {
-                grid-template-columns: 1fr;
+            .search-tools .button-search,
+            .search-tools .button-secondary,
+            .row-actions .button-secondary,
+            .row-actions .button-primary-link,
+            .action-button {
+                width: 100%;
             }
         }
     </style>
 {% endblock %}
 
-{% block hero_title %}Panel de alumnas para operacion diaria.{% endblock %}
-{% block hero_copy %}Busca por nombre o email, revisa estado y ajusta acceso en la misma vista.{% endblock %}
-
-{% block hero_metrics %}
-    <div class="metric">
-        <span>Mes operativo</span>
+{% block topbar_context %}
+    <div class="topbar-context-chip" aria-label="Mes operativo actual">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 2v4"></path>
+            <path d="M16 2v4"></path>
+            <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+            <path d="M3 10h18"></path>
+        </svg>
         <strong>{{ admin_current_month_label }}</strong>
-    </div>
-    <div class="metric">
-        <span>Alumnas activas</span>
-        <strong>{{ admin_summary.active }}</strong>
-    </div>
-    <div class="metric">
-        <span>Pendientes o sin estado</span>
-        <strong>{{ admin_summary.pending|add:admin_summary.missing }}</strong>
     </div>
 {% endblock %}
 
+{% block hero_title %}Panel de alumnas{% endblock %}
+{% block hero_copy %}Buscá alumnas, revisá su estado y registrá pagos del mes.{% endblock %}
+
+{% block hero_metrics %}{% endblock %}
+
 {% block content %}
     <section class="panel search-panel">
-        <div class="search-header">
-            <div>
-                <h3 style="margin: 0;">Buscador operativo</h3>
-                <p class="search-copy">Filtra por nombre, apellido o email. Solo se muestran alumnas del mes operativo actual.</p>
+        <div class="search-stack">
+            <div class="section-title">
+                <div>
+                    <h3>Buscar alumna</h3>
+                    <p class="search-copy">Buscá por nombre, apellido o email.</p>
+                </div>
             </div>
+
+            <form method="get" class="search-stack" role="search">
+                <input type="hidden" name="status" value="{{ admin_status_filter }}">
+                <div class="inline-input">
+                    <div class="search-field">
+                        <div class="input-shell">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="m20 20-3.5-3.5"></path>
+                            </svg>
+                            <input id="admin-query" class="search-input" type="search" name="q" value="{{ admin_query }}" placeholder="Nombre, apellido o email">
+                        </div>
+                    </div>
+                    <div class="search-tools">
+                        <button type="submit" class="button-search">Buscar</button>
+                        {% if admin_query %}
+                            <a href="{% url 'admin-student-list' %}{% if admin_status_filter != 'all' %}?status={{ admin_status_filter }}{% endif %}" class="button-secondary">Limpiar</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="chip-scroller" aria-label="Filtros de alumnas">
+                    <a href="{% url 'admin-student-list' %}{% if admin_query %}?q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'all' %}active{% endif %}">Todas</a>
+                    <a href="{% url 'admin-student-list' %}?status=active{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'active' %}active{% endif %}">Activas</a>
+                    <a href="{% url 'admin-student-list' %}?status=pending{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'pending' %}active{% endif %}">Pendientes</a>
+                    <a href="{% url 'admin-student-list' %}?status=impaga{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'impaga' %}active{% endif %}">Impagas</a>
+                </div>
+            </form>
         </div>
-        <form method="get" class="search-form" role="search">
-            <div style="display: grid; gap: 8px; flex: 1 1 420px;">
-                <label for="admin-query">Buscar alumna</label>
-                <input id="admin-query" class="search-input" type="search" name="q" value="{{ admin_query }}" placeholder="Ej: ada, lovelace o ada@example.com">
-            </div>
-            <div class="search-tools">
-                <button type="submit" class="button-search">Buscar</button>
-                {% if admin_query %}
-                    <a href="{% url 'admin-student-list' %}" class="button-secondary">Limpiar</a>
-                {% endif %}
-            </div>
-        </form>
     </section>
 
-    <section class="panel">
+    <section class="panel students-panel">
         <div class="section-title">
             <div>
-                <h3>Listado de alumnas</h3>
-                <p class="muted">{{ admin_students|length }} resultado{{ admin_students|length|pluralize }} para {{ admin_current_month_label }}.</p>
+                <h3>Alumnas</h3>
+                <p class="muted">{{ admin_students|length }} resultado{{ admin_students|length|pluralize }} · {{ admin_current_month_label }}</p>
             </div>
-            <div class="status-badge info">Lectura rapida de operacion y pago</div>
+            <div class="section-tools">
+                <div class="status-badge info">
+                    {% if admin_status_filter == 'all' %}Todas{% elif admin_status_filter == 'active' %}Activas{% elif admin_status_filter == 'pending' %}Pendientes{% else %}Impagas{% endif %}
+                </div>
+                <div class="sort-pill">Nombre A-Z</div>
+            </div>
         </div>
 
         {% if admin_students %}
             <div class="list">
                 {% for row in admin_students %}
                     <article class="row">
-                        <div class="row-main">
-                            <div class="student-meta">
-                                 <a href="{{ row.detail_url }}" class="student-link">
-                                     <strong>{{ row.student.get_full_name|default:row.student.email }}</strong>
-                                 </a>
-                                 <span>{{ row.student.email }}</span>
-                                 <span>Seccion principal: {{ row.section_name }}</span>
-                                 {% if row.section_name == 'Sin seccion principal' %}
-                                     <span class="status-badge warning">Falta definir actividad principal</span>
-                                 {% endif %}
-                             </div>
-                         </div>
-
-                        <div class="row-state">
-                            <div class="state-group">
-                                <span class="row-label">Operacion</span>
-                                <span class="status-badge {{ row.operational_tone }}">{{ row.operational_label }}</span>
+                        <div class="row-top">
+                            <div class="row-main">
+                                <div class="row-avatar" aria-hidden="true">{{ row.initials }}</div>
+                                <div class="student-meta">
+                                    <a href="{{ row.detail_url }}" class="student-link">
+                                        <strong>{{ row.student.get_full_name|default:row.student.email }}</strong>
+                                    </a>
+                                    <span>{{ row.student.email }}</span>
+                                    <span>{{ row.section_name }}</span>
+                                </div>
                             </div>
-                            <div class="state-group">
-                                <span class="row-label">Pago actual</span>
-                                <span class="status-badge {{ row.payment_tone }}">{{ row.payment_label }}</span>
+                            <div class="row-status">
+                                <div class="status-pair">
+                                    <strong>Acceso</strong>
+                                    <span class="status-badge {{ row.operational_tone }}">{{ row.operational_label }}</span>
+                                </div>
+                                <div class="status-pair">
+                                    <strong>Pago</strong>
+                                    <span class="status-badge {{ row.payment_tone }}">{{ row.payment_label }}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row-actions">
+                        <div class="row-actions {% if row.is_active and row.payment_label != 'Impaga' %}single-action{% endif %}">
                             <a href="{{ row.detail_url }}" class="button-secondary">Ver detalle</a>
-                            <form method="post" action="{% url 'admin-toggle-student-access' row.student.pk %}" class="action-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="q" value="{{ admin_query }}">
-                                <input type="hidden" name="next" value="{% url 'admin-student-list' %}{% if admin_query %}?q={{ admin_query|urlencode }}{% endif %}">
-                                <button type="submit" class="action-button {% if row.is_active %}suspend{% else %}activate{% endif %}">
-                                    {{ row.action_label }}
-                                </button>
-                            </form>
+
+                            {% if row.payment_label == 'Impaga' %}
+                                <form method="post" action="{% url 'admin-mark-student-paid' row.student.pk %}" class="action-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="q" value="{{ admin_query }}">
+                                    <input type="hidden" name="next" value="{% url 'admin-student-list' %}{% if admin_status_filter != 'all' or admin_query %}?{% if admin_status_filter != 'all' %}status={{ admin_status_filter|urlencode }}{% endif %}{% if admin_status_filter != 'all' and admin_query %}&{% endif %}{% if admin_query %}q={{ admin_query|urlencode }}{% endif %}{% endif %}">
+                                    <button type="submit" class="action-button">Realizó el pago</button>
+                                </form>
+                            {% elif not row.is_active %}
+                                <form method="post" action="{% url 'admin-toggle-student-access' row.student.pk %}" class="action-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="q" value="{{ admin_query }}">
+                                    <input type="hidden" name="next" value="{% url 'admin-student-list' %}{% if admin_status_filter != 'all' or admin_query %}?{% if admin_status_filter != 'all' %}status={{ admin_status_filter|urlencode }}{% endif %}{% if admin_status_filter != 'all' and admin_query %}&{% endif %}{% if admin_query %}q={{ admin_query|urlencode }}{% endif %}{% endif %}">
+                                    <button type="submit" class="action-button">Activar acceso</button>
+                                </form>
+                            {% endif %}
                         </div>
                     </article>
                 {% endfor %}
             </div>
         {% else %}
-            <div class="empty">
-                No encontramos alumnas con ese filtro. Proba por nombre, apellido o email completo.
-            </div>
+            <div class="empty">No encontramos alumnas con ese filtro. Probá por nombre, apellido o email completo.</div>
         {% endif %}
     </section>
 {% endblock %}

@@ -224,7 +224,8 @@
             color: var(--text);
         }
 
-        .field input {
+        .field input,
+        .field select {
             width: 100%;
             min-height: 52px;
             padding: 14px 16px;
@@ -238,17 +239,20 @@
 
         .field input::placeholder { color: #91a096; }
 
-        .field input:hover {
+        .field input:hover,
+        .field select:hover {
             border-color: var(--line-strong);
         }
 
-        .field input:focus {
+        .field input:focus,
+        .field select:focus {
             outline: none;
             border-color: var(--primary-strong);
             box-shadow: 0 0 0 4px var(--focus);
         }
 
-        .field.has-error input {
+        .field.has-error input,
+        .field.has-error select {
             border-color: var(--danger);
             background: #fffafa;
         }

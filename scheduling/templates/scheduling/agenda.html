@@ -1,144 +1,594 @@
 {% extends "scheduling/student_base.html" %}
 
 {% block title %}Agenda | Eunoia{% endblock %}
-{% block hero_title %}Agenda clara para decidir rapido.{% endblock %}
-{% block hero_copy %}Aca ves los proximos horarios de {{ primary_section.name|default:"tu actividad" }} y, cuando tu mes esta activo, podes reservar en el momento.{% endblock %}
+{% block hero_title %}Agenda{% endblock %}
+{% block hero_copy %}{% endblock %}
+{% block hero_class %}agenda-hero{% endblock %}
+
+{% block topbar_context %}{% endblock %}
+
+{% block topbar_logout %}
+    <button type="submit" class="button-secondary icon-button" aria-label="Salir del portal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path>
+            <path d="M10 17l5-5-5-5"></path>
+            <path d="M15 12H3"></path>
+        </svg>
+    </button>
+{% endblock %}
+
+{% block hero_actions %}
+    {% if primary_section %}
+        <div class="activity-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path>
+                <path d="M2 18h20"></path>
+                <path d="M6 14h12"></path>
+            </svg>
+            <span>{{ primary_section.name }}</span>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block hero_stats %}{% endblock %}
+
+{% block status_banner %}{% endblock %}
 
 {% block extra_head %}
 <style>
-    .agenda-session-body,
-    .agenda-session-actions {
-        display: grid;
+    .shell {
+        width: min(860px, calc(100% - (var(--shell-padding) * 2)));
+        padding-bottom: 110px;
+    }
+
+    .agenda-hero {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        margin-bottom: 14px;
+    }
+
+    .agenda-hero .eyebrow {
+        display: none;
+    }
+
+    .agenda-hero .hero-main {
         gap: 12px;
     }
 
-    .agenda-session-body {
-        margin: 12px 0 0;
+    .agenda-hero .hero-copy-stack {
+        gap: 6px;
     }
 
-    .agenda-session-actions {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        margin-top: 16px;
+    .agenda-hero h2 {
+        font-size: clamp(3.2rem, 10vw, 4.7rem);
+        line-height: 0.92;
+        margin: 0;
+    }
+
+    .agenda-hero p {
+        display: none;
+    }
+
+    .activity-chip {
+        width: fit-content;
+        display: inline-flex;
         align-items: center;
+        gap: 12px;
+        min-height: 52px;
+        padding: 0 18px;
+        border-radius: 999px;
+        background: linear-gradient(145deg, #eff5ef, #e5eee3);
+        color: var(--primary-strong);
+        font-weight: 600;
+        font-size: 1rem;
     }
 
-    @media (max-width: 720px) {
-        .agenda-session-actions {
-            grid-template-columns: 1fr;
+    .activity-chip svg,
+    .calendar-nav-button svg,
+    .confirmed-icon svg,
+    .schedule-icon svg,
+    .bottom-nav svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .agenda-layout {
+        display: grid;
+        gap: 16px;
+    }
+
+    .agenda-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 18px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(105, 132, 119, 0.14);
+    }
+
+    .agenda-status strong {
+        color: var(--text);
+    }
+
+    .agenda-card {
+        padding: 22px;
+    }
+
+    .calendar-header {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) 52px;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .calendar-nav-button {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid rgba(105, 132, 119, 0.16);
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--text);
+        text-decoration: none;
+    }
+
+    .calendar-header h3 {
+        text-align: center;
+        font-size: clamp(2.2rem, 7vw, 3.2rem);
+        line-height: 0.96;
+        margin: 0;
+    }
+
+    .calendar-grid {
+        display: grid;
+        gap: 14px;
+    }
+
+    .calendar-weekdays,
+    .calendar-week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .calendar-weekdays {
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(105, 132, 119, 0.16);
+    }
+
+    .calendar-weekdays span {
+        text-align: center;
+        color: var(--muted);
+        font-weight: 600;
+    }
+
+    .calendar-day {
+        min-height: 68px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        color: var(--text);
+        font-size: 1rem;
+    }
+
+    .calendar-day.muted {
+        color: rgba(100, 117, 109, 0.35);
+    }
+
+    .calendar-day.has-booking .day-number {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: #86aa90;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .calendar-day.is-today .day-number {
+        border: 2px solid rgba(69, 101, 86, 0.22);
+    }
+
+    .calendar-day .booking-check {
+        position: absolute;
+        right: 6px;
+        bottom: 8px;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        color: #86aa90;
+        border: 1px solid rgba(134, 170, 144, 0.4);
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .confirmed-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .confirmed-header h3 {
+        margin: 0;
+        font-size: clamp(2rem, 6vw, 2.7rem);
+        line-height: 0.98;
+    }
+
+    .month-count-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: linear-gradient(145deg, #eef5ee, #e4ece1);
+        color: var(--primary-strong);
+        font-weight: 600;
+    }
+
+    .confirmed-list {
+        display: grid;
+        gap: 0;
+    }
+
+    .confirmed-item {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(105, 132, 119, 0.14);
+    }
+
+    .confirmed-item:last-child {
+        border-bottom: 0;
+    }
+
+    .confirmed-icon,
+    .schedule-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: #86aa90;
+        color: #fff;
+    }
+
+    .confirmed-copy {
+        font-size: 1rem;
+        color: var(--text);
+    }
+
+    .confirmed-actions {
+        margin-top: 10px;
+    }
+
+    .confirmed-actions .button-secondary {
+        min-height: 42px;
+        padding: 0 14px;
+        font-size: 0.94rem;
+    }
+
+    .fixed-schedule {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(105, 132, 119, 0.14);
+    }
+
+    .schedule-icon {
+        background: rgba(238, 245, 238, 0.95);
+        color: var(--primary-strong);
+        border: 1px solid rgba(105, 132, 119, 0.16);
+    }
+
+    .fixed-schedule strong,
+    .confirmed-copy strong {
+        color: var(--text);
+    }
+
+    .empty-copy {
+        line-height: 1.55;
+    }
+
+    .bottom-nav {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        width: min(860px, calc(100% - 20px));
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(105, 132, 119, 0.14);
+        border-radius: 26px;
+        box-shadow: 0 18px 42px rgba(47, 61, 53, 0.12);
+        backdrop-filter: blur(12px);
+        z-index: 20;
+    }
+
+    .bottom-nav a {
+        display: grid;
+        place-items: center;
+        gap: 6px;
+        min-height: 60px;
+        border-radius: 18px;
+        text-decoration: none;
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    .bottom-nav a.active {
+        color: var(--primary-strong);
+        font-weight: 700;
+        background: rgba(223, 232, 223, 0.42);
+    }
+
+    .detail-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(22, 28, 25, 0.44);
+        backdrop-filter: blur(4px);
+        z-index: 40;
+    }
+
+    .detail-sheet {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: min(860px, 100%);
+        padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+        z-index: 41;
+    }
+
+    .detail-sheet-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(105, 132, 119, 0.16);
+        border-radius: 32px 32px 0 0;
+        box-shadow: 0 -18px 44px rgba(22, 28, 25, 0.16);
+        padding: 14px 18px 18px;
+    }
+
+    .detail-handle { width: 72px; height: 6px; border-radius: 999px; background: rgba(105, 132, 119, 0.28); margin: 0 auto 16px; }
+    .detail-sheet-card h3 { margin: 0 0 16px; text-align: center; font-size: clamp(2rem, 5vw, 2.7rem); line-height: 0.98; }
+    .detail-grid { display: grid; gap: 0; border: 1px solid rgba(105, 132, 119, 0.14); border-radius: 22px; overflow: hidden; background: rgba(255, 255, 255, 0.84); }
+    .detail-row-sheet { display: grid; grid-template-columns: 44px minmax(120px, 0.9fr) minmax(0, 1.1fr); gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(105, 132, 119, 0.12); }
+    .detail-row-sheet:last-child { border-bottom: 0; }
+    .detail-icon-wrap { width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center; background: linear-gradient(145deg, #eff5ef, #e5eee3); color: var(--primary-strong); }
+    .detail-icon-wrap svg { width: 20px; height: 20px; }
+    .detail-label { color: var(--text); font-size: 1rem; }
+    .detail-value { color: var(--text); font-size: 1rem; text-align: right; }
+    .detail-actions { display: grid; gap: 12px; margin-top: 18px; }
+    .detail-actions .button-secondary { width: 100%; min-height: 56px; font-weight: 700; }
+
+    @media (max-width: 560px) {
+        .shell {
+            width: min(100% - 14px, 860px);
+            padding-bottom: 104px;
         }
+
+        .agenda-card {
+            padding: 18px;
+            border-radius: 24px;
+        }
+
+        .agenda-status,
+        .confirmed-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .calendar-header h3,
+        .confirmed-header h3 {
+            font-size: clamp(1.9rem, 8vw, 2.6rem);
+        }
+
+        .calendar-day {
+            min-height: 56px;
+            font-size: 0.95rem;
+        }
+
+        .calendar-day.has-booking .day-number {
+            width: 42px;
+            height: 42px;
+        }
+
+        .calendar-day .booking-check {
+            right: 2px;
+            bottom: 4px;
+        }
+
+        .bottom-nav {
+            width: calc(100% - 14px);
+        }
+
+        .bottom-nav a {
+            font-size: 0.82rem;
+        }
+
+        .detail-sheet { padding: 10px 8px calc(12px + env(safe-area-inset-bottom, 0px)); }
+        .detail-sheet-card { padding: 12px 14px 16px; }
+        .detail-row-sheet { grid-template-columns: 36px minmax(0, 1fr); }
+        .detail-value { text-align: left; grid-column: 2; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="grid">
-    <article class="card span-8">
-        <div class="section-title">
-            <div>
-                <p class="eyebrow">Actividad principal</p>
-                <h3>Proximas sesiones</h3>
-            </div>
-            {% if primary_section %}
-                <span class="pill">{{ primary_section.name }}</span>
-            {% endif %}
+<section class="agenda-layout">
+    <div class="agenda-status">
+        <strong>{{ operational_status.title }}</strong>
+        <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
+            {% if operational_status.can_operate %}Todo disponible{% else %}Solo para ver{% endif %}
+        </span>
+    </div>
+
+    <article class="card agenda-card">
+        <div class="calendar-header">
+            <a href="{{ agenda_prev_url }}" class="calendar-nav-button" aria-label="Ver mes anterior">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+            </a>
+            <h3>{{ agenda_month_label }}</h3>
+            <a href="{{ agenda_next_url }}" class="calendar-nav-button" aria-label="Ver mes siguiente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 18 6-6-6-6"></path>
+                </svg>
+            </a>
         </div>
 
-        {% if upcoming_session_cards %}
-            <div class="list">
-                {% for card in upcoming_session_cards %}
-                    <article class="item">
-                        <div class="item-header">
-                            <div>
-                                <strong>{{ card.session.date|date:"l j \d\e F" }}</strong>
-                                <p class="meta">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }}</p>
-                            </div>
-                            <div class="badge-row">
-                                {% if card.session.booked_count >= card.session.capacity %}
-                                    <span class="pill strong-danger">Sin cupo</span>
-                                {% elif card.session.booked_count == card.session.capacity|add:"-1" %}
-                                    <span class="pill strong-warning">Ultimo lugar</span>
-                                {% else %}
-                                    <span class="pill soft-success">{{ card.session.booked_count }}/{{ card.session.capacity }} ocupados</span>
-                                {% endif %}
-                                {% if card.session.id in booked_session_ids %}
-                                    <span class="pill soft-muted">Ya reservado</span>
-                                {% endif %}
-                                {% if card.compatible_recovery_count %}
-                                    <span class="pill soft-warning">Se puede usar con {{ card.compatible_recovery_count }} recuperacion{{ card.compatible_recovery_count|pluralize:"es" }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="agenda-session-body">
-                            <p class="session-note">{{ card.action.message }}</p>
-                            {% if card.compatible_recovery_count %}
-                                <p class="meta">Si queres usar una recuperacion, te llevamos paso a paso.</p>
-                            {% endif %}
-                        </div>
-                        <div class="agenda-session-actions">
-                            <span class="meta">Clase de {{ card.session.section.name }}</span>
-                            <div class="badge-row">
-                                {% if card.compatible_recovery_count %}
-                                    <a href="{{ card.recovery_url }}" class="button-secondary">Usar Recuperacion</a>
-                                {% endif %}
-                                {% if card.action.can_book %}
-                                    <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.path }}">
-                                        <button type="submit" class="button">{{ card.action.label }}</button>
-                                    </form>
-                                {% else %}
-                                    <span class="button-disabled" aria-disabled="true">{{ card.action.label }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </article>
+        <div class="calendar-grid">
+            <div class="calendar-weekdays">
+                {% for label in agenda_weekday_labels %}
+                    <span>{{ label }}</span>
                 {% endfor %}
             </div>
+
+            {% for week in agenda_calendar_weeks %}
+                <div class="calendar-week">
+                    {% for day in week %}
+                        <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_booking %} has-booking{% endif %}{% if day.is_today %} is-today{% endif %}">
+                            <span class="day-number">{{ day.day_number }}</span>
+                            {% if day.has_booking %}
+                                <span class="booking-check">✓</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="card agenda-card">
+        <div class="confirmed-header">
+            <h3>Tus clases confirmadas</h3>
+            <span class="month-count-chip">{{ agenda_monthly_bookings_count }} clase{{ agenda_monthly_bookings_count|pluralize:"s" }} este mes</span>
+        </div>
+
+        {% if agenda_monthly_booking_cards %}
+            <div class="confirmed-list">
+                {% for card in agenda_monthly_booking_cards %}
+                    {% with booking=card.booking %}
+                        <div class="confirmed-item">
+                            <span class="confirmed-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m5 13 4 4L19 7"></path>
+                                </svg>
+                            </span>
+                            <div class="confirmed-copy">
+                                <strong>{{ booking.session.date|date:"D j"|capfirst }} · {{ booking.session.start_time|time:"H:i" }}</strong>
+                                <div class="confirmed-actions">
+                                    <a href="{% url 'agenda' %}?month={{ agenda_month_start|date:'Y-m' }}&detail={{ booking.id }}" class="button-secondary">Ver detalle</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+
+            {% if agenda_fixed_schedule_booking %}
+                <div class="fixed-schedule">
+                    <span class="schedule-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 7v6l4 2"></path>
+                        </svg>
+                    </span>
+                    <div class="confirmed-copy">
+                        <strong>Horario fijo: {{ agenda_fixed_schedule_booking.session.date|date:"l"|capfirst }} · {{ agenda_fixed_schedule_booking.session.start_time|time:"H:i" }}</strong>
+                    </div>
+                </div>
+            {% endif %}
         {% else %}
             <div class="empty">
-                {% if primary_section %}
-                    No hay sesiones futuras cargadas para {{ primary_section.name }} por ahora.
-                {% else %}
-                    No podemos mostrar agenda porque tu actividad principal todavia no esta configurada.
-                {% endif %}
+                <p class="empty-copy"><strong>Todavía no tenés clases confirmadas este mes.</strong></p>
+                <p class="meta" style="margin-top: 8px;">Apenas reserves una clase, la vas a ver marcada en el calendario y listada acá.</p>
                 <div class="empty-actions">
+                    <a href="{% url 'my-bookings' %}" class="button">Reservar clase</a>
                     <a href="{% url 'dashboard' %}" class="button-secondary">Volver al inicio</a>
                 </div>
             </div>
         {% endif %}
     </article>
 
-    <aside class="card span-4">
-        <div class="section-title">
-            <div>
-                <p class="eyebrow">Estado de uso</p>
-                <h3>Antes de Reservar</h3>
-            </div>
-        </div>
-        <div class="stack">
-            {% if not operational_status.can_operate %}
-            <div class="item">
-                <strong>Este mes no permite reservar</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Podes ver horarios y cupos, pero no reservar ni cancelar hasta que tu estado del mes vuelva a estar activo.</p>
-            </div>
-            {% endif %}
-            <div class="item">
-                <strong>Como leer esta agenda</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Cada tarjeta indica si podes Reservar, si no hay cupo o si aplica Recuperacion.</p>
-            </div>
-            <div class="item">
-                <strong>Reserva directa</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si el boton esta habilitado, podes confirmar desde esta pantalla.</p>
-            </div>
-            <div class="item">
-                <strong>Recuperacion visible</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si una clase acepta recuperacion, podes elegirla paso a paso.</p>
-            </div>
-            <div class="item">
-                <strong>Accion bloqueada</strong>
-                <p class="meta" style="margin-top: 8px; line-height: 1.6;">Si algo no esta disponible, lo ves con motivo claro.</p>
-            </div>
-        </div>
-    </aside>
 </section>
+
+{% if detail_booking_card %}
+    {% with booking=detail_booking_card.booking %}
+    <a href="{{ detail_back_url }}" class="detail-overlay" aria-label="Cerrar detalle del turno"></a>
+    <section class="detail-sheet" aria-label="Detalle de la clase">
+        <div class="detail-sheet-card">
+            <div class="detail-handle" aria-hidden="true"></div>
+            <h3>Detalle de la clase</h3>
+            <div class="detail-grid">
+                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Día</span><span class="detail-value">{{ booking.session.date|date:"l j \d\e F"|capfirst }}</span></div>
+                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6l4 2"></path></svg></span><span class="detail-label">Horario</span><span class="detail-value">{{ booking.session.start_time|time:"H:i" }} a {{ booking.session.end_time|time:"H:i" }} hs</span></div>
+                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path><path d="M2 18h20"></path><path d="M6 14h12"></path></svg></span><span class="detail-label">Actividad</span><span class="detail-value">{{ booking.session.section.name }}</span></div>
+                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-3-6 3z"></path></svg></span><span class="detail-label">Estado</span><span class="detail-value">{% if booking.source == 'makeup' %}Recuperación aplicada{% else %}Reserva activa{% endif %}</span></div>
+            </div>
+            <div class="detail-actions">
+                <a href="{{ detail_back_url }}" class="button-secondary">Cerrar</a>
+            </div>
+        </div>
+    </section>
+    {% endwith %}
+{% endif %}
+{% endblock %}
+
+{% block bottom_nav %}
+    <nav class="bottom-nav" aria-label="Navegación principal del portal alumna">
+        <a href="{% url 'dashboard' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 10.5 12 3l9 7.5"></path>
+                <path d="M5 9.5V21h14V9.5"></path>
+            </svg>
+            <span>Inicio</span>
+        </a>
+        <a href="{% url 'agenda' %}" class="active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+            <span>Agenda</span>
+        </a>
+        <a href="{% url 'my-bookings' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 0 1-15.5 6.36L3 21"></path>
+                <path d="M3 12A9 9 0 0 1 18.5 5.64L21 3"></path>
+                <path d="M3 16v5h5"></path>
+                <path d="M21 8V3h-5"></path>
+            </svg>
+            <span>Recuperaciones</span>
+        </a>
+        <a href="{% url 'account' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21a8 8 0 1 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Mi cuenta</span>
+        </a>
+    </nav>
 {% endblock %}

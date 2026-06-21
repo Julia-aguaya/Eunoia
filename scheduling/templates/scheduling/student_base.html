@@ -51,9 +51,9 @@
         }
 
         .topbar {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
-            justify-content: space-between;
             gap: 16px;
             margin-bottom: 22px;
         }
@@ -62,6 +62,11 @@
             display: flex;
             align-items: center;
             gap: 14px;
+            min-width: 0;
+        }
+
+        .brand > div {
+            min-width: 0;
         }
 
         .brand-mark {
@@ -118,8 +123,25 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: flex-end;
+            min-width: fit-content;
+        }
+
+        .header-actions > * {
+            flex-shrink: 0;
+        }
+
+        .icon-button {
+            width: 46px;
+            height: 46px;
+            padding: 0;
+            border-radius: 16px;
+        }
+
+        .icon-button svg {
+            width: 20px;
+            height: 20px;
         }
 
         .logout-form { margin: 0; }
@@ -208,6 +230,21 @@
             grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.95fr);
             gap: 24px;
             margin-bottom: 18px;
+        }
+
+        .hero-main {
+            display: grid;
+            gap: 16px;
+        }
+
+        .hero-main.with-lead {
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+        }
+
+        .hero-copy-stack {
+            display: grid;
+            gap: 10px;
         }
 
         .eyebrow {
@@ -509,39 +546,49 @@
                 <div class="brand-mark" aria-hidden="true">E</div>
                 <div>
                     <h1>Portal Eunoia</h1>
-                    <p>Hola, {{ request.user.get_full_name|default:request.user.email }}</p>
+                    <p>Hola, {{ request.user.first_name|default:request.user.get_full_name|default:request.user.email }}</p>
                 </div>
             </div>
             <div class="header-actions">
-                {% if primary_section %}
-                    <span class="pill">{{ primary_section.name }}</span>
-                {% endif %}
+                {% block topbar_context %}
+                    {% if primary_section %}
+                        <span class="pill">{{ primary_section.name }}</span>
+                    {% endif %}
+                {% endblock %}
                 <form method="post" action="{% url 'logout' %}" class="logout-form">
                     {% csrf_token %}
-                    <button type="submit" class="button-quiet">Salir</button>
+                    {% block topbar_logout %}
+                        <button type="submit" class="button-quiet">Salir</button>
+                    {% endblock %}
                 </form>
             </div>
         </header>
 
-        <section class="hero">
-            <div>
+        <section class="hero {% block hero_class %}{% endblock %}">
+            <div class="hero-main {% block hero_main_class %}{% endblock %}">
+                {% block hero_lead_icon %}{% endblock %}
+                <div class="hero-copy-stack">
                 <p class="eyebrow">Tu espacio de clases</p>
                 <h2>{% block hero_title %}Tus clases, en un solo lugar.{% endblock %}</h2>
                 <p>{% block hero_copy %}Revisa horarios, turnos y recuperaciones de forma simple desde tu portal.{% endblock %}</p>
+                {% block hero_actions %}{% endblock %}
+                </div>
             </div>
             <div class="hero-stats">
-                <div class="metric">
-                    <span class="meta">Proximos turnos</span>
-                    <strong>{{ upcoming_bookings|length }}</strong>
-                </div>
-                <div class="metric">
-                    <span class="meta">Recuperaciones vigentes</span>
-                    <strong>{{ available_recovery_credits|length }}</strong>
-                </div>
-                <div class="metric">
-                    <span class="meta">Agenda visible</span>
-                    <strong>{% if primary_section %}{{ primary_section.name }}{% else %}Sin actividad{% endif %}</strong>
-                </div>
+                {% block hero_stats %}
+                    <div class="metric">
+                        <span class="meta">Proximos turnos</span>
+                        <strong>{{ upcoming_bookings|length }}</strong>
+                    </div>
+                    <div class="metric">
+                        <span class="meta">Recuperaciones vigentes</span>
+                        <strong>{{ available_recovery_credits|length }}</strong>
+                    </div>
+                    <div class="metric">
+                        <span class="meta">Agenda visible</span>
+                        <strong>{% if primary_section %}{{ primary_section.name }}{% else %}Sin actividad{% endif %}</strong>
+                    </div>
+                {% endblock %}
             </div>
         </section>
 
@@ -570,6 +617,8 @@
         {% endblock %}
 
         {% block content %}{% endblock %}
+
+        {% block bottom_nav %}{% endblock %}
     </div>
 </body>
 </html>
