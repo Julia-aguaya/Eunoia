@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlparse
+
+from django.core.exceptions import ImproperlyConfigured
 
 
 def load_env_file(env_path):
@@ -30,12 +32,40 @@ def env_list(name, default=None):
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
+def env_int(name, default=0):
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return int(value.strip())
+
+
+def postgres_extra_config(query_pairs=None):
+    query_pairs = query_pairs or {}
+    options = {}
+
+    ssl_mode = query_pairs.get('sslmode') or os.getenv('DJANGO_DB_SSL_MODE', '').strip()
+    if ssl_mode:
+        options['sslmode'] = ssl_mode
+
+    connect_timeout = query_pairs.get('connect_timeout') or os.getenv('DJANGO_DB_CONNECT_TIMEOUT', '').strip()
+    if connect_timeout:
+        options['connect_timeout'] = int(connect_timeout)
+
+    config = {
+        'CONN_MAX_AGE': int(query_pairs.get('conn_max_age') or env_int('DJANGO_DB_CONN_MAX_AGE', 60)),
+        'CONN_HEALTH_CHECKS': env_bool('DJANGO_DB_CONN_HEALTH_CHECKS', default=True),
+    }
+    if options:
+        config['OPTIONS'] = options
+    return config
+
+
 def parse_database_url(database_url):
     parsed = urlparse(database_url)
     scheme = parsed.scheme.lower()
 
     if scheme in {'postgres', 'postgresql'}:
-        return {
+        config = {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': unquote(parsed.path.lstrip('/')),
             'USER': unquote(parsed.username or ''),
@@ -43,6 +73,8 @@ def parse_database_url(database_url):
             'HOST': parsed.hostname or '',
             'PORT': str(parsed.port or ''),
         }
+        config.update(postgres_extra_config(dict(parse_qsl(parsed.query, keep_blank_values=False))))
+        return config
 
     if scheme == 'sqlite':
         sqlite_path = unquote(parsed.path or '')
@@ -57,26 +89,40 @@ def parse_database_url(database_url):
 
 
 def database_config():
-    database_url = os.getenv('DATABASE_URL')
+    database_url = os.getenv('DATABASE_URL', '').strip()
     if database_url:
         return parse_database_url(database_url)
 
-    engine = os.getenv('DJANGO_DB_ENGINE', 'django.db.backends.sqlite3')
+    engine = os.getenv('DJANGO_DB_ENGINE', '').strip()
     if engine == 'django.db.backends.sqlite3':
         return {
             'ENGINE': engine,
             'NAME': Path(os.getenv('DJANGO_DATABASE_PATH', str(BASE_DIR / 'db.sqlite3'))),
         }
 
-    return {
-        'ENGINE': engine,
-        'NAME': os.getenv('DJANGO_DB_NAME', ''),
-        'USER': os.getenv('DJANGO_DB_USER', ''),
-        'PASSWORD': os.getenv('DJANGO_DB_PASSWORD', ''),
-        'HOST': os.getenv('DJANGO_DB_HOST', ''),
-        'PORT': os.getenv('DJANGO_DB_PORT', ''),
-        'CONN_MAX_AGE': int(os.getenv('DJANGO_DB_CONN_MAX_AGE', '60')),
-    }
+    if engine:
+        config = {
+            'ENGINE': engine,
+            'NAME': os.getenv('DJANGO_DB_NAME', ''),
+            'USER': os.getenv('DJANGO_DB_USER', ''),
+            'PASSWORD': os.getenv('DJANGO_DB_PASSWORD', ''),
+            'HOST': os.getenv('DJANGO_DB_HOST', ''),
+            'PORT': os.getenv('DJANGO_DB_PORT', ''),
+        }
+        if engine == 'django.db.backends.postgresql':
+            config.update(postgres_extra_config())
+        return config
+
+    if env_bool('DJANGO_USE_SQLITE', default=env_bool('DJANGO_DEBUG', default=True)):
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': Path(os.getenv('DJANGO_DATABASE_PATH', str(BASE_DIR / 'db.sqlite3'))),
+        }
+
+    raise ImproperlyConfigured(
+        'Database configuration missing. Set DATABASE_URL for PostgreSQL in production, '
+        'or set DJANGO_USE_SQLITE=True for local/demo environments.'
+    )
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

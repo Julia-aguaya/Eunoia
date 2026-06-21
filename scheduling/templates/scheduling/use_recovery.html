@@ -2,7 +2,7 @@
 
 {% block title %}Usar Recuperacion | Eunoia{% endblock %}
 {% block hero_title %}Usar recuperacion{% endblock %}
-{% block hero_copy %}Elegis un horario disponible de esta semana y te mostramos solo opciones que podes usar desde el portal.{% endblock %}
+{% block hero_copy %}Elegis un horario disponible de {% if recovery_workweek_is_next %}la proxima semana{% else %}esta semana{% endif %} y te mostramos solo opciones que podes usar desde el portal.{% endblock %}
 
 {% block status_banner %}{% endblock %}
 
@@ -96,7 +96,7 @@
                 <p class="meta" style="margin-top: 8px; line-height: 1.6;">Vas a ver solo opciones disponibles para usar esta recuperacion.</p>
             </div>
             <div class="item">
-                <strong>{{ eligible_sessions_count }} opcion{{ eligible_sessions_count|pluralize:"es" }} esta semana</strong>
+                <strong>{{ eligible_sessions_count }} opcion{{ eligible_sessions_count|pluralize:"es" }} {% if recovery_workweek_is_next %}la proxima semana{% else %}esta semana{% endif %}</strong>
                 <p class="meta" style="margin-top: 8px; line-height: 1.6;">Horarios con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }} para la misma actividad.</p>
             </div>
             {% if recovery_focus_credit.origin_session %}
@@ -113,7 +113,7 @@
         <div class="section-title">
             <div>
                 <p class="eyebrow">Horarios disponibles</p>
-                <h3>Clases disponibles de esta semana laboral</h3>
+                <h3>Clases disponibles de {% if recovery_workweek_is_next %}la proxima semana laboral{% else %}esta semana laboral{% endif %}</h3>
             </div>
         </div>
 
@@ -154,7 +154,7 @@
             </div>
         {% else %}
             <div class="empty">
-                No hay horarios disponibles para recuperar en la semana laboral actual de esta actividad.
+                No hay horarios disponibles para recuperar en {% if recovery_workweek_is_next %}la proxima semana laboral{% else %}la semana laboral actual{% endif %} de esta actividad.
                 <div class="empty-actions">
                     <a href="{% url 'dashboard' %}" class="button-secondary">Volver</a>
                 </div>

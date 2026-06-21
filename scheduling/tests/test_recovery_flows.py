@@ -59,14 +59,19 @@ class WebRecoveryFlowTests(TestCase):
         )
 
     def post_recovery_booking(self, session, credit, *, next_url=None):
-        return self.client.post(
-            reverse('create-booking', args=[session.pk]),
-            {
-                'used_recovery_credit_id': credit.pk,
-                'next': next_url or reverse('my-bookings'),
-            },
-            follow=True,
-        )
+        with patch('scheduling.models.timezone.localdate', return_value=self.today), patch(
+            'scheduling.models.timezone.now', return_value=self.fixed_now
+        ), patch('scheduling.views.timezone.localdate', return_value=self.today), patch(
+            'scheduling.views.timezone.now', return_value=self.fixed_now
+        ):
+            return self.client.post(
+                reverse('create-booking', args=[session.pk]),
+                {
+                    'used_recovery_credit_id': credit.pk,
+                    'next': next_url or reverse('my-bookings'),
+                },
+                follow=True,
+            )
 
     def test_recovery_page_shows_only_available_same_section_slots_in_current_workweek(self):
         monday = self.today - timedelta(days=self.today.weekday())
@@ -130,6 +135,28 @@ class WebRecoveryFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No hay horarios disponibles para recuperar en la semana laboral actual de esta actividad.')
 
+    def test_recovery_page_switches_to_next_workweek_on_sunday(self):
+        sunday_now = timezone.make_aware(datetime(2026, 6, 14, 12, 0))
+        sunday = sunday_now.date()
+        next_week_tuesday = date(2026, 6, 16)
+        origin_session = self.create_session_on(date(2026, 6, 9), start_hour=8)
+        eligible_session = self.create_session_on(next_week_tuesday, start_hour=10)
+        credit = self.create_available_credit(origin_session=origin_session)
+
+        with patch('scheduling.views.timezone.now', return_value=sunday_now), patch(
+            'scheduling.views.timezone.localdate', return_value=sunday
+        ):
+            response = self.client.get(reverse('use-recovery', args=[credit.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Clases disponibles de la proxima semana laboral')
+        self.assertContains(response, '1 opcion la proxima semana')
+        self.assertContains(response, eligible_session.start_time.strftime('%H:%M'))
+        self.assertEqual(
+            [card['session'].pk for card in response.context['recovery_session_cards']],
+            [eligible_session.pk],
+        )
+
     def test_student_can_book_from_recovery_flow(self):
         origin_session = self.create_session(days=2, start_hour=8)
         target_session = self.create_session(days=6, start_hour=12)
@@ -153,7 +180,10 @@ class WebRecoveryFlowTests(TestCase):
         self.assertContains(response, 'usando tu recuperacion disponible')
         self.assertContains(response, 'Recuperacion aplicada')
 
-        dashboard_response = self.client.get(reverse('dashboard'))
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            dashboard_response = self.client.get(reverse('dashboard'))
         self.assertContains(dashboard_response, '1 aplicadas')
 
     def test_expired_recovery_shows_clear_error(self):

@@ -31,7 +31,8 @@ Credenciales y flujo exacto: `docs/DEMO_LOCAL.md`.
 Este bloque deja el proyecto mas cerca de una entrega real y NO solo de demo:
 
 - settings minimos de produccion parametrizados por entorno;
-- soporte SQLite local por defecto y Postgres opcional por `DATABASE_URL` o vars simples;
+- Postgres como camino recomendado de produccion por `DATABASE_URL` o vars explicitas;
+- SQLite reservado para local/demo con opt-in claro por `DJANGO_USE_SQLITE=True`;
 - static files listos para `collectstatic` con WhiteNoise;
 - deploy basico repetible con `Procfile` y `render.yaml`;
 - bootstrap operativo idempotente para admin inicial y helpers opcionales de agenda base;
@@ -56,9 +57,11 @@ Variables relevantes:
 - `DJANGO_SECRET_KEY`: secreto real para deploy;
 - `DJANGO_DEBUG`: `True` en local, `False` en deploy;
 - `DJANGO_ALLOWED_HOSTS`: hosts permitidos separados por coma;
-- `DJANGO_DATABASE_PATH`: path del SQLite, local por defecto `db.sqlite3`;
-- `DATABASE_URL`: opcion simple para Postgres gestionado sin romper SQLite local;
+- `DJANGO_USE_SQLITE`: deja SQLite habilitado para local/demo; en produccion debe quedar `False`;
+- `DJANGO_DATABASE_PATH`: path del SQLite local/demo, por defecto `db.sqlite3`;
+- `DATABASE_URL`: camino principal para Postgres en produccion;
 - `DJANGO_DB_ENGINE` + `DJANGO_DB_*`: alternativa explicita si no queres usar `DATABASE_URL`;
+- `DJANGO_DB_SSL_MODE`, `DJANGO_DB_CONNECT_TIMEOUT`, `DJANGO_DB_CONN_MAX_AGE`, `DJANGO_DB_CONN_HEALTH_CHECKS`: ajustes utiles para Postgres productivo;
 - `DJANGO_CSRF_TRUSTED_ORIGINS`: origins HTTPS/HTTP si el host final lo necesita;
 - `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`: password temporal por defecto para altas/importaciones.
 
@@ -111,25 +114,26 @@ Orden recomendado para primer arranque real:
 
 ## Deploy basico
 
-Se dejo una opcion simple para Render usando SQLite en disco persistente:
+Queda una ruta clara para Render con PostgreSQL gestionado:
 
-- `render.yaml` instala dependencias, corre `collectstatic`, monta disco en `/var/data` y usa `DJANGO_DATABASE_PATH=/var/data/db.sqlite3`;
-- `Procfile` deja una entrada simple compatible con plataformas estilo Heroku/Railway;
+- `render.yaml` aprovisiona `eunoia-db`, expone `DATABASE_URL` al servicio web y fuerza `DJANGO_USE_SQLITE=False`;
+- `Procfile` mantiene una entrada portable compatible con plataformas estilo Heroku/Railway cuando ya existe `DATABASE_URL`;
 - cuando `RENDER_EXTERNAL_HOSTNAME` existe, settings lo agrega automaticamente a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
 
-Decision pragmatico de base de datos para esta entrega:
+Estrategia final de base de datos:
 
-- SQLite queda como default del MVP porque simplifica setup, demo y entrega inmediata;
-- Postgres queda soportado de forma opcional y simple para cuando el deploy necesite mas concurrencia o una operacion menos fragil;
-- si el deploy sigue siendo chico y controlado, SQLite con disco persistente alcanza para validar negocio;
-- si la operacion empieza a depender de multiples instancias, mas escritura concurrente o backup/restore serio, conviene pasar a Postgres.
+- Postgres es el camino serio de produccion y el default esperado en cualquier deploy real;
+- SQLite queda solo para desarrollo local, handoff rapido y demo controlada;
+- si `DJANGO_DEBUG=False` y no configuraste Postgres, settings ahora falla temprano salvo que hagas opt-in explicito de SQLite con `DJANGO_USE_SQLITE=True`;
+- el deploy ya no depende de disco persistente para la base principal.
 
 Pasos de despliegue recomendados:
 
-1. crear el servicio web usando `render.yaml`;
+1. crear el servicio en Render usando `render.yaml`;
 2. definir `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`, `EUNOIA_ADMIN_EMAIL` y `EUNOIA_ADMIN_PASSWORD`;
-3. abrir shell o job y correr `python manage.py bootstrap_eunoia` una vez;
-4. validar login admin, alta/importacion de alumnas y generacion de sesiones.
+3. verificar que `DATABASE_URL` quede conectado al recurso `eunoia-db` y que `DJANGO_USE_SQLITE=False`;
+4. abrir shell o job y correr `python manage.py bootstrap_eunoia` una vez;
+5. validar login admin, alta/importacion de alumnas y generacion de sesiones.
 
 ## Smoke test manual de entrega
 
@@ -142,7 +146,7 @@ Pasos de despliegue recomendados:
 
 ## Limitaciones MVP conscientes
 
-- SQLite sirve para entrega y demo, pero no es la opcion correcta para operacion sostenida con concurrencia alta;
+- SQLite sirve para local/demo, pero no es la opcion correcta para operacion sostenida ni para el deploy base del proyecto;
 - no hay integraciones externas de notificaciones, pagos ni mensajeria;
 - la carga inicial de slots sigue siendo operativa/manual salvo el helper de demo del bootstrap;
 - el deploy queda repetible sin credenciales de terceros, pero el bootstrap del admin sigue siendo un paso explicito post-migrate.

@@ -536,7 +536,7 @@ def _build_operational_status(user, target_date):
 def _get_student_portal_context(user):
     now = timezone.now()
     today = timezone.localdate()
-    current_week_start, current_week_end = _get_current_workweek_window(today)
+    current_week_start, current_week_end, current_week_is_next = _get_current_workweek_window(today)
     upcoming_bookings = list(
         Booking.objects.select_related('session', 'session__section', 'used_recovery_credit')
         .filter(student=user, status=BookingStatus.BOOKED, session__date__gte=today)
@@ -636,6 +636,7 @@ def _get_student_portal_context(user):
         'today': today,
         'current_week_start': current_week_start,
         'current_week_end': current_week_end,
+        'portal_workweek_is_next': current_week_is_next,
         'primary_section': section,
         'operational_status': operational_status,
         'upcoming_bookings': upcoming_bookings,
@@ -678,9 +679,13 @@ def _booking_preview_is_valid(*, user, session, recovery_credit=None):
 
 
 def _get_current_workweek_window(reference_date):
+    if reference_date.weekday() >= 5:
+        week_start = reference_date + timedelta(days=7 - reference_date.weekday())
+        return week_start, week_start + timedelta(days=4), True
+
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=4)
-    return week_start, week_end
+    return week_start, week_end, False
 
 
 def _build_session_action(*, user, session, recovery_credit=None):
@@ -877,7 +882,7 @@ def use_recovery_view(request, recovery_credit_id):
         return redirect('my-bookings')
 
     now = timezone.localtime()
-    week_start, week_end = _get_current_workweek_window(today)
+    week_start, week_end, recovery_week_is_next = _get_current_workweek_window(today)
     candidate_sessions = list(
         ClassSession.objects.select_related('section')
         .filter(
@@ -910,6 +915,7 @@ def use_recovery_view(request, recovery_credit_id):
             'eligible_sessions_count': len(recovery_session_cards),
             'recovery_week_start': week_start,
             'recovery_week_end': week_end,
+            'recovery_workweek_is_next': recovery_week_is_next,
         }
     )
     return render(request, 'scheduling/use_recovery.html', context)

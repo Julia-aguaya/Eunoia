@@ -1,7 +1,11 @@
+from datetime import datetime
+from unittest.mock import patch
+
 from ._shared import *
 
 class StudentPortalViewTests(TestCase):
     def setUp(self):
+        self.fixed_now = timezone.make_aware(datetime(2026, 6, 8, 12, 0))
         self.section = Section.objects.get(code='cadillac')
         self.other_section = Section.objects.get(code='reformer_arriba')
         self.student = User.objects.create_user(
@@ -14,7 +18,7 @@ class StudentPortalViewTests(TestCase):
         )
         self.student.temporary_password_set_at = None
         self.student.save(update_fields=['temporary_password_set_at', 'updated_at'])
-        self.today = timezone.localdate()
+        self.today = self.fixed_now.date()
         MonthlyAccessStatus.objects.create(
             student=self.student,
             month=self.today,
@@ -62,8 +66,16 @@ class StudentPortalViewTests(TestCase):
         )
         self.client.force_login(self.student)
 
+    def get_portal_page(self, url, *, fixed_now=None, today=None):
+        fixed_now = fixed_now or self.fixed_now
+        today = today or self.today
+        with patch('scheduling.views.timezone.now', return_value=fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=today
+        ):
+            return self.client.get(url)
+
     def test_dashboard_displays_operational_summary(self):
-        response = self.client.get(reverse('dashboard'))
+        response = self.get_portal_page(reverse('dashboard'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Activa')
@@ -74,7 +86,7 @@ class StudentPortalViewTests(TestCase):
         self.assertNotContains(response, '<strong>Mis turnos</strong>', html=False)
 
     def test_agenda_only_shows_primary_section_sessions(self):
-        response = self.client.get(reverse('agenda'))
+        response = self.get_portal_page(reverse('agenda'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.section.name)
@@ -82,7 +94,7 @@ class StudentPortalViewTests(TestCase):
         self.assertNotContains(response, self.other_section.name)
 
     def test_my_bookings_shows_active_booking_and_recovery_credit(self):
-        response = self.client.get(reverse('my-bookings'))
+        response = self.get_portal_page(reverse('my-bookings'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Reserva activa')
@@ -109,17 +121,37 @@ class StudentPortalViewTests(TestCase):
             )
         Booking.objects.create_booking(session=next_week_session, student=self.student)
 
-        response = self.client.get(reverse('dashboard'))
+        response = self.get_portal_page(reverse('dashboard'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.session.start_time.strftime('%H:%M'))
         self.assertNotContains(response, next_week_session.start_time.strftime('%H:%M'))
 
+    def test_dashboard_switches_to_next_workweek_on_saturday(self):
+        saturday = date(2026, 6, 13)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 13, 12, 0))
+        next_week_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 15),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        Booking.objects.create_booking(session=next_week_session, student=self.student)
+
+        response = self.get_portal_page(reverse('dashboard'), fixed_now=saturday_now, today=saturday)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Proxima semana')
+        self.assertContains(response, '15/06 al 19/06')
+        self.assertContains(response, next_week_session.start_time.strftime('%H:%M'))
+
     def test_agenda_blocks_actions_when_operational_access_is_not_available(self):
         access = self.student.get_monthly_access_for(self.today)
         access.mark_pending_payment()
 
-        response = self.client.get(reverse('agenda'))
+        response = self.get_portal_page(reverse('agenda'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Impaga')
@@ -159,7 +191,7 @@ class StudentPortalViewTests(TestCase):
         )
         Booking.objects.create_booking(session=full_session, student=other_student)
 
-        response = self.client.get(reverse('agenda'))
+        response = self.get_portal_page(reverse('agenda'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Sin cupo')
@@ -170,7 +202,7 @@ class StudentPortalViewTests(TestCase):
         access = self.student.get_monthly_access_for(self.today)
         access.suspend_operational_access()
 
-        response = self.client.get(reverse('dashboard'))
+        response = self.get_portal_page(reverse('dashboard'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Suspendida')
@@ -182,7 +214,7 @@ class StudentPortalViewTests(TestCase):
         access = self.student.get_monthly_access_for(self.today)
         access.mark_pending_payment()
 
-        response = self.client.get(reverse('my-bookings'))
+        response = self.get_portal_page(reverse('my-bookings'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Este mes no podes reservar ni cancelar desde el portal')

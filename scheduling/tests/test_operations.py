@@ -10,12 +10,37 @@ class DatabaseConfigTests(TestCase):
         self.assertEqual(config['PASSWORD'], 'secret')
         self.assertEqual(config['HOST'], 'db.example.com')
         self.assertEqual(config['PORT'], '5432')
+        self.assertEqual(config['CONN_MAX_AGE'], 60)
+        self.assertTrue(config['CONN_HEALTH_CHECKS'])
+
+    def test_parse_database_url_supports_common_postgres_query_options(self):
+        config = parse_database_url(
+            'postgresql://eunoia:secret@db.example.com:5432/eunoia_prod?sslmode=require&connect_timeout=5&conn_max_age=120'
+        )
+
+        self.assertEqual(config['OPTIONS']['sslmode'], 'require')
+        self.assertEqual(config['OPTIONS']['connect_timeout'], 5)
+        self.assertEqual(config['CONN_MAX_AGE'], 120)
 
     def test_parse_database_url_keeps_sqlite_support(self):
         config = parse_database_url('sqlite:///tmp/eunoia.sqlite3')
 
         self.assertEqual(config['ENGINE'], 'django.db.backends.sqlite3')
         self.assertEqual(str(config['NAME']).replace('\\', '/'), '/tmp/eunoia.sqlite3')
+
+    def test_database_config_requires_explicit_database_in_production_without_sqlite_opt_in(self):
+        with mock.patch.dict(
+            'os.environ',
+            {
+                'DATABASE_URL': '',
+                'DJANGO_DB_ENGINE': '',
+                'DJANGO_USE_SQLITE': 'False',
+                'DJANGO_DEBUG': 'False',
+            },
+            clear=False,
+        ):
+            with self.assertRaises(ImproperlyConfigured):
+                database_config()
 
 class GenerateClassSessionsUseCaseTests(TestCase):
     def setUp(self):

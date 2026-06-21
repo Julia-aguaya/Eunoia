@@ -1,3 +1,7 @@
+databases:
+  - name: eunoia-db
+    plan: basic-256mb
+
 services:
   - type: web
     name: eunoia
@@ -5,17 +9,23 @@ services:
     plan: starter
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: python manage.py migrate && gunicorn config.wsgi --log-file -
-    disk:
-      name: eunoia-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
         value: "False"
-      - key: DJANGO_DATABASE_PATH
-        value: /var/data/db.sqlite3
+      - key: DJANGO_USE_SQLITE
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eunoia-db
+          property: connectionString
+      - key: DJANGO_DB_SSL_MODE
+        value: require
+      - key: DJANGO_DB_CONNECT_TIMEOUT
+        value: "5"
+      - key: DJANGO_DB_CONN_MAX_AGE
+        value: "60"
       - key: DJANGO_SECURE_SSL_REDIRECT
         value: "True"
       - key: EUNOIA_DEFAULT_TEMPORARY_PASSWORD

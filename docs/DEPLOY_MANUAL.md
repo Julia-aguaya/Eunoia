@@ -10,8 +10,8 @@ Esta guia usa lo que ya existe en `render.yaml`, `.env.example` y `Procfile`. NO
 
 ### Configuracion recomendada para esta entrega
 
-- base de datos: SQLite con disco persistente
-- path de base: `/var/data/db.sqlite3`
+- base de datos: PostgreSQL gestionado
+- variable principal: `DATABASE_URL`
 - app server: `gunicorn config.wsgi --log-file -`
 - migraciones: se ejecutan en el arranque (`python manage.py migrate && ...`)
 
@@ -21,7 +21,12 @@ Definir manualmente:
 
 - `DJANGO_SECRET_KEY`: valor real, no `change-me-before-deploy`
 - `DJANGO_DEBUG=False`
-- `DJANGO_DATABASE_PATH=/var/data/db.sqlite3`
+- `DJANGO_USE_SQLITE=False`
+- `DATABASE_URL=postgresql://...`
+- `DJANGO_DB_SSL_MODE=require`
+- `DJANGO_DB_CONNECT_TIMEOUT=5`
+- `DJANGO_DB_CONN_MAX_AGE=60`
+- `DJANGO_DB_CONN_HEALTH_CHECKS=True`
 - `DJANGO_SECURE_SSL_REDIRECT=True`
 - `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`
 - `EUNOIA_ADMIN_EMAIL`
@@ -34,9 +39,11 @@ Segun host final:
 
 Nota: si el host expone `RENDER_EXTERNAL_HOSTNAME`, `config/settings.py` lo agrega solo a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
 
+SQLite queda solo para local/demo. Si alguien realmente quiere deployar con SQLite, ahora tiene que hacerlo de forma explicita con `DJANGO_USE_SQLITE=True` y asumir el costo operativo.
+
 ### Paso a paso manual
 
-1. Crear un servicio Python y montar un disco persistente en `/var/data`.
+1. Crear un servicio Python y una base PostgreSQL gestionada.
 2. Cargar el repo tal como esta.
 3. Configurar el build command de `render.yaml`:
 
@@ -50,7 +57,7 @@ pip install -r requirements.txt && python manage.py collectstatic --noinput
 python manage.py migrate && gunicorn config.wsgi --log-file -
 ```
 
-5. Definir las variables del bloque anterior.
+5. Vincular `DATABASE_URL` a la base PostgreSQL y definir las variables del bloque anterior.
 6. Hacer el primer arranque de la app.
 7. Abrir una shell del servicio y correr una sola vez el bootstrap inicial:
 
@@ -94,6 +101,6 @@ python manage.py check_eunoia_readiness --strict
 ### Inconsistencias evitadas en esta guia
 
 - no depende de `createsuperuser` interactivo: usa `bootstrap_eunoia`
-- no asume Postgres: la entrega base sigue con SQLite persistente
+- deja Postgres como camino principal de produccion, sin fallback silencioso a SQLite
 - no asume slots cargados: si no existen, hay que cargarlos o sembrar demo antes de generar sesiones
 - no asume que el arranque crea datos operativos: `migrate` corre solo esquema; el bootstrap sigue siendo paso explicito

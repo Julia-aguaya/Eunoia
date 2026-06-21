@@ -1,9 +1,11 @@
 import tempfile
+from unittest import mock
 from datetime import date, time, timedelta
 from io import StringIO
 from pathlib import Path
 
-from config.settings import parse_database_url
+from config.settings import database_config, parse_database_url
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.admin.sites import AdminSite
 from django.core.exceptions import ValidationError
 from django.core.management import call_command

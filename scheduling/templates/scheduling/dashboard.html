@@ -213,7 +213,7 @@
     <article class="card portal-card">
         <div class="section-title">
             <div>
-                <p class="eyebrow">Semana actual</p>
+                <p class="eyebrow">{% if portal_workweek_is_next %}Proxima semana{% else %}Semana actual{% endif %}</p>
                 <h3>Turnos de la semana</h3>
                 <p class="week-window">{{ current_week_start|date:"j/m" }} al {{ current_week_end|date:"j/m" }}</p>
             </div>
@@ -254,7 +254,7 @@
             </div>
         {% else %}
             <div class="empty">
-                No tenes turnos cargados para esta semana.
+                No tenes turnos cargados para {% if portal_workweek_is_next %}la proxima semana{% else %}esta semana{% endif %}.
                 <div class="empty-state-actions">
                     <a href="{% url 'agenda' %}" class="button-secondary">Ver horarios</a>
                 </div>
@@ -274,7 +274,7 @@
                 <strong>{{ available_recovery_credits|length }}</strong>
                 <p class="meta">
                     {% if available_recovery_credits %}
-                        Disponibles para usar esta semana en {{ primary_section.name|default:"tu actividad" }}.
+                        Disponibles para usar {% if portal_workweek_is_next %}la proxima semana{% else %}esta semana{% endif %} en {{ primary_section.name|default:"tu actividad" }}.
                     {% else %}
                         No tenes recuperaciones vigentes ahora mismo.
                     {% endif %}
