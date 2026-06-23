@@ -161,6 +161,14 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     def get_monthly_access_for(self, target_date):
         return self.monthly_access_statuses.filter(month=normalize_month_start(target_date)).first()
 
+    def get_monthly_plan_for(self, target_date):
+        return (
+            self.monthly_plans.select_related('section')
+            .prefetch_related('plan_slots__weekly_class_slot')
+            .filter(month=normalize_month_start(target_date))
+            .first()
+        )
+
     def set_initial_password(self, raw_password, *, require_password_change=True):
         self.set_password(raw_password)
         self.must_change_password = require_password_change
@@ -250,6 +258,117 @@ class WeeklyClassSlot(TimeStampedModel):
             ),
             holiday_closure=holiday_closure,
         )
+
+
+class StudentMonthlyPlan(TimeStampedModel):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='monthly_plans')
+    month = models.DateField()
+    section = models.ForeignKey(Section, on_delete=models.PROTECT, related_name='student_monthly_plans')
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-month', 'student__last_name', 'student__first_name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'month'],
+                name='unique_student_monthly_plan_per_month',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.student} - {self.month:%Y-%m}'
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        normalized_month = normalize_month_start(self.month) if self.month else None
+        if normalized_month is not None:
+            self.month = normalized_month
+
+        if self.student_id is None or self.section_id is None:
+            if errors:
+                raise ValidationError(errors)
+            return
+
+        student_primary_section_id = self.student.primary_section_id
+        if student_primary_section_id is None:
+            errors.setdefault('student', []).append('Student must have a primary section before configuring a monthly plan.')
+        elif student_primary_section_id != self.section_id:
+            errors.setdefault('section', []).append('Monthly plan section must match the student primary section.')
+
+        if errors:
+            raise ValidationError(errors)
+
+    def assign_weekly_slots(self, weekly_slots):
+        slot_list = list(weekly_slots)
+        errors = {}
+        slot_ids = [slot.pk for slot in slot_list]
+
+        if len(slot_list) == 0:
+            errors.setdefault('weekly_slots', []).append('Monthly plan must include between 1 and 3 weekly slots.')
+        if len(slot_list) > 3:
+            errors.setdefault('weekly_slots', []).append('Monthly plan cannot include more than 3 weekly slots.')
+        if len(set(slot_ids)) != len(slot_ids):
+            errors.setdefault('weekly_slots', []).append('Monthly plan cannot include duplicate weekly slots.')
+
+        for slot in slot_list:
+            if slot.section_id != self.section_id:
+                errors.setdefault('weekly_slots', []).append('Monthly plan weekly slots must match the student section.')
+                break
+
+        if errors:
+            raise ValidationError(errors)
+
+        self.full_clean()
+        with transaction.atomic():
+            self.save()
+            self.plan_slots.all().delete()
+            StudentMonthlyPlanSlot.objects.bulk_create(
+                [
+                    StudentMonthlyPlanSlot(monthly_plan=self, weekly_class_slot=slot, position=index + 1)
+                    for index, slot in enumerate(slot_list)
+                ]
+            )
+
+    def get_weekly_slots(self):
+        return [plan_slot.weekly_class_slot for plan_slot in self.plan_slots.select_related('weekly_class_slot').order_by('position')]
+
+
+class StudentMonthlyPlanSlot(TimeStampedModel):
+    monthly_plan = models.ForeignKey(StudentMonthlyPlan, on_delete=models.CASCADE, related_name='plan_slots')
+    weekly_class_slot = models.ForeignKey(WeeklyClassSlot, on_delete=models.PROTECT, related_name='student_monthly_plan_slots')
+    position = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        ordering = ['position', 'weekly_class_slot__weekday', 'weekly_class_slot__start_time']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['monthly_plan', 'weekly_class_slot'],
+                name='unique_student_monthly_plan_slot',
+            ),
+            models.UniqueConstraint(
+                fields=['monthly_plan', 'position'],
+                name='unique_student_monthly_plan_slot_position',
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.monthly_plan_id is None or self.weekly_class_slot_id is None:
+            if errors:
+                raise ValidationError(errors)
+            return
+
+        if self.weekly_class_slot.section_id != self.monthly_plan.section_id:
+            errors.setdefault('weekly_class_slot', []).append('Monthly plan weekly slots must match the student section.')
+
+        existing_count = self.monthly_plan.plan_slots.exclude(pk=self.pk).count()
+        if existing_count >= 3:
+            errors.setdefault('monthly_plan', []).append('Monthly plan cannot include more than 3 weekly slots.')
+
+        if errors:
+            raise ValidationError(errors)
 
 
 class HolidayClosure(TimeStampedModel):

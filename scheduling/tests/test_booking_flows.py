@@ -199,6 +199,81 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, '15/06 al 19/06')
         self.assertContains(response, next_week_session.start_time.strftime('%H:%M'))
 
+    def test_dashboard_uses_monthly_plan_to_show_weekly_slots(self):
+        Booking.objects.filter(student=self.student).delete()
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        planned_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 10),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=planned_slot,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+
+        response = self.get_portal_page(reverse('dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Turnos de la semana')
+        self.assertContains(response, 'Plan mensual')
+        self.assertContains(response, planned_session.start_time.strftime('%H:%M'))
+        self.assertContains(response, 'Reservar')
+
+    def test_dashboard_uses_next_month_plan_when_next_workweek_starts_in_new_month(self):
+        Booking.objects.filter(student=self.student).delete()
+        next_month_plan_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        next_month_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=next_month_plan_slot,
+        )
+        next_month_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            section=self.section,
+        )
+        next_month_plan.assign_weekly_slots([next_month_plan_slot])
+        saturday = date(2026, 6, 27)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+        MonthlyAccessStatus.objects.get_or_create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+
+        response = self.get_portal_page(reverse('dashboard'), fixed_now=saturday_now, today=saturday)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Proxima semana')
+        self.assertContains(response, next_month_session.start_time.strftime('%H:%M'))
+        self.assertContains(response, 'Plan mensual')
+
     def test_agenda_blocks_actions_when_operational_access_is_not_available(self):
         access = self.student.get_monthly_access_for(self.today)
         access.mark_pending_payment()

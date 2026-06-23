@@ -19,9 +19,6 @@
             margin-bottom: 16px;
         }
 
-        .search-stack,
-        .inline-input,
-        .search-tools,
         .section-title,
         .section-tools,
         .row-top,
@@ -36,10 +33,10 @@
             flex-wrap: wrap;
         }
 
-        .search-stack {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 6px;
+        .search-panel-body,
+        .search-form {
+            display: grid;
+            gap: 8px;
         }
 
         .search-panel .section-title {
@@ -59,6 +56,8 @@
         }
 
         .inline-input {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: stretch;
             gap: 8px;
         }
@@ -102,8 +101,20 @@
         }
 
         .search-tools {
+            display: flex;
+            align-items: stretch;
+            flex: 0 0 auto;
             gap: 8px;
             justify-content: flex-start;
+        }
+
+        .search-tools > * {
+            flex: 0 0 auto;
+        }
+
+        .search-tools .button-search,
+        .search-tools .button-secondary {
+            min-width: 108px;
         }
 
         .chip-scroller {
@@ -214,10 +225,6 @@
             min-width: 0;
         }
 
-        .row-actions.single-action {
-            grid-template-columns: 1fr;
-        }
-
         .action-form {
             margin: 0;
         }
@@ -249,13 +256,22 @@
                 padding: 16px;
             }
 
-            .inline-input,
+            .section-title,
+            .section-tools,
+            .row-top,
+            .row-status {
+                align-items: stretch;
+            }
+
             .section-title,
             .section-tools,
             .row-top,
             .row-status {
                 flex-direction: column;
-                align-items: stretch;
+            }
+
+            .inline-input {
+                grid-template-columns: 1fr;
             }
 
             .search-tools,
@@ -295,7 +311,7 @@
 
 {% block content %}
     <section class="panel search-panel">
-        <div class="search-stack">
+        <div class="search-panel-body">
             <div class="section-title">
                 <div>
                     <h3>Buscar alumna</h3>
@@ -303,7 +319,7 @@
                 </div>
             </div>
 
-            <form method="get" class="search-stack" role="search">
+            <form method="get" class="search-form" role="search">
                 <input type="hidden" name="status" value="{{ admin_status_filter }}">
                 <div class="inline-input">
                     <div class="search-field">
@@ -374,24 +390,24 @@
                             </div>
                         </div>
 
-                        <div class="row-actions {% if row.is_active and row.payment_label != 'Impaga' %}single-action{% endif %}">
-                            <a href="{{ row.detail_url }}" class="button-secondary">Ver detalle</a>
-
+                        <div class="row-actions">
                             {% if row.payment_label == 'Impaga' %}
                                 <form method="post" action="{% url 'admin-mark-student-paid' row.student.pk %}" class="action-form">
                                     {% csrf_token %}
                                     <input type="hidden" name="q" value="{{ admin_query }}">
                                     <input type="hidden" name="next" value="{% url 'admin-student-list' %}{% if admin_status_filter != 'all' or admin_query %}?{% if admin_status_filter != 'all' %}status={{ admin_status_filter|urlencode }}{% endif %}{% if admin_status_filter != 'all' and admin_query %}&{% endif %}{% if admin_query %}q={{ admin_query|urlencode }}{% endif %}{% endif %}">
-                                    <button type="submit" class="action-button">Realizó el pago</button>
+                                    <button type="submit" class="action-button">{{ row.action_label }}</button>
                                 </form>
-                            {% elif not row.is_active %}
+                            {% else %}
                                 <form method="post" action="{% url 'admin-toggle-student-access' row.student.pk %}" class="action-form">
                                     {% csrf_token %}
                                     <input type="hidden" name="q" value="{{ admin_query }}">
                                     <input type="hidden" name="next" value="{% url 'admin-student-list' %}{% if admin_status_filter != 'all' or admin_query %}?{% if admin_status_filter != 'all' %}status={{ admin_status_filter|urlencode }}{% endif %}{% if admin_status_filter != 'all' and admin_query %}&{% endif %}{% if admin_query %}q={{ admin_query|urlencode }}{% endif %}{% endif %}">
-                                    <button type="submit" class="action-button">Activar acceso</button>
+                                    <button type="submit" class="action-button">{{ row.action_label }}</button>
                                 </form>
                             {% endif %}
+
+                            <a href="{{ row.detail_url }}" class="button-secondary">Ver detalle</a>
                         </div>
                     </article>
                 {% endfor %}

@@ -31,7 +31,7 @@ Credenciales y flujo exacto: `docs/DEMO_LOCAL.md`.
 Este bloque deja el proyecto mas cerca de una entrega real y NO solo de demo:
 
 - settings minimos de produccion parametrizados por entorno;
-- Postgres como camino recomendado de produccion por `DATABASE_URL` o vars explicitas;
+- MySQL como camino recomendado de produccion por `DATABASE_URL` o vars explicitas;
 - SQLite reservado para local/demo con opt-in claro por `DJANGO_USE_SQLITE=True`;
 - static files listos para `collectstatic` con WhiteNoise;
 - deploy basico repetible con `Procfile` y `render.yaml`;
@@ -59,9 +59,9 @@ Variables relevantes:
 - `DJANGO_ALLOWED_HOSTS`: hosts permitidos separados por coma;
 - `DJANGO_USE_SQLITE`: deja SQLite habilitado para local/demo; en produccion debe quedar `False`;
 - `DJANGO_DATABASE_PATH`: path del SQLite local/demo, por defecto `db.sqlite3`;
-- `DATABASE_URL`: camino principal para Postgres en produccion;
+- `DATABASE_URL`: camino principal para MySQL en produccion;
 - `DJANGO_DB_ENGINE` + `DJANGO_DB_*`: alternativa explicita si no queres usar `DATABASE_URL`;
-- `DJANGO_DB_SSL_MODE`, `DJANGO_DB_CONNECT_TIMEOUT`, `DJANGO_DB_CONN_MAX_AGE`, `DJANGO_DB_CONN_HEALTH_CHECKS`: ajustes utiles para Postgres productivo;
+- `DJANGO_DB_CHARSET`, `DJANGO_DB_SQL_MODE`, `DJANGO_DB_SSL_CA`, `DJANGO_DB_SSL_CERT`, `DJANGO_DB_SSL_KEY`, `DJANGO_DB_CONNECT_TIMEOUT`, `DJANGO_DB_CONN_MAX_AGE`, `DJANGO_DB_CONN_HEALTH_CHECKS`: ajustes utiles para MySQL productivo;
 - `DJANGO_CSRF_TRUSTED_ORIGINS`: origins HTTPS/HTTP si el host final lo necesita;
 - `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`: password temporal por defecto para altas/importaciones.
 
@@ -114,24 +114,24 @@ Orden recomendado para primer arranque real:
 
 ## Deploy basico
 
-Queda una ruta clara para Render con PostgreSQL gestionado:
+Queda una ruta clara para deployar la app en Render usando MySQL externo gestionado:
 
-- `render.yaml` aprovisiona `eunoia-db`, expone `DATABASE_URL` al servicio web y fuerza `DJANGO_USE_SQLITE=False`;
-- `Procfile` mantiene una entrada portable compatible con plataformas estilo Heroku/Railway cuando ya existe `DATABASE_URL`;
+- `render.yaml` deja el servicio web listo, fuerza `DJANGO_USE_SQLITE=False` y espera que completes `DATABASE_URL` con un MySQL gestionado externo;
+- `Procfile` mantiene una entrada portable compatible con plataformas estilo Heroku/Railway/Render cuando ya existe `DATABASE_URL`;
 - cuando `RENDER_EXTERNAL_HOSTNAME` existe, settings lo agrega automaticamente a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
 
 Estrategia final de base de datos:
 
-- Postgres es el camino serio de produccion y el default esperado en cualquier deploy real;
+- MySQL es el camino serio de produccion y el default esperado en cualquier deploy real;
 - SQLite queda solo para desarrollo local, handoff rapido y demo controlada;
-- si `DJANGO_DEBUG=False` y no configuraste Postgres, settings ahora falla temprano salvo que hagas opt-in explicito de SQLite con `DJANGO_USE_SQLITE=True`;
-- el deploy ya no depende de disco persistente para la base principal.
+- si `DJANGO_DEBUG=False` y no configuraste MySQL, settings ahora falla temprano salvo que hagas opt-in explicito de SQLite con `DJANGO_USE_SQLITE=True`;
+- `config/settings.py` sigue aceptando PostgreSQL por compatibilidad tecnica, pero la documentacion y el camino productivo recomendado quedan estandarizados en MySQL.
 
 Pasos de despliegue recomendados:
 
 1. crear el servicio en Render usando `render.yaml`;
 2. definir `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`, `EUNOIA_ADMIN_EMAIL` y `EUNOIA_ADMIN_PASSWORD`;
-3. verificar que `DATABASE_URL` quede conectado al recurso `eunoia-db` y que `DJANGO_USE_SQLITE=False`;
+3. cargar un `DATABASE_URL` de MySQL gestionado y verificar que `DJANGO_USE_SQLITE=False`;
 4. abrir shell o job y correr `python manage.py bootstrap_eunoia` una vez;
 5. validar login admin, alta/importacion de alumnas y generacion de sesiones.
 

@@ -1,4 +1,5 @@
 {% extends "scheduling/admin_base.html" %}
+{% load staff_labels %}
 
 {% block title %}{{ staff_session.section.name }} {{ staff_session.date|date:"d/m/Y" }} | Portal admin Eunoia{% endblock %}
 
@@ -368,7 +369,7 @@
             </svg>
         </div>
         <div class="metric-copy">
-            <strong>{{ staff_session.get_status_display }}</strong>
+            <strong>{{ staff_session.status|staff_session_status_label }}</strong>
             <span>Estado</span>
         </div>
     </div>
@@ -378,7 +379,7 @@
     <div class="page-actions">
         <a href="{{ staff_session_back_url }}" class="back-link">Volver a la agenda</a>
         <div class="booking-meta">
-            <span class="status-badge {% if staff_session.status == 'scheduled' %}success{% else %}danger{% endif %}">{{ staff_session.get_status_display }}</span>
+            <span class="status-badge {% if staff_session.status == 'scheduled' %}success{% else %}danger{% endif %}">{{ staff_session.status|staff_session_status_label }}</span>
             <span class="status-badge muted">{{ staff_session.section.name }}</span>
             <span class="status-badge muted">{{ staff_session.date|date:"d/m/Y" }}</span>
         </div>
@@ -410,7 +411,7 @@
             </div>
             <div class="fact">
                 <dt>Estado</dt>
-                <dd>{{ staff_session.get_status_display }}</dd>
+                <dd>{{ staff_session.status|staff_session_status_label }}</dd>
             </div>
             <div class="fact">
                 <dt>Cupo total</dt>
@@ -527,13 +528,13 @@
                                         <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
                                         <p>{{ booking.student.email }}</p>
                                         {% if booking.used_recovery_credit %}
-                                            <p>Reserva por recuperación {{ booking.used_recovery_credit.get_source_display|lower }}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
+                                            <p>Reserva por recuperación {% if booking.used_recovery_credit.source == 'manual' %}manual{% else %}{{ booking.used_recovery_credit.source|staff_recovery_source_label }}{% endif %}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
                                         {% else %}
                                             <p>Reserva regular sin recuperación asociada.</p>
                                         {% endif %}
                                     </div>
                                     <div class="booking-meta">
-                                        <span class="status-badge success">{{ booking.get_status_display }}</span>
+                                        <span class="status-badge success">{{ booking.status|staff_booking_status_label }}</span>
                                         <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
                                             {% if booking.used_recovery_credit %}Con recuperación{% else %}Regular{% endif %}
                                         </span>
@@ -570,7 +571,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="booking-meta">
-                                        <span class="status-badge danger">{{ booking.get_status_display }}</span>
+                                        <span class="status-badge danger">{{ booking.status|staff_booking_status_label }}</span>
                                     </div>
                                 </div>
                             </article>

@@ -56,6 +56,8 @@ from scheduling.models import (
     RecoveryCreditStatus,
     Section,
     SessionStatus,
+    StudentMonthlyPlan,
+    StudentMonthlyPlanSlot,
     User,
     WeeklyClassSlot,
     Weekday,

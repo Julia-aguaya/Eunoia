@@ -178,7 +178,7 @@
 
     .calendar-day.fixed span,
     .calendar-day.fixed a,
-    .calendar-day.available a,
+    .calendar-day.selectable a,
     .calendar-day.selected a {
         width: 44px;
         height: 44px;
@@ -195,8 +195,18 @@
         color: #fff;
     }
 
-    .calendar-day.available a {
+    .calendar-day.selectable a {
+        border: 1px dashed rgba(90, 116, 102, 0.34);
+        background: rgba(255, 255, 255, 0.86);
+    }
+
+    .calendar-day.available:not(.selected) a {
+        border-color: transparent;
         background: rgba(196, 213, 194, 0.54);
+    }
+
+    .calendar-day.selectable:not(.available):not(.selected) a {
+        color: var(--text);
     }
 
     .calendar-day.selected a {
@@ -224,8 +234,10 @@
 
     .slot-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(140px, 180px));
+        justify-content: center;
         gap: 12px;
+        margin: 0 auto;
     }
 
     .slot-button {
@@ -238,6 +250,9 @@
         font-size: 1.1rem;
         font-weight: 700;
         cursor: pointer;
+        display: grid;
+        place-items: center;
+        text-decoration: none;
     }
 
     .slot-button.active {
@@ -303,6 +318,23 @@
         line-height: 1.55;
     }
 
+    .slots-empty-state {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        text-align: center;
+        padding: 20px 16px;
+        margin-top: 8px;
+        border-radius: 20px;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 241, 0.94));
+        border: 1px solid rgba(105, 132, 119, 0.12);
+    }
+
+    .slots-empty-state strong {
+        color: var(--primary-strong);
+        font-size: 1.05rem;
+    }
+
     .bottom-nav {
         position: fixed;
         left: 50%;
@@ -355,7 +387,7 @@
         }
 
         .slot-grid {
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
         }
 
         .bottom-nav {
@@ -396,7 +428,7 @@
         <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} opción{{ eligible_sessions_count|pluralize:"es" }} con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }} para esta actividad.</p>
     </article>
 
-    <p class="helper-copy">Elegí un día y horario disponible.</p>
+    <p class="helper-copy">Elegí un día de la semana y revisá sus horarios disponibles.</p>
 
     <article class="card picker-card">
         <div class="calendar-header">
@@ -422,7 +454,7 @@
         {% for week in recovery_calendar_weeks %}
             <div class="calendar-week">
                 {% for day in week %}
-                    <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_fixed_schedule %} fixed{% endif %}{% if day.has_availability %} available{% endif %}{% if day.is_selected %} selected{% endif %}">
+                    <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_fixed_schedule %} fixed{% endif %}{% if day.has_availability %} available{% endif %}{% if day.is_selectable %} selectable{% endif %}{% if day.is_selected %} selected{% endif %}">
                         {% if day.select_url %}
                             <a href="{{ day.select_url }}">{{ day.day_number }}</a>
                         {% else %}
@@ -445,9 +477,10 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="empty" style="margin-top: 8px;">
-                    <p class="empty-copy"><strong>Ese día forma parte de tu horario fijo, pero no tiene recuperación disponible esta semana.</strong></p>
-                    <p class="meta" style="margin-top: 8px;">Probá con otra fecha marcada que caiga dentro de la semana actual.</p>
+                <div class="slots-empty-state">
+                    <strong>Sin horarios disponibles</strong>
+                    <p class="empty-copy" style="margin: 0;">Ese día no tiene cupos de recuperación para esta semana.</p>
+                    <p class="meta" style="margin: 0;">Podés elegir otra fecha marcada dentro de la misma semana.</p>
                 </div>
             {% endif %}
         {% else %}

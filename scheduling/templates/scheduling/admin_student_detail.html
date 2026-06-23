@@ -61,11 +61,95 @@
             gap: 12px;
         }
 
+        .stack {
+            display: grid;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
         .fact {
             padding: 14px;
             border-radius: 18px;
             background: rgba(255, 255, 255, 0.82);
             border: 1px solid rgba(63, 85, 97, 0.12);
+        }
+
+        .list-reset {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .slot-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(63, 85, 97, 0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            gap: 10px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(63, 85, 97, 0.1);
+        }
+
+        .field-help,
+        .field-errors,
+        .panel-copy {
+            margin: 0;
+        }
+
+        .month-picker-form {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .month-picker-form label {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field-errors {
+            color: #a63f32;
+        }
+
+        .field-help {
+            color: var(--muted);
+        }
+
+        .textarea,
+        .submit-row button {
+            width: 100%;
+        }
+
+        .textarea {
+            min-height: 88px;
+        }
+
+        .submit-row {
+            display: flex;
+            justify-content: flex-end;
         }
 
         .fact dt {
@@ -151,5 +235,82 @@
                 <dd>{{ payment_label }}</dd>
             </div>
         </dl>
+    </section>
+
+    <section class="panel stack">
+        <div class="identity-row">
+            <div>
+                <h3>Plan mensual fijo</h3>
+                <p class="panel-copy muted">Configurá entre 1 y 3 horarios semanales para el mes {{ admin_detail_current_month_label }}.</p>
+            </div>
+            <div class="panel-actions">
+                {% if admin_detail_monthly_plan_summary %}
+                    <span class="status-badge success">{{ admin_detail_monthly_plan_summary.slots|length }} horario{{ admin_detail_monthly_plan_summary.slots|length|pluralize }}</span>
+                {% else %}
+                    <span class="status-badge muted">Sin plan cargado</span>
+                {% endif %}
+                <form method="get" action="{% url 'admin-student-detail' admin_detail_student.pk %}" class="month-picker-form">
+                    <input type="hidden" name="q" value="{{ admin_detail_query }}">
+                    <label>
+                        <strong>Mes</strong>
+                        <input type="month" name="month" value="{{ admin_detail_current_month_input }}">
+                    </label>
+                    <button type="submit" class="button-secondary">Ver mes</button>
+                </form>
+            </div>
+        </div>
+
+        {% if admin_detail_monthly_plan_summary %}
+            <ul class="list-reset">
+                {% for item in admin_detail_monthly_plan_summary.slots %}
+                    <li class="slot-row">
+                        <strong>{{ item.label }}</strong>
+                        <span class="muted">{{ admin_detail_monthly_plan.section.name }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="muted">Todavía no hay horarios fijos asignados para este mes.</p>
+        {% endif %}
+
+        <form method="post" action="{% url 'admin-update-student-monthly-plan' admin_detail_student.pk %}" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="q" value="{{ admin_detail_query }}">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            {{ admin_detail_monthly_plan_form.monthly_plan_id }}
+
+            {% if admin_detail_monthly_plan_form.non_field_errors %}
+                <p class="field-errors">{{ admin_detail_monthly_plan_form.non_field_errors|join:", " }}</p>
+            {% endif %}
+
+            <div>
+                <strong>{{ admin_detail_monthly_plan_form.month.label }}</strong>
+                <div>{{ admin_detail_monthly_plan_form.month }}</div>
+                {% if admin_detail_monthly_plan_form.month.errors %}
+                    <p class="field-errors">{{ admin_detail_monthly_plan_form.month.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <strong>{{ admin_detail_monthly_plan_form.slot_ids.label }}</strong>
+                <div class="checkbox-group">{{ admin_detail_monthly_plan_form.slot_ids }}</div>
+                {% if admin_detail_monthly_plan_form.slot_ids.errors %}
+                    <p class="field-errors">{{ admin_detail_monthly_plan_form.slot_ids.errors|join:", " }}</p>
+                {% endif %}
+                <p class="field-help">{{ admin_detail_monthly_plan_form.slot_ids.help_text }}</p>
+            </div>
+
+            <div>
+                <strong>{{ admin_detail_monthly_plan_form.notes.label }}</strong>
+                <div>{{ admin_detail_monthly_plan_form.notes }}</div>
+                {% if admin_detail_monthly_plan_form.notes.errors %}
+                    <p class="field-errors">{{ admin_detail_monthly_plan_form.notes.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="button-primary">Guardar plan mensual</button>
+            </div>
+        </form>
     </section>
 {% endblock %}

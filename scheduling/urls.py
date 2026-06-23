@@ -12,6 +12,7 @@ from .views import (
     admin_mark_student_paid_view,
     admin_student_list_view,
     admin_toggle_student_access_view,
+    admin_update_student_monthly_plan_view,
     admin_update_class_session_view,
     account_view,
     agenda_view,
@@ -37,6 +38,11 @@ urlpatterns = [
     path('staff/clases/<int:session_id>/', admin_class_session_detail_view, name='admin-class-session-detail'),
     path('staff/feriados/crear/', admin_create_holiday_closure_view, name='admin-create-holiday-closure'),
     path('staff/alumnas/<int:student_id>/', admin_student_detail_view, name='admin-student-detail'),
+    path(
+        'staff/alumnas/<int:student_id>/plan-mensual/',
+        admin_update_student_monthly_plan_view,
+        name='admin-update-student-monthly-plan',
+    ),
     path(
         'staff/alumnas/<int:student_id>/recuperaciones/otorgar/',
         admin_grant_manual_recovery_view,

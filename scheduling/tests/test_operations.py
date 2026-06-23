@@ -1,6 +1,33 @@
+from typing import Any, cast
+
 from ._shared import *
 
 class DatabaseConfigTests(TestCase):
+    def test_parse_database_url_supports_mysql_without_breaking_sqlite_default(self):
+        config = parse_database_url('mysql://eunoia:secret@db.example.com:3306/eunoia_prod')
+
+        self.assertEqual(config['ENGINE'], 'django.db.backends.mysql')
+        self.assertEqual(config['NAME'], 'eunoia_prod')
+        self.assertEqual(config['USER'], 'eunoia')
+        self.assertEqual(config['PASSWORD'], 'secret')
+        self.assertEqual(config['HOST'], 'db.example.com')
+        self.assertEqual(config['PORT'], '3306')
+        self.assertEqual(config['OPTIONS']['charset'], 'utf8mb4')
+        self.assertEqual(config['CONN_MAX_AGE'], 60)
+        self.assertTrue(config['CONN_HEALTH_CHECKS'])
+
+    def test_parse_database_url_supports_common_mysql_query_options(self):
+        config = parse_database_url(
+            'mysql://eunoia:secret@db.example.com:3306/eunoia_prod?charset=utf8mb4&connect_timeout=5&conn_max_age=120&sql_mode=STRICT_TRANS_TABLES&ssl_ca=%2Ftmp%2Fca.pem'
+        )
+        options = cast(dict[str, Any], config['OPTIONS'])
+
+        self.assertEqual(options.get('charset'), 'utf8mb4')
+        self.assertEqual(options.get('connect_timeout'), 5)
+        self.assertEqual(options.get('init_command'), "SET sql_mode='STRICT_TRANS_TABLES'")
+        self.assertEqual(options.get('ssl', {}).get('ca'), '/tmp/ca.pem')
+        self.assertEqual(config['CONN_MAX_AGE'], 120)
+
     def test_parse_database_url_supports_postgres_without_breaking_sqlite_default(self):
         config = parse_database_url('postgresql://eunoia:secret@db.example.com:5432/eunoia_prod')
 
@@ -41,6 +68,32 @@ class DatabaseConfigTests(TestCase):
         ):
             with self.assertRaises(ImproperlyConfigured):
                 database_config()
+
+    def test_database_config_supports_explicit_mysql_engine_settings(self):
+        with mock.patch.dict(
+            'os.environ',
+            {
+                'DATABASE_URL': '',
+                'DJANGO_DB_ENGINE': 'django.db.backends.mysql',
+                'DJANGO_DB_NAME': 'eunoia_prod',
+                'DJANGO_DB_USER': 'eunoia',
+                'DJANGO_DB_PASSWORD': 'secret',
+                'DJANGO_DB_HOST': 'db.example.com',
+                'DJANGO_DB_PORT': '3306',
+                'DJANGO_DB_CHARSET': 'utf8mb4',
+                'DJANGO_DB_CONNECT_TIMEOUT': '7',
+                'DJANGO_DB_SQL_MODE': 'STRICT_TRANS_TABLES',
+            },
+            clear=False,
+        ):
+            config = database_config()
+        options = cast(dict[str, Any], config['OPTIONS'])
+
+        self.assertEqual(config['ENGINE'], 'django.db.backends.mysql')
+        self.assertEqual(config['NAME'], 'eunoia_prod')
+        self.assertEqual(options.get('charset'), 'utf8mb4')
+        self.assertEqual(options.get('connect_timeout'), 7)
+        self.assertEqual(options.get('init_command'), "SET sql_mode='STRICT_TRANS_TABLES'")
 
 class GenerateClassSessionsUseCaseTests(TestCase):
     def setUp(self):
@@ -83,6 +136,79 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         self.assertEqual(result.created_count, 1)
         self.assertEqual(result.skipped_duplicates, 0)
         self.assertEqual(ClassSession.objects.count(), 0)
+
+
+class StudentMonthlyPlanModelTests(TestCase):
+    def setUp(self):
+        self.section = Section.objects.get(code='cadillac')
+        self.other_section = Section.objects.get(code='reformer_arriba')
+        self.student = User.objects.create_user(
+            email='monthly-plan-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Ada',
+            last_name='Lovelace',
+            primary_section=self.section,
+        )
+        self.month = date(2026, 6, 1)
+        self.slot_one = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        self.slot_two = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            is_active=True,
+        )
+        self.slot_three = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            is_active=True,
+        )
+        self.other_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.TUESDAY,
+            start_time=time(15, 0),
+            end_time=time(16, 0),
+            is_active=True,
+        )
+
+    def test_assign_weekly_slots_persists_ordered_slots(self):
+        plan = StudentMonthlyPlan(student=self.student, month=self.month, section=self.section, notes='Junio base')
+
+        plan.assign_weekly_slots([self.slot_two, self.slot_one])
+
+        plan.refresh_from_db()
+        self.assertEqual(plan.month, self.month)
+        self.assertEqual(list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')), [self.slot_two.pk, self.slot_one.pk])
+
+    def test_assign_weekly_slots_rejects_duplicates_other_section_and_more_than_three(self):
+        plan = StudentMonthlyPlan(student=self.student, month=self.month, section=self.section)
+        extra_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.SATURDAY,
+            start_time=time(8, 0),
+            end_time=time(9, 0),
+            is_active=True,
+        )
+
+        with self.assertRaises(ValidationError) as raised:
+            plan.assign_weekly_slots([self.slot_one, self.slot_one, self.slot_three, extra_slot])
+
+        message = str(raised.exception)
+        self.assertIn('Monthly plan cannot include more than 3 weekly slots.', message)
+        self.assertIn('Monthly plan cannot include duplicate weekly slots.', message)
+
+        with self.assertRaises(ValidationError) as raised_other_section:
+            plan.assign_weekly_slots([self.slot_one, self.other_slot])
+
+        self.assertIn('Monthly plan weekly slots must match the student section.', str(raised_other_section.exception))
 
 class StudentCsvImportTests(TestCase):
     def setUp(self):

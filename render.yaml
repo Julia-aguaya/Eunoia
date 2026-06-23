@@ -1,7 +1,3 @@
-databases:
-  - name: eunoia-db
-    plan: basic-256mb
-
 services:
   - type: web
     name: eunoia
@@ -17,17 +13,25 @@ services:
       - key: DJANGO_USE_SQLITE
         value: "False"
       - key: DATABASE_URL
-        fromDatabase:
-          name: eunoia-db
-          property: connectionString
-      - key: DJANGO_DB_SSL_MODE
-        value: require
+        sync: false
+      - key: DJANGO_DB_CHARSET
+        value: utf8mb4
+      - key: DJANGO_DB_SQL_MODE
+        value: STRICT_TRANS_TABLES
       - key: DJANGO_DB_CONNECT_TIMEOUT
         value: "5"
       - key: DJANGO_DB_CONN_MAX_AGE
         value: "60"
+      - key: DJANGO_DB_CONN_HEALTH_CHECKS
+        value: "True"
       - key: DJANGO_SECURE_SSL_REDIRECT
         value: "True"
+      - key: DJANGO_DB_SSL_CA
+        sync: false
+      - key: DJANGO_DB_SSL_CERT
+        sync: false
+      - key: DJANGO_DB_SSL_KEY
+        sync: false
       - key: EUNOIA_DEFAULT_TEMPORARY_PASSWORD
         sync: false
       - key: EUNOIA_ADMIN_EMAIL

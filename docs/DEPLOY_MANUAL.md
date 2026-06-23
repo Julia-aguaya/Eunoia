@@ -4,13 +4,13 @@ Esta guia usa lo que ya existe en `render.yaml`, `.env.example` y `Procfile`. NO
 
 ### Fuente de verdad del deploy actual
 
-- `render.yaml`: define `buildCommand`, `startCommand`, disco persistente y variables sugeridas
+- `render.yaml`: define `buildCommand`, `startCommand` y variables sugeridas para conectar un MySQL externo
 - `Procfile`: deja el start command portable para plataformas estilo Heroku/Railway
 - `.env.example`: lista las variables base que hay que completar
 
 ### Configuracion recomendada para esta entrega
 
-- base de datos: PostgreSQL gestionado
+- base de datos: MySQL gestionado
 - variable principal: `DATABASE_URL`
 - app server: `gunicorn config.wsgi --log-file -`
 - migraciones: se ejecutan en el arranque (`python manage.py migrate && ...`)
@@ -22,8 +22,11 @@ Definir manualmente:
 - `DJANGO_SECRET_KEY`: valor real, no `change-me-before-deploy`
 - `DJANGO_DEBUG=False`
 - `DJANGO_USE_SQLITE=False`
-- `DATABASE_URL=postgresql://...`
-- `DJANGO_DB_SSL_MODE=require`
+- `DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DBNAME`
+- `DJANGO_DB_CHARSET=utf8mb4`
+- `DJANGO_DB_SQL_MODE=STRICT_TRANS_TABLES`
+- `DJANGO_DB_SSL_CA` si tu proveedor exige CA explicita
+- `DJANGO_DB_SSL_CERT` y `DJANGO_DB_SSL_KEY` si tu proveedor usa mTLS
 - `DJANGO_DB_CONNECT_TIMEOUT=5`
 - `DJANGO_DB_CONN_MAX_AGE=60`
 - `DJANGO_DB_CONN_HEALTH_CHECKS=True`
@@ -41,9 +44,11 @@ Nota: si el host expone `RENDER_EXTERNAL_HOSTNAME`, `config/settings.py` lo agre
 
 SQLite queda solo para local/demo. Si alguien realmente quiere deployar con SQLite, ahora tiene que hacerlo de forma explicita con `DJANGO_USE_SQLITE=True` y asumir el costo operativo.
 
+Importante sobre Render: al momento de esta guia, Render documenta Postgres gestionado pero no un recurso gestionado equivalente para MySQL. Por eso `render.yaml` ya no aprovisiona base propia: deja la app lista y espera que conectes un MySQL externo por `DATABASE_URL`.
+
 ### Paso a paso manual
 
-1. Crear un servicio Python y una base PostgreSQL gestionada.
+1. Crear un servicio Python en Render y provisionar un MySQL gestionado externo en el proveedor que elijas.
 2. Cargar el repo tal como esta.
 3. Configurar el build command de `render.yaml`:
 
@@ -57,7 +62,7 @@ pip install -r requirements.txt && python manage.py collectstatic --noinput
 python manage.py migrate && gunicorn config.wsgi --log-file -
 ```
 
-5. Vincular `DATABASE_URL` a la base PostgreSQL y definir las variables del bloque anterior.
+5. Cargar `DATABASE_URL` con la cadena de conexion MySQL y definir las variables del bloque anterior.
 6. Hacer el primer arranque de la app.
 7. Abrir una shell del servicio y correr una sola vez el bootstrap inicial:
 
@@ -101,6 +106,6 @@ python manage.py check_eunoia_readiness --strict
 ### Inconsistencias evitadas en esta guia
 
 - no depende de `createsuperuser` interactivo: usa `bootstrap_eunoia`
-- deja Postgres como camino principal de produccion, sin fallback silencioso a SQLite
+- deja MySQL como camino principal de produccion, sin fallback silencioso a SQLite
 - no asume slots cargados: si no existen, hay que cargarlos o sembrar demo antes de generar sesiones
 - no asume que el arranque crea datos operativos: `migrate` corre solo esquema; el bootstrap sigue siendo paso explicito

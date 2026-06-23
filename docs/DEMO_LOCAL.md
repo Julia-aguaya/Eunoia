@@ -1,6 +1,6 @@
 # Demo local operativa
 
-Esta guia deja una base demo completa sin datos sensibles y sin depender de servicios externos. Para este flujo local/demo SQLite sigue siendo suficiente; para deploy productivo la ruta recomendada pasa a ser PostgreSQL.
+Esta guia deja una base demo completa sin datos sensibles y sin depender de servicios externos. Para este flujo local/demo SQLite sigue siendo suficiente; para deploy productivo la ruta recomendada pasa a ser MySQL.
 
 ## Que crea `seed_demo_eunoia`
 

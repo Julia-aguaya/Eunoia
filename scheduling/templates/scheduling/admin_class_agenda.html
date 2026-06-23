@@ -1,4 +1,5 @@
 {% extends "scheduling/admin_base.html" %}
+{% load staff_labels %}
 
 {% block title %}Clases y feriados | Portal admin Eunoia{% endblock %}
 
@@ -252,7 +253,7 @@
                                                     <p><span class="mono">{{ row.session.start_time|time:"H:i" }} - {{ row.session.end_time|time:"H:i" }}</span> · cupo {{ row.session.capacity }}</p>
                                                 </div>
                                                 <div class="session-status">
-                                                    <span class="status-badge {% if row.session.status == 'scheduled' %}success{% elif row.session.status == 'holiday_closed' %}danger{% else %}warning{% endif %}">{% if row.session.status == 'scheduled' %}Habilitada{% elif row.session.status == 'holiday_closed' %}Cerrada{% else %}{{ row.session.get_status_display }}{% endif %}</span>
+                                                    <span class="status-badge {% if row.session.status == 'scheduled' %}success{% elif row.session.status == 'holiday_closed' %}danger{% else %}warning{% endif %}">{{ row.session.status|staff_session_status_label }}</span>
                                                     {% if row.available_spots <= 0 %}
                                                         <span class="status-badge danger">Sin cupo</span>
                                                     {% elif row.available_spots == 1 %}

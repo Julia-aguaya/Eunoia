@@ -108,7 +108,7 @@ class WebRecoveryFlowTests(TestCase):
             response = self.client.get(reverse('use-recovery', args=[credit.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Elegí un día y horario disponible.')
+        self.assertContains(response, 'Elegí un día de la semana y revisá sus horarios disponibles.')
         self.assertContains(response, '10:00')
         self.assertContains(response, 'Confirmar recuperación')
         self.assertNotContains(response, self.other_section.name)
@@ -120,6 +120,82 @@ class WebRecoveryFlowTests(TestCase):
             [eligible_session.pk],
         )
         self.assertNotIn(next_week_session.pk, [card['session'].pk for card in response.context['recovery_session_cards']])
+
+    def test_recovery_page_allows_selecting_relevant_day_without_available_slots(self):
+        monday_now = timezone.make_aware(datetime(2026, 6, 8, 9, 0))
+        monday = monday_now.date()
+        wednesday = monday + timedelta(days=2)
+        origin_session = self.create_session_on(monday, start_hour=8)
+        available_session = self.create_session_on(monday, start_hour=18)
+        credit = self.create_available_credit(origin_session=origin_session)
+        WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            starts_on=monday,
+            is_active=True,
+        )
+        WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            starts_on=monday,
+            is_active=True,
+        )
+
+        with patch('scheduling.views.timezone.now', return_value=monday_now), patch(
+            'scheduling.views.timezone.localdate', return_value=monday
+        ):
+            response = self.client.get(reverse('use-recovery', args=[credit.pk]), {'date': wednesday.isoformat()})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Sin horarios disponibles')
+        self.assertContains(response, 'Podés elegir otra fecha marcada dentro de la misma semana.')
+        self.assertContains(response, wednesday.strftime('%d/%m'))
+        self.assertNotContains(response, 'Confirmar recuperación')
+        self.assertEqual(response.context['recovery_selected_date'], wednesday)
+        self.assertEqual(response.context['recovery_selected_day_cards'], [])
+        self.assertEqual(
+            [card['session'].pk for card in response.context['recovery_session_cards']],
+            [available_session.pk],
+        )
+        calendar_days = [
+            day
+            for week in response.context['recovery_calendar_weeks']
+            for day in week
+            if day['date'] in {monday, wednesday}
+        ]
+        self.assertEqual(len(calendar_days), 2)
+        self.assertTrue(all(day['select_url'] for day in calendar_days))
+        self.assertTrue(any(day['date'] == wednesday and not day['has_availability'] for day in calendar_days))
+
+    def test_recovery_page_marks_only_current_selected_day(self):
+        monday = self.today - timedelta(days=self.today.weekday())
+        thursday = monday + timedelta(days=3)
+        friday = monday + timedelta(days=4)
+        origin_session = self.create_session_on(thursday, start_hour=8)
+        first_available_session = self.create_session_on(thursday, start_hour=18)
+        second_available_session = self.create_session_on(friday, start_hour=19)
+        credit = self.create_available_credit(origin_session=origin_session)
+
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            response = self.client.get(
+                reverse('use-recovery', args=[credit.pk]),
+                {'date': friday.isoformat(), 'session': second_available_session.pk},
+            )
+
+        html = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(html.count('selectable selected'), 1)
+        self.assertIn('available selectable', html)
+        self.assertEqual(response.context['recovery_selected_date'], friday)
+        self.assertEqual(response.context['recovery_selected_session_card']['session'].pk, second_available_session.pk)
+        self.assertNotEqual(first_available_session.date, response.context['recovery_selected_date'])
 
     def test_recovery_page_empty_state_mentions_current_week(self):
         monday = self.today - timedelta(days=self.today.weekday())
@@ -133,7 +209,9 @@ class WebRecoveryFlowTests(TestCase):
             response = self.client.get(reverse('use-recovery', args=[credit.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'No hay horarios disponibles para usar esta recuperación en la semana actual.')
+        self.assertContains(response, 'Sin horarios disponibles')
+        self.assertEqual(response.context['recovery_selected_date'], tuesday)
+        self.assertEqual(response.context['recovery_selected_day_cards'], [])
 
     def test_recovery_page_switches_to_next_workweek_on_sunday(self):
         sunday_now = timezone.make_aware(datetime(2026, 6, 14, 12, 0))
@@ -149,9 +227,10 @@ class WebRecoveryFlowTests(TestCase):
             response = self.client.get(reverse('use-recovery', args=[credit.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Clases disponibles de la proxima semana laboral')
-        self.assertContains(response, '1 opcion la proxima semana')
+        self.assertContains(response, 'Elegí un día y horario disponible de la próxima semana.')
         self.assertContains(response, eligible_session.start_time.strftime('%H:%M'))
+        self.assertTrue(response.context['recovery_workweek_is_next'])
+        self.assertEqual(response.context['eligible_sessions_count'], 1)
         self.assertEqual(
             [card['session'].pk for card in response.context['recovery_session_cards']],
             [eligible_session.pk],

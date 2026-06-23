@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.utils import timezone
 
-from .models import ClassSession, HolidayClosure, RecoveryCredit, Section, SessionStatus
+from .models import ClassSession, HolidayClosure, RecoveryCredit, Section, SessionStatus, StudentMonthlyPlan, WeeklyClassSlot, normalize_month_start
 
 
 class EmailAuthenticationForm(forms.Form):
@@ -241,6 +241,83 @@ class StaffManualRecoveryCreditForm(forms.Form):
             reference_date=timezone.localdate(),
             notes=self.cleaned_data.get('notes', '').strip(),
         )
+
+
+class StaffStudentMonthlyPlanForm(forms.Form):
+    month = forms.DateField(
+        required=True,
+        label='Mes',
+        input_formats=['%Y-%m', '%Y-%m-%d'],
+        widget=forms.DateInput(format='%Y-%m', attrs={'type': 'month'}),
+    )
+    monthly_plan_id = forms.IntegerField(required=False, widget=forms.HiddenInput)
+    slot_ids = forms.ModelMultipleChoiceField(
+        queryset=WeeklyClassSlot.objects.none(),
+        label='Horarios fijos del mes',
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+    notes = forms.CharField(
+        required=False,
+        label='Notas operativas',
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
+
+    def __init__(self, *, student, month, **kwargs):
+        super().__init__(**kwargs)
+        self.student = student
+        self.month = normalize_month_start(month)
+        self.plan = StudentMonthlyPlan.objects.filter(student=student, month=self.month).first()
+        self.fields['month'].initial = self.month
+        queryset = WeeklyClassSlot.objects.none()
+        help_text = 'La alumna no tiene actividad principal, así que no se puede configurar un plan todavía.'
+        if student.primary_section_id:
+            queryset = WeeklyClassSlot.objects.filter(section=student.primary_section, is_active=True).order_by('weekday', 'start_time')
+            help_text = 'Elegí entre 1 y 3 horarios semanales de la actividad principal para armar el plan del mes.'
+        self.fields['slot_ids'].queryset = queryset
+        self.fields['slot_ids'].help_text = help_text
+
+        if self.plan is not None and not self.is_bound:
+            self.initial['monthly_plan_id'] = self.plan.pk
+            self.initial['slot_ids'] = list(self.plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position'))
+            self.initial['notes'] = self.plan.notes
+
+    def clean_month(self):
+        return normalize_month_start(self.cleaned_data['month'])
+
+    def clean_slot_ids(self):
+        slots = list(self.cleaned_data.get('slot_ids') or [])
+        if not slots:
+            raise forms.ValidationError('Elegí entre 1 y 3 horarios para guardar el plan mensual.')
+        if len(slots) > 3:
+            raise forms.ValidationError('Solo podés elegir hasta 3 horarios para el plan mensual.')
+        return slots
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.errors:
+            return cleaned_data
+
+        if self.student.primary_section_id is None:
+            raise forms.ValidationError('La alumna necesita una actividad principal antes de configurar el plan mensual.')
+
+        for slot in cleaned_data.get('slot_ids', []):
+            if slot.section_id != self.student.primary_section_id:
+                raise forms.ValidationError('Todos los horarios del plan mensual tienen que pertenecer a la actividad principal de la alumna.')
+
+        return cleaned_data
+
+    def save(self):
+        plan = self.plan or StudentMonthlyPlan(
+            student=self.student,
+            month=self.cleaned_data['month'],
+            section=self.student.primary_section,
+        )
+        plan.month = self.cleaned_data['month']
+        plan.section = self.student.primary_section
+        plan.notes = self.cleaned_data.get('notes', '').strip()
+        plan.assign_weekly_slots(self.cleaned_data['slot_ids'])
+        return plan
 
 
 class StaffHolidayClosureForm(forms.ModelForm):

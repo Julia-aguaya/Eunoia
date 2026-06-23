@@ -1,3 +1,5 @@
+from django.template import engines
+
 from ._shared import *
 
 class MonthlyAccessAdminActionTests(TestCase):
@@ -334,6 +336,31 @@ class AdminPortalViewTests(TestCase):
             expires_at=self.today - timedelta(days=3),
         )
 
+    def test_staff_labels_tag_library_loads_for_staff_templates(self):
+        template = engines['django'].from_string('{% load staff_labels %}{{ value|staff_session_status_label }}')
+
+        rendered = template.render({'value': SessionStatus.SCHEDULED})
+
+        self.assertEqual(rendered, 'Programada')
+
+    def test_staff_labels_library_exports_template_filter_aliases(self):
+        template = engines['django'].from_string(
+            '{% load staff_labels %}'
+            '{{ booking|booking_status_label }}|'
+            '{{ session|session_status_label }}|'
+            '{{ recovery|recovery_source_label }}'
+        )
+
+        rendered = template.render(
+            {
+                'booking': BookingStatus.CANCELLED,
+                'session': SessionStatus.HOLIDAY_CLOSED,
+                'recovery': RecoveryCreditSource.MANUAL,
+            }
+        )
+
+        self.assertEqual(rendered, 'Cancelada|Cerrada por feriado|carga manual')
+
     def test_admin_portal_requires_login(self):
         response = self.client.get(reverse('admin-student-list'))
 
@@ -372,6 +399,40 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Al día')
         self.assertNotContains(response, 'Grace Hopper')
 
+    def test_staff_list_uses_state_specific_monthly_access_ctas(self):
+        suspended_student = User.objects.create_user(
+            email='hedy@example.com',
+            password='StudentPass2026!',
+            first_name='Hedy',
+            last_name='Lamarr',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=suspended_student,
+            month=self.current_month,
+            status=MonthlyAccessStatusType.SUSPENDED,
+            booking_enabled=False,
+        )
+        student_without_status = User.objects.create_user(
+            email='katherine@example.com',
+            password='StudentPass2026!',
+            first_name='Katherine',
+            last_name='Johnson',
+            primary_section=self.other_section,
+            must_change_password=False,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Suspender acceso')
+        self.assertContains(response, 'Registrar pago del mes')
+        self.assertContains(response, 'Reactivar acceso')
+        self.assertContains(response, 'Activar acceso del mes')
+        self.assertContains(response, 'Ver detalle', count=4)
+
     def test_staff_list_links_to_student_detail(self):
         self.client.force_login(self.staff_user)
 
@@ -393,6 +454,136 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, self.section.name)
         self.assertContains(response, 'Pago del mes')
         self.assertContains(response, 'Volver al listado')
+
+    def test_staff_can_assign_monthly_plan_from_student_detail(self):
+        slot_one = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        slot_two = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        self.client.force_login(self.staff_user)
+        detail_url = f"{reverse('admin-student-detail', args=[self.active_student.pk])}?q=ada"
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': self.current_month.strftime('%Y-%m'),
+                'slot_ids': [slot_one.pk, slot_two.pk],
+                'notes': 'Plan fijo de junio',
+                'q': 'ada',
+                'next': detail_url,
+            },
+            follow=True,
+        )
+
+        plan = StudentMonthlyPlan.objects.get(student=self.active_student, month=self.current_month)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.request['PATH_INFO'], reverse('admin-student-detail', args=[self.active_student.pk]))
+        self.assertEqual(plan.section, self.section)
+        self.assertEqual(plan.notes, 'Plan fijo de junio')
+        self.assertEqual(list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')), [slot_one.pk, slot_two.pk])
+        self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
+        self.assertContains(response, 'Plan mensual fijo')
+
+    def test_staff_can_choose_month_and_save_plan_for_that_month(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        slot_one = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.TUESDAY,
+            start_time=time(8, 0),
+            end_time=time(9, 0),
+            is_active=True,
+        )
+        slot_two = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.THURSDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-student-detail', args=[self.active_student.pk]),
+            {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'value="{next_month:%Y-%m}"')
+        self.assertContains(response, next_month.strftime('%m/%Y'))
+
+        detail_url = f"{reverse('admin-student-detail', args=[self.active_student.pk])}?q=ada&month={next_month:%Y-%m}"
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'slot_ids': [slot_one.pk, slot_two.pk],
+                'notes': 'Plan fijo del mes siguiente',
+                'q': 'ada',
+                'next': detail_url,
+            },
+            follow=True,
+        )
+
+        plan = StudentMonthlyPlan.objects.get(student=self.active_student, month=next_month)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(plan.notes, 'Plan fijo del mes siguiente')
+        self.assertEqual(list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')), [slot_one.pk, slot_two.pk])
+        self.assertEqual(response.request['QUERY_STRING'], f'q=ada&month={next_month:%Y-%m}')
+        self.assertContains(response, 'Plan fijo del mes siguiente')
+
+    def test_staff_monthly_plan_rejects_more_than_three_slots(self):
+        slots = [
+            WeeklyClassSlot.objects.create(
+                section=self.section,
+                weekday=weekday,
+                start_time=time(8 + index, 0),
+                end_time=time(9 + index, 0),
+                is_active=True,
+            )
+            for index, weekday in enumerate([Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY])
+        ]
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': self.current_month.strftime('%Y-%m'),
+                'slot_ids': [slot.pk for slot in slots],
+                'notes': 'Demasiados horarios',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Solo podés elegir hasta 3 horarios para el plan mensual.')
+        self.assertFalse(StudentMonthlyPlan.objects.filter(student=self.active_student, month=self.current_month).exists())
+
+    def test_non_staff_user_cannot_update_monthly_plan(self):
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        self.client.force_login(self.active_student)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {'month': self.current_month.strftime('%Y-%m'), 'slot_ids': [slot.pk]},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(StudentMonthlyPlan.objects.filter(student=self.active_student, month=self.current_month).exists())
 
     def test_staff_can_grant_manual_recovery_from_detail(self):
         self.client.force_login(self.staff_user)

@@ -60,6 +60,43 @@ def postgres_extra_config(query_pairs=None):
     return config
 
 
+def mysql_extra_config(query_pairs=None):
+    query_pairs = query_pairs or {}
+    options = {
+        'charset': query_pairs.get('charset') or os.getenv('DJANGO_DB_CHARSET', 'utf8mb4').strip() or 'utf8mb4',
+    }
+
+    init_command = query_pairs.get('init_command') or os.getenv('DJANGO_DB_INIT_COMMAND', '').strip()
+    sql_mode = query_pairs.get('sql_mode') or os.getenv('DJANGO_DB_SQL_MODE', '').strip()
+    if sql_mode:
+        options['init_command'] = f"SET sql_mode='{sql_mode}'"
+    elif init_command:
+        options['init_command'] = init_command
+
+    connect_timeout = query_pairs.get('connect_timeout') or os.getenv('DJANGO_DB_CONNECT_TIMEOUT', '').strip()
+    if connect_timeout:
+        options['connect_timeout'] = int(connect_timeout)
+
+    ssl = {}
+    ssl_ca = query_pairs.get('ssl_ca') or os.getenv('DJANGO_DB_SSL_CA', '').strip()
+    ssl_cert = query_pairs.get('ssl_cert') or os.getenv('DJANGO_DB_SSL_CERT', '').strip()
+    ssl_key = query_pairs.get('ssl_key') or os.getenv('DJANGO_DB_SSL_KEY', '').strip()
+    if ssl_ca:
+        ssl['ca'] = ssl_ca
+    if ssl_cert:
+        ssl['cert'] = ssl_cert
+    if ssl_key:
+        ssl['key'] = ssl_key
+    if ssl:
+        options['ssl'] = ssl
+
+    return {
+        'CONN_MAX_AGE': int(query_pairs.get('conn_max_age') or env_int('DJANGO_DB_CONN_MAX_AGE', 60)),
+        'CONN_HEALTH_CHECKS': env_bool('DJANGO_DB_CONN_HEALTH_CHECKS', default=True),
+        'OPTIONS': options,
+    }
+
+
 def parse_database_url(database_url):
     parsed = urlparse(database_url)
     scheme = parsed.scheme.lower()
@@ -74,6 +111,18 @@ def parse_database_url(database_url):
             'PORT': str(parsed.port or ''),
         }
         config.update(postgres_extra_config(dict(parse_qsl(parsed.query, keep_blank_values=False))))
+        return config
+
+    if scheme in {'mysql', 'mysql2', 'mysql+mysqlclient', 'mariadb'}:
+        config = {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': unquote(parsed.path.lstrip('/')),
+            'USER': unquote(parsed.username or ''),
+            'PASSWORD': unquote(parsed.password or ''),
+            'HOST': parsed.hostname or '',
+            'PORT': str(parsed.port or ''),
+        }
+        config.update(mysql_extra_config(dict(parse_qsl(parsed.query, keep_blank_values=False))))
         return config
 
     if scheme == 'sqlite':
@@ -111,6 +160,8 @@ def database_config():
         }
         if engine == 'django.db.backends.postgresql':
             config.update(postgres_extra_config())
+        if engine == 'django.db.backends.mysql':
+            config.update(mysql_extra_config())
         return config
 
     if env_bool('DJANGO_USE_SQLITE', default=env_bool('DJANGO_DEBUG', default=True)):
@@ -120,7 +171,7 @@ def database_config():
         }
 
     raise ImproperlyConfigured(
-        'Database configuration missing. Set DATABASE_URL for PostgreSQL in production, '
+        'Database configuration missing. Set DATABASE_URL for MySQL in production, '
         'or set DJANGO_USE_SQLITE=True for local/demo environments.'
     )
 

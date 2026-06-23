@@ -747,47 +747,66 @@
                 </svg>
             </span>
             <div>
-                <p class="eyebrow">{% if portal_workweek_is_next %}Próxima semana{% else %}Semana actual{% endif %}</p>
+                <p class="eyebrow">{% if portal_workweek_is_next %}Proxima semana{% else %}Esta semana{% endif %}</p>
                 <h3>Turnos de la semana</h3>
                 <p class="week-header-subtitle">{{ current_week_start|date:"j/m" }} al {{ current_week_end|date:"j/m" }}</p>
             </div>
         </div>
 
-        {% if this_week_booking_cards %}
+        {% if weekly_plan_cards %}
             <div class="weekly-card">
-                {% for card in this_week_booking_cards %}
-                    {% with booking=card.booking %}
+                {% for card in weekly_plan_cards %}
                     <article class="week-session">
                         <div class="week-date-badge">
-                            <strong>{{ booking.session.date|date:"D\nd/m"|capfirst }}</strong>
+                            <strong>{{ card.date|date:"D\nd/m"|capfirst }}</strong>
                         </div>
                         <div class="week-session-main">
                             <div class="week-session-top">
                                 <div>
-                                    <div class="time-line">{{ booking.session.start_time|time:"H:i" }} a {{ booking.session.end_time|time:"H:i" }}</div>
-                                    <div class="section-line">{{ booking.session.section.name }}</div>
+                                    {% if card.session %}
+                                        <div class="time-line">{{ card.session.start_time|time:"H:i" }} a {{ card.session.end_time|time:"H:i" }}</div>
+                                        <div class="section-line">{{ card.session.section.name }}</div>
+                                    {% else %}
+                                        <div class="time-line">{{ card.slot.start_time|time:"H:i" }} a {{ card.slot.end_time|time:"H:i" }}</div>
+                                        <div class="section-line">{{ card.slot.section.name }}</div>
+                                    {% endif %}
                                 </div>
-                                {% if booking.source == 'makeup' %}
+                                {% if card.booking and card.booking.source == 'makeup' %}
                                     <span class="status-pill warning">Recuperación aplicada</span>
-                                {% else %}
+                                {% elif card.booking %}
                                     <span class="status-pill">Reserva activa</span>
+                                {% else %}
+                                    <span class="status-pill">Plan mensual</span>
                                 {% endif %}
                             </div>
                             <div class="action-row" style="margin-top: 4px;">
-                                <a href="{% url 'dashboard' %}?detail={{ booking.id }}" class="button-secondary">Ver detalle</a>
-                                {% if card.cancel_action.can_cancel %}
-                                    <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
+                                {% if card.booking %}
+                                    <a href="{% url 'dashboard' %}?detail={{ card.booking.id }}" class="button-secondary">Ver detalle</a>
+                                {% elif card.session and card.action.can_book %}
+                                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+                                {% else %}
+                                    <span class="button-disabled" aria-disabled="true">Plan del mes</span>
+                                {% endif %}
+                                {% if card.booking and card.cancel_action.can_cancel %}
+                                    <form method="post" action="{% url 'cancel-booking' card.booking.id %}" style="margin: 0;">
                                         {% csrf_token %}
                                         <input type="hidden" name="next" value="{{ request.path }}">
                                         <button type="submit" class="button-secondary">Cancelar</button>
                                     </form>
-                                {% else %}
+                                {% elif card.booking %}
                                     <span class="button-disabled" aria-disabled="true">{{ card.cancel_action.label }}</span>
+                                {% elif card.session and card.action.can_book %}
+                                    <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'agenda' %}">
+                                        <button type="submit" class="button-secondary">Reservar</button>
+                                    </form>
+                                {% else %}
+                                    <span class="button-disabled" aria-disabled="true">No disponible</span>
                                 {% endif %}
                             </div>
                         </div>
                     </article>
-                    {% endwith %}
                 {% endfor %}
             </div>
         {% else %}
