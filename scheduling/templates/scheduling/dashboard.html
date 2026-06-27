@@ -49,8 +49,8 @@
                 <path d="M16 2v4M8 2v4M3 10h18"></path>
             </svg>
         </span>
-        <strong class="metric-value">{{ upcoming_bookings|length }}</strong>
-        <span class="metric-label">turno{% if upcoming_bookings|length != 1 %}s{% endif %}<br>próximo{% if upcoming_bookings|length != 1 %}s{% endif %}</span>
+        <strong class="metric-value">{{ upcoming_turns_count }}</strong>
+        <span class="metric-label">turno{% if upcoming_turns_count != 1 %}s{% endif %}<br>próximo{% if upcoming_turns_count != 1 %}s{% endif %}</span>
     </div>
     <div class="metric compact">
         <span class="metric-icon" aria-hidden="true">
@@ -301,6 +301,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
         margin-top: 16px;
+    }
+
+    .action-row.single-action {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .action-row .button,
@@ -660,11 +664,11 @@
     <div class="portal-inline-status">
         <strong>{{ operational_status.title }}</strong>
         <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
-            {% if operational_status.can_operate %}Portal habilitado{% else %}Solo consulta{% endif %}
+            {% if operational_status.can_operate %}Portal habilitado{% else %}Sin reservas por ahora{% endif %}
         </span>
     </div>
 
-    {% with next_card=upcoming_booking_cards.0 %}
+    {% with next_card=next_portal_turn_card %}
     <article class="card portal-card">
         <div class="section-head">
             <span class="section-icon" aria-hidden="true">
@@ -679,15 +683,20 @@
         </div>
 
         {% if next_card %}
-            {% with booking=next_card.booking %}
             <div class="next-class-layout">
                 <div class="next-class-main">
-                    <div class="date-line">{{ booking.session.date|date:"l d/m"|capfirst }} · {{ booking.session.start_time|time:"H:i" }}</div>
-                    <div class="section-line">{{ booking.session.section.name }}</div>
-                    {% if booking.source == 'makeup' %}
-                        <span class="status-pill warning">Recuperación aplicada</span>
+                    <div class="date-line">{{ next_card.date|date:"l d/m"|capfirst }} · {% if next_card.session %}{{ next_card.session.start_time|time:"H:i" }}{% else %}{{ next_card.slot.start_time|time:"H:i" }}{% endif %}</div>
+                    <div class="section-line">{% if next_card.session %}{{ next_card.session.section.name }}{% else %}{{ next_card.slot.section.name }}{% endif %}</div>
+                    {% if next_card.booking and next_card.status_tone == 'warning' %}
+                        <span class="status-pill warning">{{ next_card.status_label }}</span>
+                    {% elif next_card.booking %}
+                        <span class="status-pill">{{ next_card.status_label }}</span>
+                    {% elif next_card.action and next_card.action.state == 'managed' %}
+                        <span class="status-pill warning">{{ next_card.action.label }}</span>
+                    {% elif next_card.session %}
+                        <span class="status-pill">Plan mensual</span>
                     {% else %}
-                        <span class="status-pill">Reserva activa</span>
+                        <span class="status-pill warning">Horario pendiente</span>
                     {% endif %}
                     <div class="next-class-note">
                         <span class="hint-icon" aria-hidden="true">
@@ -697,7 +706,15 @@
                                 <path d="M11 12h1v4h1"></path>
                             </svg>
                         </span>
-                        <span>Si cancelás a tiempo, se genera una recuperación automáticamente.</span>
+                        {% if next_card.booking %}
+                            <span>Si cancelás a tiempo, se genera una recuperación automáticamente.</span>
+                        {% elif next_card.action and next_card.action.state == 'managed' %}
+                            <span>{{ next_card.action.message }}</span>
+                        {% elif next_card.session %}
+                            <span>Este horario viene de tu plan mensual y ya tiene una clase publicada para reservar.</span>
+                        {% else %}
+                            <span>Este horario viene de tu plan mensual, pero todavía no hay una clase publicada para esa fecha.</span>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="next-class-visual" aria-hidden="true">
@@ -713,18 +730,28 @@
             </div>
 
             <div class="action-row">
-                <a href="{% url 'dashboard' %}?detail={{ booking.id }}" class="button-secondary">Ver detalle</a>
-                {% if next_card.cancel_action.can_cancel %}
-                    <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.path }}">
-                        <button type="submit" class="button-danger">Cancelar turno</button>
-                    </form>
+                {% if next_card.booking %}
+                    <a href="{% url 'dashboard' %}?detail={{ next_card.booking.id }}" class="button-secondary">Ver detalle</a>
+                    {% if next_card.cancel_action.can_cancel %}
+                        <form method="post" action="{% url 'cancel-booking' next_card.booking.id %}" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button type="submit" class="button-danger">Cancelar turno</button>
+                        </form>
+                    {% else %}
+                        <span class="button-disabled" aria-disabled="true">{{ next_card.cancel_action.label }}</span>
+                    {% endif %}
+                {% elif next_card.session and next_card.action and next_card.action.can_book %}
+                    <a href="{% url 'agenda' %}" class="button">Reservar clase</a>
+                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+                {% elif next_card.session %}
+                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+                    <span class="button-disabled" aria-disabled="true">{{ next_card.action.label|default:"Agenda no disponible" }}</span>
                 {% else %}
-                    <span class="button-disabled" aria-disabled="true">{{ next_card.cancel_action.label }}</span>
+                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
+                    <span class="button-disabled" aria-disabled="true">Clase todavia no publicada</span>
                 {% endif %}
             </div>
-            {% endwith %}
         {% else %}
             <div class="empty">
                 <p class="empty-copy"><strong>No tenés una próxima clase agendada.</strong></p>
@@ -758,7 +785,7 @@
                 {% for card in weekly_plan_cards %}
                     <article class="week-session">
                         <div class="week-date-badge">
-                            <strong>{{ card.date|date:"D\nd/m"|capfirst }}</strong>
+                            <strong>{{ card.date|date:"l d/m"|capfirst }}</strong>
                         </div>
                         <div class="week-session-main">
                             <div class="week-session-top">
@@ -771,40 +798,29 @@
                                         <div class="section-line">{{ card.slot.section.name }}</div>
                                     {% endif %}
                                 </div>
-                                {% if card.booking and card.booking.source == 'makeup' %}
-                                    <span class="status-pill warning">Recuperación aplicada</span>
+                                {% if card.booking and card.status_tone == 'warning' %}
+                                    <span class="status-pill warning">{{ card.status_label }}</span>
                                 {% elif card.booking %}
-                                    <span class="status-pill">Reserva activa</span>
+                                    <span class="status-pill">{{ card.status_label }}</span>
+                                {% elif card.action and card.action.state == 'managed' %}
+                                    <span class="status-pill warning">{{ card.action.label }}</span>
                                 {% else %}
                                     <span class="status-pill">Plan mensual</span>
                                 {% endif %}
                             </div>
-                            <div class="action-row" style="margin-top: 4px;">
-                                {% if card.booking %}
-                                    <a href="{% url 'dashboard' %}?detail={{ card.booking.id }}" class="button-secondary">Ver detalle</a>
-                                {% elif card.session and card.action.can_book %}
-                                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                                {% else %}
-                                    <span class="button-disabled" aria-disabled="true">Plan del mes</span>
-                                {% endif %}
-                                {% if card.booking and card.cancel_action.can_cancel %}
+                            {% if card.booking %}
+                                <div class="action-row single-action" style="margin-top: 4px;">
+                                {% if card.cancel_action.can_cancel %}
                                     <form method="post" action="{% url 'cancel-booking' card.booking.id %}" style="margin: 0;">
                                         {% csrf_token %}
                                         <input type="hidden" name="next" value="{{ request.path }}">
-                                        <button type="submit" class="button-secondary">Cancelar</button>
-                                    </form>
-                                {% elif card.booking %}
-                                    <span class="button-disabled" aria-disabled="true">{{ card.cancel_action.label }}</span>
-                                {% elif card.session and card.action.can_book %}
-                                    <form method="post" action="{% url 'create-booking' card.session.id %}" style="margin: 0;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{% url 'agenda' %}">
-                                        <button type="submit" class="button-secondary">Reservar</button>
+                                        <button type="submit" class="button-secondary">Cancelar turno</button>
                                     </form>
                                 {% else %}
-                                    <span class="button-disabled" aria-disabled="true">No disponible</span>
+                                    <span class="button-disabled" aria-disabled="true">{{ card.cancel_action.label }}</span>
                                 {% endif %}
-                            </div>
+                                </div>
+                            {% endif %}
                         </div>
                     </article>
                 {% endfor %}
@@ -902,7 +918,7 @@
                     </span>
                     <span class="detail-label">Estado</span>
                     <span class="detail-value">
-                        <span class="status-pill{% if booking.source == 'makeup' %} warning{% endif %}">{% if booking.source == 'makeup' %}Recuperación aplicada{% else %}Reserva activa{% endif %}</span>
+                        <span class="status-pill{% if detail_booking_card.status_tone == 'warning' %} warning{% endif %}">{{ detail_booking_card.status_label }}</span>
                     </span>
                 </div>
                 <div class="detail-row">

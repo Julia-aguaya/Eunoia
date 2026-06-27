@@ -209,6 +209,47 @@ class MonthlyAccessStatusModelTests(TestCase):
         self.assertIn('deactivated_at', exc.exception.message_dict)
         self.assertIn('activated_by', exc.exception.message_dict)
 
+    def test_operational_access_falls_back_to_previous_active_month_until_day_ten(self):
+        student = User.objects.create_user(
+            email='cross-month-access@example.com',
+            password='secret123',
+            first_name='Ada',
+            last_name='Lovelace',
+        )
+        june_access = MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 6, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+
+        self.assertEqual(student.get_operational_monthly_access_for(date(2026, 7, 1)), june_access)
+        self.assertTrue(student.has_operational_booking_access_for(date(2026, 7, 10)))
+        self.assertFalse(student.has_operational_booking_access_for(date(2026, 7, 11)))
+
+    def test_operational_access_does_not_fall_back_when_current_month_is_explicitly_blocked(self):
+        student = User.objects.create_user(
+            email='cross-month-blocked@example.com',
+            password='secret123',
+            first_name='Grace',
+            last_name='Hopper',
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 6, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        july_access = MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 7, 1),
+            status=MonthlyAccessStatusType.PENDING_PAYMENT,
+            booking_enabled=False,
+        )
+
+        self.assertEqual(student.get_operational_monthly_access_for(date(2026, 7, 1)), july_access)
+        self.assertFalse(student.has_operational_booking_access_for(date(2026, 7, 1)))
+
 class SchedulingUseCaseTests(TestCase):
     def setUp(self):
         self.section = Section.objects.get(code='cadillac')

@@ -212,6 +212,26 @@
         margin-top: 4px;
     }
 
+    .history-meta-aux {
+        color: var(--muted);
+        margin-top: 4px;
+        font-size: 0.95rem;
+    }
+
+    .history-tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(223, 232, 223, 0.55);
+        color: var(--primary-strong);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+
     .history-status {
         display: inline-flex;
         align-items: center;
@@ -519,13 +539,30 @@
                             </svg>
                         </span>
                         <div>
-                            <div class="detail-copy"><strong>Generada por cancelación</strong></div>
-                            <div class="history-meta">
-                                {% if credit.origin_session %}{{ credit.origin_session.date|date:"d/m" }}{% else %}Sin fecha de origen{% endif %}
-                                {% if credit.expires_at %} · Vencía el {{ credit.expires_at|date:"d/m" }}{% endif %}
+                            <div class="detail-copy">
+                                <strong>{% if credit.has_legacy_recoverableturn_context %}Recuperación legacy ya usada{% else %}Generada por cancelación{% endif %}</strong>
                             </div>
+                            <div class="history-meta">
+                                {% if credit.has_legacy_recoverableturn_context %}
+                                    {% if credit.legacy_recovery_date %}Usada el {{ credit.legacy_recovery_date|date:"d/m/Y" }}{% elif credit.used_at %}Usada el {{ credit.used_at|date:"d/m/Y" }}{% endif %}
+                                    {% if credit.expires_at %} · Vencía el {{ credit.expires_at|date:"d/m" }}{% endif %}
+                                {% else %}
+                                    {% if credit.origin_session %}{{ credit.origin_session.date|date:"d/m" }}{% else %}Sin fecha de origen{% endif %}
+                                    {% if credit.expires_at %} · Vencía el {{ credit.expires_at|date:"d/m" }}{% endif %}
+                                {% endif %}
+                            </div>
+                            {% if credit.has_legacy_recoverableturn_context %}
+                                <div class="history-meta-aux">
+                                    {% if credit.legacy_original_slot_label %}Original: {{ credit.legacy_original_slot_label }}{% endif %}
+                                    {% if credit.legacy_original_slot_label and credit.legacy_assigned_slot_label %} · {% endif %}
+                                    {% if credit.legacy_assigned_slot_label %}Asignada a: {{ credit.legacy_assigned_slot_label }}{% endif %}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="badge-row">
+                            {% if credit.has_legacy_recoverableturn_context %}
+                                <span class="history-tag">Legacy</span>
+                            {% endif %}
                             <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary history-detail-link">Ver detalle</a>
                             <span class="history-status">Usada</span>
                         </div>
@@ -572,7 +609,12 @@
             <div class="detail-grid">
                 <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path><path d="m12 8 1.2 2.4 2.7.4-1.95 1.9.46 2.7L12 14.1l-2.41 1.3.46-2.7-1.95-1.9 2.7-.4L12 8z"></path></svg></span><span class="detail-label">Actividad</span><span class="detail-value">{{ detail_recovery_credit.section.name }}</span></div>
                 <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Vence</span><span class="detail-value">{{ detail_recovery_credit.expires_at|date:"d/m/Y" }}</span></div>
-                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10V6a2 2 0 0 0-2-2h-4"></path><path d="m14 2 4 4-4 4"></path><path d="M4 14v4a2 2 0 0 0 2 2h4"></path><path d="m10 22-4-4 4-4"></path></svg></span><span class="detail-label">Origen</span><span class="detail-value">{% if detail_recovery_credit.origin_session %}Cancelación del {{ detail_recovery_credit.origin_session.date|date:"d/m" }}{% else %}Sin origen visible{% endif %}</span></div>
+                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10V6a2 2 0 0 0-2-2h-4"></path><path d="m14 2 4 4-4 4"></path><path d="M4 14v4a2 2 0 0 0 2 2h4"></path><path d="m10 22-4-4 4-4"></path></svg></span><span class="detail-label">Origen</span><span class="detail-value">{% if detail_recovery_credit.origin_session %}Cancelación del {{ detail_recovery_credit.origin_session.date|date:"d/m" }}{% elif detail_recovery_credit.has_legacy_recoverableturn_context %}Importada del sistema anterior{% else %}Sin origen visible{% endif %}</span></div>
+                {% if detail_recovery_credit.has_legacy_recoverableturn_context %}
+                    <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6l4 2"></path></svg></span><span class="detail-label">Fecha usada</span><span class="detail-value">{% if detail_recovery_credit.legacy_recovery_date %}{{ detail_recovery_credit.legacy_recovery_date|date:"d/m/Y" }}{% elif detail_recovery_credit.used_at %}{{ detail_recovery_credit.used_at|date:"d/m/Y" }}{% else %}Sin fecha visible{% endif %}</span></div>
+                    <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Turno original</span><span class="detail-value">{{ detail_recovery_credit.legacy_original_slot_label|default:"Sin turno visible" }}</span></div>
+                    <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10V6a2 2 0 0 0-2-2h-4"></path><path d="m14 2 4 4-4 4"></path><path d="M4 14v4a2 2 0 0 0 2 2h4"></path><path d="m10 22-4-4 4-4"></path></svg></span><span class="detail-label">Turno asignado</span><span class="detail-value">{{ detail_recovery_credit.legacy_assigned_slot_label|default:"Sin turno visible" }}</span></div>
+                {% endif %}
                 <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-3-6 3z"></path></svg></span><span class="detail-label">Estado</span><span class="detail-value">{{ detail_recovery_credit.get_status_display }}</span></div>
             </div>
             <div class="detail-actions">

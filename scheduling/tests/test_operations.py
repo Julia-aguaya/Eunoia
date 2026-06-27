@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, cast
 
 from ._shared import *
@@ -137,6 +138,139 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         self.assertEqual(result.skipped_duplicates, 0)
         self.assertEqual(ClassSession.objects.count(), 0)
 
+    def test_use_case_auto_books_active_monthly_plan_slots_for_published_sessions(self):
+        student = User.objects.create_user(
+            email='auto-booked-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Ada',
+            last_name='Lovelace',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([self.slot])
+
+        generate_class_sessions(start_date=date(2026, 4, 6), end_date=date(2026, 4, 6))
+
+        session = ClassSession.objects.get(section=self.section, date=date(2026, 4, 6), start_time=time(9, 0))
+        booking = Booking.objects.get(session=session, student=student)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(booking.source, BookingSource.FIXED_SLOT)
+
+    def test_use_case_does_not_duplicate_manual_booking_for_matching_plan_session(self):
+        student = User.objects.create_user(
+            email='manual-booking-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Grace',
+            last_name='Hopper',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        session = self.slot.build_session_for_date(date(2026, 4, 6))
+        session.save()
+        manual_booking = Booking.objects.create_booking(
+            session=session,
+            student=student,
+            source=BookingSource.MANUAL,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([self.slot])
+
+        generate_class_sessions(start_date=date(2026, 4, 6), end_date=date(2026, 4, 6))
+
+        bookings = Booking.objects.filter(session=session, student=student)
+        self.assertEqual(bookings.count(), 1)
+        self.assertEqual(bookings.get().pk, manual_booking.pk)
+        self.assertEqual(bookings.get().source, BookingSource.MANUAL)
+
+    def test_use_case_auto_books_matching_manual_published_session_without_slot_link(self):
+        student = User.objects.create_user(
+            email='manual-session-plan-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Hedy',
+            last_name='Lamarr',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([self.slot])
+        ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 4, 6),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=8,
+            status=SessionStatus.SCHEDULED,
+        )
+
+        generate_class_sessions(start_date=date(2026, 4, 6), end_date=date(2026, 4, 6))
+
+        session = ClassSession.objects.get(section=self.section, date=date(2026, 4, 6), start_time=time(9, 0))
+        booking = Booking.objects.get(session=session, student=student)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(booking.source, BookingSource.FIXED_SLOT)
+
+    def test_use_case_does_not_recreate_fixed_slot_booking_after_student_cancels(self):
+        student = User.objects.create_user(
+            email='cancelled-auto-booking-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Katherine',
+            last_name='Johnson',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([self.slot])
+
+        generate_class_sessions(start_date=date(2026, 4, 13), end_date=date(2026, 4, 13))
+
+        session = ClassSession.objects.get(section=self.section, date=date(2026, 4, 13), start_time=time(9, 0))
+        booking = Booking.objects.get(session=session, student=student)
+        cancellation_time = timezone.make_aware(datetime(2026, 4, 10, 9, 0))
+
+        cancel_booking(booking_id=booking.id, student=student, actor=student, when=cancellation_time)
+        generate_class_sessions(start_date=date(2026, 4, 13), end_date=date(2026, 4, 13))
+
+        self.assertEqual(Booking.objects.filter(session=session, student=student).count(), 1)
+        self.assertFalse(Booking.objects.filter(session=session, student=student, status=BookingStatus.BOOKED).exists())
+        self.assertTrue(Booking.objects.filter(session=session, student=student, status=BookingStatus.CANCELLED).exists())
+
 
 class StudentMonthlyPlanModelTests(TestCase):
     def setUp(self):
@@ -188,7 +322,24 @@ class StudentMonthlyPlanModelTests(TestCase):
         self.assertEqual(plan.month, self.month)
         self.assertEqual(list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')), [self.slot_two.pk, self.slot_one.pk])
 
-    def test_assign_weekly_slots_rejects_duplicates_other_section_and_more_than_three(self):
+    def test_assign_weekly_slots_accepts_more_than_three_when_same_section(self):
+        plan = StudentMonthlyPlan(student=self.student, month=self.month, section=self.section)
+        extra_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.SATURDAY,
+            start_time=time(8, 0),
+            end_time=time(9, 0),
+            is_active=True,
+        )
+
+        plan.assign_weekly_slots([self.slot_one, self.slot_two, self.slot_three, extra_slot])
+
+        self.assertEqual(
+            list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')),
+            [self.slot_one.pk, self.slot_two.pk, self.slot_three.pk, extra_slot.pk],
+        )
+
+    def test_assign_weekly_slots_rejects_duplicates_and_other_section(self):
         plan = StudentMonthlyPlan(student=self.student, month=self.month, section=self.section)
         extra_slot = WeeklyClassSlot.objects.create(
             section=self.section,
@@ -199,16 +350,34 @@ class StudentMonthlyPlanModelTests(TestCase):
         )
 
         with self.assertRaises(ValidationError) as raised:
-            plan.assign_weekly_slots([self.slot_one, self.slot_one, self.slot_three, extra_slot])
+            plan.assign_weekly_slots([self.slot_one, self.slot_one, self.slot_three])
 
         message = str(raised.exception)
-        self.assertIn('Monthly plan cannot include more than 3 weekly slots.', message)
         self.assertIn('Monthly plan cannot include duplicate weekly slots.', message)
 
         with self.assertRaises(ValidationError) as raised_other_section:
             plan.assign_weekly_slots([self.slot_one, self.other_slot])
 
-        self.assertIn('Monthly plan weekly slots must match the student section.', str(raised_other_section.exception))
+        self.assertIn('Monthly plan weekly slots must match the selected section.', str(raised_other_section.exception))
+
+    def test_get_effective_monthly_plan_for_reuses_latest_previous_month(self):
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=self.month,
+            section=self.section,
+            notes='Plan de junio',
+        )
+        june_plan.assign_weekly_slots([self.slot_one, self.slot_two])
+
+        july_plan = self.student.get_effective_monthly_plan_for(date(2026, 7, 15))
+
+        self.assertIsNotNone(july_plan)
+        self.assertEqual(july_plan.pk, june_plan.pk)
+        self.assertEqual(july_plan.month, self.month)
+        self.assertEqual(
+            list(july_plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')),
+            [self.slot_one.pk, self.slot_two.pk],
+        )
 
 class StudentCsvImportTests(TestCase):
     def setUp(self):

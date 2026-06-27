@@ -73,6 +73,22 @@
         width: 100%; min-height: 48px; padding: 0 14px; border-radius: 14px;
         border: 1px solid rgba(105, 132, 119, 0.18); background: rgba(255,255,255,0.92); font: inherit;
     }
+    .password-field { position: relative; }
+    .password-field input { padding-right: 54px; }
+    .password-toggle {
+        position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        width: 36px; height: 36px; border: 0; border-radius: 50%;
+        display: inline-grid; place-items: center; background: transparent; color: #8d988f; cursor: pointer;
+    }
+    .password-toggle svg { width: 24px; height: 24px; }
+    .password-toggle:hover { background: rgba(111, 143, 127, 0.08); color: var(--primary-strong); }
+    .password-toggle:focus-visible { outline: 3px solid rgba(69, 101, 86, 0.18); outline-offset: 2px; }
+    .password-toggle .password-toggle-slash { display: none; }
+    .password-toggle[aria-pressed="true"] .password-toggle-slash { display: block; }
+    .visually-hidden {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
     .form-help, .form-errors { font-size: 0.9rem; line-height: 1.4; }
     .form-help { color: var(--muted); }
     .form-errors { color: #b04d52; }
@@ -178,18 +194,48 @@
                 <div class="form-grid" style="margin-top: 14px;">
                     <div class="form-field">
                         <label for="{{ account_form.current_password.id_for_label }}">{{ account_form.current_password.label }}</label>
-                        {{ account_form.current_password }}
+                        <div class="password-field">
+                            {{ account_form.current_password }}
+                            <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ account_form.current_password.id_for_label }}" aria-label="Mostrar contrasena" aria-pressed="false">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path class="password-toggle-slash" d="M4 4l16 16"></path>
+                                </svg>
+                                <span class="visually-hidden">Mostrar contrasena</span>
+                            </button>
+                        </div>
                         <div class="form-help">Solo hace falta si querés cambiar la contraseña.</div>
                         {% if account_form.current_password.errors %}<div class="form-errors">{{ account_form.current_password.errors|join:", " }}</div>{% endif %}
                     </div>
                     <div class="form-field">
                         <label for="{{ account_form.new_password1.id_for_label }}">{{ account_form.new_password1.label }}</label>
-                        {{ account_form.new_password1 }}
+                        <div class="password-field">
+                            {{ account_form.new_password1 }}
+                            <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ account_form.new_password1.id_for_label }}" aria-label="Mostrar contrasena" aria-pressed="false">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path class="password-toggle-slash" d="M4 4l16 16"></path>
+                                </svg>
+                                <span class="visually-hidden">Mostrar contrasena</span>
+                            </button>
+                        </div>
                         {% if account_form.new_password1.errors %}<div class="form-errors">{{ account_form.new_password1.errors|join:", " }}</div>{% endif %}
                     </div>
                     <div class="form-field">
                         <label for="{{ account_form.new_password2.id_for_label }}">{{ account_form.new_password2.label }}</label>
-                        {{ account_form.new_password2 }}
+                        <div class="password-field">
+                            {{ account_form.new_password2 }}
+                            <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ account_form.new_password2.id_for_label }}" aria-label="Mostrar contrasena" aria-pressed="false">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path class="password-toggle-slash" d="M4 4l16 16"></path>
+                                </svg>
+                                <span class="visually-hidden">Mostrar contrasena</span>
+                            </button>
+                        </div>
                         {% if account_form.new_password2.errors %}<div class="form-errors">{{ account_form.new_password2.errors|join:", " }}</div>{% endif %}
                     </div>
                 </div>
@@ -218,7 +264,7 @@
             <div class="activity-copy">
                 <h3 style="margin:0; font-size: clamp(2rem, 5vw, 2.8rem); line-height:0.98;">Mi actividad</h3>
                 <strong>{% if primary_section %}{{ primary_section.name }}{% else %}Sin actividad asignada{% endif %}</strong>
-                <p>Estado: {{ operational_status.title }} · Portal: {% if operational_status.can_operate %}Habilitado{% else %}Solo consulta{% endif %}</p>
+                <p>Estado: {{ operational_status.title }} · Portal: {% if operational_status.can_operate %}Habilitado{% else %}Sin reservas por ahora{% endif %}</p>
             </div>
             <span class="button-quiet" aria-hidden="true">›</span>
         </div>
@@ -255,7 +301,7 @@
                 <div class="rules-copy">
                     <h3 style="margin:0; font-size: clamp(2rem, 5vw, 2.8rem); line-height:0.98;">Información importante</h3>
                     <ul class="rules-list">
-                        <li>Podés cancelar hasta 2 horas antes de la clase.</li>
+                        <li>Podes cancelar tu reserva con mas de 2 horas de anticipacion.</li>
                         <li>Si cancelás a tiempo, se genera una recuperación.</li>
                         <li>Las recuperaciones tienen vencimiento.</li>
                     </ul>
@@ -271,6 +317,31 @@
         </form>
     </article>
 </section>
+
+<script>
+    (function () {
+        document.querySelectorAll('[data-password-toggle]').forEach(function (toggle) {
+            const inputId = toggle.getAttribute('aria-controls');
+            const input = inputId ? document.getElementById(inputId) : null;
+            if (!input) return;
+
+            const hiddenText = toggle.querySelector('.visually-hidden');
+
+            toggle.addEventListener('click', function () {
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+
+                const nextLabel = showing ? 'Mostrar contrasena' : 'Ocultar contrasena';
+                toggle.setAttribute('aria-label', nextLabel);
+                toggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
+
+                if (hiddenText) {
+                    hiddenText.textContent = nextLabel;
+                }
+            });
+        });
+    }());
+</script>
 {% endblock %}
 
 {% block bottom_nav %}

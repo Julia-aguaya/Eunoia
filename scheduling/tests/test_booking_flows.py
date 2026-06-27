@@ -102,6 +102,48 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, 'Ver horarios')
         self.assertContains(response, 'Cómo usarla')
 
+    def test_my_bookings_history_shows_legacy_used_recovery_context(self):
+        legacy_credit = RecoveryCredit.objects.create(
+            student=self.student,
+            section=self.section,
+            source=RecoveryCreditSource.MANUAL,
+            status=RecoveryCreditStatus.USED,
+            expires_at=self.today + timedelta(days=90),
+            used_at=timezone.make_aware(datetime(2026, 6, 13, 19, 0)),
+            notes=(
+                '[legacy-recoverableturns-import]\n'
+                'source=eunoia.recoverableturns.json\n'
+                'legacy_recoverableturn_id=legacy-turn-used\n'
+                'legacy_user_id=legacy-student-1\n'
+                'legacy_original_day=Viernes\n'
+                'legacy_original_hour=19:00\n'
+                'legacy_cancelled_week=2026-06-06T15:00:00+00:00\n'
+                'legacy_recovered=true\n'
+                'legacy_recovery_date=2026-06-13T19:00:00+00:00\n'
+                'legacy_assigned_day=Martes\n'
+                'legacy_assigned_hour=20:00\n'
+                '[/legacy-recoverableturns-import]'
+            ),
+        )
+
+        response = self.get_portal_page(reverse('my-bookings'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Recuperación legacy ya usada')
+        self.assertContains(response, 'Usada el 13/06/2026')
+        self.assertContains(response, 'Original: Viernes 19:00 hs')
+        self.assertContains(response, 'Asignada a: Martes 20:00 hs')
+        self.assertContains(response, 'Legacy')
+
+        detail_response = self.get_portal_page(f"{reverse('my-bookings')}?credit_detail={legacy_credit.id}")
+
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, 'Fecha usada')
+        self.assertContains(detail_response, 'Turno original')
+        self.assertContains(detail_response, 'Turno asignado')
+        self.assertContains(detail_response, 'Viernes 19:00 hs')
+        self.assertContains(detail_response, 'Martes 20:00 hs')
+
     def test_account_page_shows_basic_profile_and_rules(self):
         response = self.client.get(reverse('account'))
 
@@ -110,6 +152,46 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, self.student.email)
         self.assertContains(response, 'Mi actividad')
         self.assertContains(response, 'Información importante')
+
+    def test_portal_uses_effective_monthly_plan_section_when_primary_section_is_missing(self):
+        reformer_abajo = Section.objects.get(code='reformer_abajo')
+        Booking.objects.filter(student=self.student).delete()
+        self.student.primary_section = None
+        self.student.save(update_fields=['primary_section', 'updated_at'])
+
+        friday_slot = WeeklyClassSlot.objects.create(
+            section=reformer_abajo,
+            weekday=Weekday.FRIDAY,
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=reformer_abajo,
+        )
+        plan.assign_weekly_slots([friday_slot])
+
+        dashboard_response = self.get_portal_page(reverse('dashboard'))
+        account_response = self.get_portal_page(reverse('account'))
+        generated_session = ClassSession.objects.get(
+            section=reformer_abajo,
+            date=date(2026, 6, 12),
+            start_time=time(19, 0),
+        )
+
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertEqual(dashboard_response.context['primary_section'].code, 'reformer_abajo')
+        self.assertGreaterEqual(dashboard_response.context['upcoming_turns_count'], 1)
+        self.assertTrue(dashboard_response.context['operational_status']['can_operate'])
+        self.assertContains(dashboard_response, 'Reformer Abajo')
+        self.assertContains(dashboard_response, '19:00')
+        self.assertContains(dashboard_response, 'Cancelar turno')
+        self.assertEqual(generated_session.status, SessionStatus.SCHEDULED)
+
+        self.assertEqual(account_response.status_code, 200)
+        self.assertContains(account_response, 'Reformer Abajo')
 
     def test_account_page_updates_profile_data(self):
         response = self.client.post(
@@ -228,9 +310,122 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Turnos de la semana')
-        self.assertContains(response, 'Plan mensual')
         self.assertContains(response, planned_session.start_time.strftime('%H:%M'))
-        self.assertContains(response, 'Reservar')
+        self.assertContains(response, 'Clase confirmada')
+        self.assertContains(response, 'Cancelar turno')
+
+    def test_dashboard_shows_cancel_cta_when_monthly_plan_session_was_auto_booked(self):
+        Booking.objects.filter(student=self.student).delete()
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        planned_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 10),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=planned_slot,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+
+        response = self.get_portal_page(reverse('dashboard'))
+
+        auto_booking = Booking.objects.get(session=planned_session, student=self.student)
+        weekly_plan_cards = response.context['weekly_plan_cards']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(auto_booking.source, BookingSource.FIXED_SLOT)
+        self.assertTrue(any(card['booking'] and card['booking'].pk == auto_booking.pk for card in weekly_plan_cards))
+        self.assertContains(response, 'Cancelar turno')
+
+    def test_dashboard_auto_booking_is_idempotent_for_fixed_plan_sessions(self):
+        Booking.objects.filter(student=self.student).delete()
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        planned_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 10),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=planned_slot,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+
+        first_response = self.get_portal_page(reverse('dashboard'))
+        second_response = self.get_portal_page(reverse('dashboard'))
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(Booking.objects.filter(session=planned_session, student=self.student).count(), 1)
+        self.assertEqual(
+            Booking.objects.filter(session=planned_session, student=self.student, status=BookingStatus.BOOKED).count(),
+            1,
+        )
+
+    def test_fixed_plan_cancellation_does_not_reopen_manual_reservation_flow(self):
+        Booking.objects.filter(student=self.student).delete()
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        planned_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 10),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=planned_slot,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+
+        self.get_portal_page(reverse('dashboard'))
+        booking = Booking.objects.get(session=planned_session, student=self.student, status=BookingStatus.BOOKED)
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            cancellation_response = self.client.post(
+                reverse('cancel-booking', args=[booking.pk]),
+                {'next': reverse('dashboard')},
+                follow=True,
+            )
+        dashboard_response = self.get_portal_page(reverse('dashboard'))
+
+        self.assertEqual(cancellation_response.status_code, 200)
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertEqual(Booking.objects.filter(session=planned_session, student=self.student).count(), 1)
+        self.assertEqual(Booking.objects.filter(session=planned_session, student=self.student, status=BookingStatus.BOOKED).count(), 0)
+        self.assertContains(dashboard_response, 'Turno cancelado')
 
     def test_dashboard_uses_next_month_plan_when_next_workweek_starts_in_new_month(self):
         Booking.objects.filter(student=self.student).delete()
@@ -272,7 +467,50 @@ class StudentPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Proxima semana')
         self.assertContains(response, next_month_session.start_time.strftime('%H:%M'))
-        self.assertContains(response, 'Plan mensual')
+        self.assertContains(response, 'Clase confirmada')
+
+    def test_dashboard_reuses_previous_month_plan_until_admin_saves_a_new_one(self):
+        Booking.objects.filter(student=self.student).delete()
+        carried_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        carried_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=carried_slot,
+        )
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 6, 1),
+            section=self.section,
+            notes='Plan que continua vigente',
+        )
+        june_plan.assign_weekly_slots([carried_slot])
+        saturday = date(2026, 6, 27)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+        MonthlyAccessStatus.objects.get_or_create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+
+        response = self.get_portal_page(reverse('dashboard'), fixed_now=saturday_now, today=saturday)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Proxima semana')
+        self.assertContains(response, carried_session.start_time.strftime('%H:%M'))
+        self.assertContains(response, 'Clase confirmada')
 
     def test_agenda_blocks_actions_when_operational_access_is_not_available(self):
         access = self.student.get_monthly_access_for(self.today)
@@ -282,7 +520,7 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Impaga')
-        self.assertContains(response, 'Solo para ver')
+        self.assertContains(response, 'Sin reservas por ahora')
         self.assertContains(response, 'Tus clases confirmadas')
 
     def test_agenda_shows_operational_states_for_capacity_and_existing_booking(self):
@@ -324,6 +562,184 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, 'Agenda')
         self.assertContains(response, self.section.name)
 
+    def test_agenda_marks_monthly_plan_days_and_makeup_bookings(self):
+        Booking.objects.filter(student=self.student).delete()
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        planned_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 10),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=planned_slot,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+        recovery_credit = RecoveryCredit.objects.create(
+            student=self.student,
+            section=self.section,
+            source=RecoveryCreditSource.MANUAL,
+            status=RecoveryCreditStatus.AVAILABLE,
+            expires_at=self.today + timedelta(days=30),
+        )
+        makeup_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today + timedelta(days=4),
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        Booking.objects.create_booking(session=makeup_session, student=self.student, used_recovery_credit=recovery_credit)
+
+        response = self.get_portal_page(reverse('agenda'))
+        html = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Lunes')
+        self.assertContains(response, 'Miércoles')
+        self.assertContains(response, 'Clase confirmada')
+        self.assertContains(response, 'Recuperación')
+        self.assertNotContains(response, 'Todo listo para reservar')
+        self.assertContains(response, planned_session.start_time.strftime('%H:%M'))
+        self.assertIn('has-monthly-plan', html)
+        self.assertIn('has-makeup-booking', html)
+        self.assertNotIn('legend-swatch plan', html)
+        self.assertIn('calendar-day-marker plan', html)
+        self.assertIn('calendar-day-marker makeup', html)
+
+    def test_portal_labels_habitual_recovery_booking_as_confirmed_class(self):
+        Booking.objects.filter(student=self.student).delete()
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.THURSDAY,
+            start_time=time(14, 0),
+            end_time=time(15, 0),
+            is_active=True,
+        )
+        planned_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today + timedelta(days=3),
+            start_time=time(14, 0),
+            end_time=time(15, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=planned_slot,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+        recovery_credit = RecoveryCredit.objects.create(
+            student=self.student,
+            section=self.section,
+            source=RecoveryCreditSource.MANUAL,
+            status=RecoveryCreditStatus.AVAILABLE,
+            expires_at=self.today + timedelta(days=30),
+        )
+        booking = Booking.objects.create_booking(session=planned_session, student=self.student, used_recovery_credit=recovery_credit)
+
+        dashboard_response = self.get_portal_page(reverse('dashboard'))
+        agenda_response = self.get_portal_page(reverse('agenda'))
+
+        next_card = dashboard_response.context['next_portal_turn_card']
+        agenda_card = next(
+            card for card in agenda_response.context['agenda_visible_booking_cards'] if card['booking'].pk == booking.pk
+        )
+        planned_day = next(
+            day
+            for week in agenda_response.context['agenda_calendar_weeks']
+            for day in week
+            if day['date'] == planned_session.date
+        )
+        self.assertEqual(next_card['status_label'], 'Clase confirmada')
+        self.assertEqual(next_card['status_tone'], 'default')
+        self.assertEqual(agenda_card['status_label'], 'Clase confirmada')
+        self.assertEqual(agenda_card['status_tone'], 'default')
+        self.assertTrue(planned_day['has_regular_booking'])
+        self.assertFalse(planned_day['has_makeup_booking'])
+        self.assertContains(dashboard_response, 'Clase confirmada')
+        self.assertContains(agenda_response, 'Clase confirmada')
+
+    def test_agenda_keeps_same_week_bookings_visible_across_month_boundary(self):
+        Booking.objects.filter(student=self.student).delete()
+        monday_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        wednesday_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 6, 1),
+            section=self.section,
+        )
+        june_plan.assign_weekly_slots([monday_slot, wednesday_slot])
+        july_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            section=self.section,
+        )
+        july_plan.assign_weekly_slots([monday_slot, wednesday_slot])
+        monday_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 6, 29),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=monday_slot,
+        )
+        wednesday_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+            slot=wednesday_slot,
+        )
+        saturday = date(2026, 6, 27)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+
+        response = self.get_portal_page(
+            f"{reverse('agenda')}?month=2026-06",
+            fixed_now=saturday_now,
+            today=saturday,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Lunes 29 de junio')
+        self.assertContains(response, 'Miércoles 1 de julio')
+        self.assertContains(response, '2 clases visibles')
+        self.assertContains(response, 'Cancelar turno', count=2)
+        self.assertNotContains(response, 'Próximo horario fijo')
+        self.assertEqual(
+            [card['booking'].session_id for card in response.context['agenda_visible_booking_cards']],
+            [monday_session.id, wednesday_session.id],
+        )
+
     def test_dashboard_highlights_blocked_operational_state(self):
         access = self.student.get_monthly_access_for(self.today)
         access.suspend_operational_access()
@@ -332,7 +748,7 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Suspendida')
-        self.assertContains(response, 'Solo consulta')
+        self.assertContains(response, 'Sin reservas por ahora')
         self.assertContains(response, 'Ver agenda')
 
     def test_my_bookings_explains_operational_blocking(self):
@@ -432,6 +848,105 @@ class WebBookingFlowTests(TestCase):
         my_bookings_response = self.client.get(reverse('my-bookings'))
         self.assertContains(my_bookings_response, 'Recuperaciones')
         self.assertContains(my_bookings_response, 'Cómo usarla')
+
+    def test_student_can_book_session_from_effective_plan_section_when_primary_section_is_missing(self):
+        reformer_abajo = Section.objects.get(code='reformer_abajo')
+        self.student.primary_section = None
+        self.student.save(update_fields=['primary_section', 'updated_at'])
+
+        friday_slot = WeeklyClassSlot.objects.create(
+            section=reformer_abajo,
+            weekday=Weekday.FRIDAY,
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=reformer_abajo,
+        )
+        plan.assign_weekly_slots([friday_slot])
+        session = self.create_session(section=reformer_abajo, days=4, start_hour=19)
+
+        response = self.post_booking(session)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Booking.objects.filter(session=session, student=self.student, status=BookingStatus.BOOKED).exists())
+        self.assertContains(response, 'Reservaste Reformer Abajo')
+
+    def test_student_can_book_cross_month_session_during_grace_window_without_new_month_access(self):
+        fixed_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+        today = fixed_now.date()
+        self.today = today
+        MonthlyAccessStatus.objects.filter(student=self.student).delete()
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=today,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        target_session = ClassSession.objects.create(
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            capacity=3,
+            status=SessionStatus.SCHEDULED,
+        )
+        MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 7, 1)).delete()
+
+        with patch('scheduling.models.timezone.localdate', return_value=today), patch(
+            'scheduling.models.timezone.now', return_value=fixed_now
+        ), patch('scheduling.views.timezone.localdate', return_value=today), patch(
+            'scheduling.views.timezone.now', return_value=fixed_now
+        ):
+            response = self.post_booking(target_session)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Booking.objects.filter(session=target_session, student=self.student, status=BookingStatus.BOOKED).exists())
+        self.assertContains(response, 'Reservaste Cadillac')
+
+    def test_migrated_student_can_book_generated_plan_session_without_primary_section(self):
+        reformer_abajo = Section.objects.get(code='reformer_abajo')
+        self.student.primary_section = None
+        self.student.save(update_fields=['primary_section', 'updated_at'])
+
+        target_date = self.today + timedelta(days=(7 - self.today.weekday()) if self.today.weekday() >= 5 else (4 - self.today.weekday()))
+        start_hour = 19
+        slot = WeeklyClassSlot.objects.create(
+            section=reformer_abajo,
+            weekday=target_date.isoweekday(),
+            start_time=time(start_hour, 0),
+            end_time=time(start_hour + 1, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(target_date),
+            section=reformer_abajo,
+        )
+        plan.assign_weekly_slots([slot])
+        self.ensure_operational_access_for(target_date)
+
+        fixed_now = timezone.make_aware(datetime.combine(self.today, time(9, 0)))
+        with patch('scheduling.views.timezone.now', return_value=fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            dashboard_response = self.client.get(reverse('dashboard'))
+
+        session = ClassSession.objects.get(
+            section=reformer_abajo,
+            date=target_date,
+            start_time=time(start_hour, 0),
+        )
+        response = self.post_booking(session)
+
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertContains(dashboard_response, 'Cancelar turno')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Booking.objects.filter(session=session, student=self.student, status=BookingStatus.BOOKED).exists())
+        self.assertContains(response, 'Ya tenés una reserva activa para esta clase.')
 
     def test_student_without_operational_access_sees_clear_error(self):
         session = self.create_session()
@@ -1155,6 +1670,20 @@ class BookingMoveLifecycleTests(TestCase):
 
         with self.assertRaisesMessage(ValidationError, 'active monthly operational access'):
             booking.move_to_session(target_session=target_session)
+
+    def test_move_to_session_allows_cross_month_grace_window_without_new_month_access(self):
+        original_session = self.create_session(target_date=date(2026, 6, 27), start_hour=9)
+        target_session = self.create_session(target_date=date(2026, 7, 1), start_hour=10)
+        self.grant_access(self.student, original_session.date)
+        MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 7, 1)).delete()
+        booking = Booking.objects.create_booking(session=original_session, student=self.student)
+
+        moved_booking = booking.move_to_session(target_session=target_session, actor=self.admin_user)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.MOVED)
+        self.assertEqual(moved_booking.session, target_session)
+        self.assertEqual(moved_booking.status, BookingStatus.BOOKED)
 
     def test_move_to_session_preserves_used_recovery_credit_for_makeup_booking(self):
         original_session = self.create_session(target_date=date(2026, 6, 10), start_hour=9)

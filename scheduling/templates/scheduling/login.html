@@ -135,40 +135,6 @@
             color: #5e6662;
         }
 
-        .password-field {
-            position: relative;
-        }
-
-        .password-field input {
-            padding-right: 64px;
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 38px;
-            height: 38px;
-            border: 0;
-            border-radius: 50%;
-            display: inline-grid;
-            place-items: center;
-            background: transparent;
-            color: #a6ae9e;
-            cursor: pointer;
-        }
-
-        .password-toggle:hover {
-            background: rgba(111, 143, 127, 0.08);
-            color: var(--primary-strong);
-        }
-
-        .password-toggle:focus-visible {
-            outline: 3px solid var(--focus);
-            outline-offset: 2px;
-        }
-
         .auth-link-row {
             display: flex;
             justify-content: flex-end;
@@ -209,18 +175,6 @@
         .auth-support-copy strong {
             color: var(--primary-strong);
             font-weight: 700;
-        }
-
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
         }
 
         @media (max-width: 720px) {
@@ -334,10 +288,11 @@
                     {% if form.password.errors %}aria-describedby="password-help password-errors" aria-invalid="true"{% else %}aria-describedby="password-help" aria-invalid="false"{% endif %}
                     required
                 >
-                <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ form.password.id_for_label }}" aria-label="Mostrar contrasena">
-                    <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ form.password.id_for_label }}" aria-label="Mostrar contrasena" aria-pressed="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
+                        <path class="password-toggle-slash" d="M4 4l16 16"></path>
                     </svg>
                     <span class="visually-hidden">Mostrar contrasena</span>
                 </button>
@@ -361,26 +316,5 @@
             </div>
         </div>
     </form>
-
-    <script>
-        (function () {
-            const toggle = document.querySelector('[data-password-toggle]');
-            if (!toggle) return;
-
-            const inputId = toggle.getAttribute('aria-controls');
-            const input = inputId ? document.getElementById(inputId) : null;
-            if (!input) return;
-
-            toggle.addEventListener('click', function () {
-                const showing = input.type === 'text';
-                input.type = showing ? 'password' : 'text';
-                toggle.setAttribute('aria-label', showing ? 'Mostrar contrasena' : 'Ocultar contrasena');
-                const hiddenText = toggle.querySelector('.visually-hidden');
-                if (hiddenText) {
-                    hiddenText.textContent = showing ? 'Mostrar contrasena' : 'Ocultar contrasena';
-                }
-            });
-        }());
-    </script>
 
 {% endblock %}

@@ -251,6 +251,10 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         widget=forms.DateInput(format='%Y-%m', attrs={'type': 'month'}),
     )
     monthly_plan_id = forms.IntegerField(required=False, widget=forms.HiddenInput)
+    section = forms.ModelChoiceField(
+        queryset=Section.objects.none(),
+        label='Actividad',
+    )
     slot_ids = forms.ModelMultipleChoiceField(
         queryset=WeeklyClassSlot.objects.none(),
         label='Horarios fijos del mes',
@@ -260,27 +264,53 @@ class StaffStudentMonthlyPlanForm(forms.Form):
     notes = forms.CharField(
         required=False,
         label='Notas operativas',
-        widget=forms.Textarea(attrs={'rows': 3}),
+        widget=forms.Textarea(
+            attrs={
+                'rows': 3,
+                'placeholder': 'Ej: priorizar este combo si pide mover una clase o si hay un criterio operativo a recordar.',
+            }
+        ),
     )
 
-    def __init__(self, *, student, month, **kwargs):
+    def __init__(self, *, student, month, section=None, **kwargs):
         super().__init__(**kwargs)
         self.student = student
         self.month = normalize_month_start(month)
         self.plan = StudentMonthlyPlan.objects.filter(student=student, month=self.month).first()
+        self.effective_plan = self.plan or student.get_effective_monthly_plan_for(self.month)
+        self.selected_section = None
         self.fields['month'].initial = self.month
+        available_sections = Section.objects.filter(is_active=True).order_by('name')
+        self.fields['section'].queryset = available_sections
+
+        default_section = section or (self.effective_plan.section if self.effective_plan is not None else student.primary_section)
+        if default_section is not None:
+            self.fields['section'].initial = default_section.pk
+
+        if self.is_bound:
+            raw_section_id = self.data.get(self.add_prefix('section'))
+            self.selected_section = available_sections.filter(pk=raw_section_id).first()
+        elif default_section is not None:
+            self.selected_section = available_sections.filter(pk=default_section.pk).first() or default_section
+
         queryset = WeeklyClassSlot.objects.none()
-        help_text = 'La alumna no tiene actividad principal, así que no se puede configurar un plan todavía.'
-        if student.primary_section_id:
-            queryset = WeeklyClassSlot.objects.filter(section=student.primary_section, is_active=True).order_by('weekday', 'start_time')
-            help_text = 'Elegí entre 1 y 3 horarios semanales de la actividad principal para armar el plan del mes.'
+        help_text = 'Elegí una actividad para ver y guardar los horarios del plan mensual.'
+        if self.selected_section is not None:
+            queryset = WeeklyClassSlot.objects.filter(section=self.selected_section, is_active=True).order_by('weekday', 'start_time')
+            help_text = 'Elegí uno o mas horarios semanales de la actividad seleccionada para armar el plan del mes.'
         self.fields['slot_ids'].queryset = queryset
         self.fields['slot_ids'].help_text = help_text
+        self.fields['notes'].help_text = 'Opcional. Dejá contexto corto para el equipo si este plan necesita seguimiento.'
+        self.fields['notes'].widget.attrs['class'] = 'wizard-notes'
 
-        if self.plan is not None and not self.is_bound:
-            self.initial['monthly_plan_id'] = self.plan.pk
-            self.initial['slot_ids'] = list(self.plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position'))
-            self.initial['notes'] = self.plan.notes
+        initial_plan = self.effective_plan
+        if initial_plan is not None and not self.is_bound:
+            if self.plan is not None:
+                self.initial['monthly_plan_id'] = self.plan.pk
+            self.initial['section'] = initial_plan.section_id
+            self.initial['notes'] = initial_plan.notes
+            if self.selected_section is not None and initial_plan.section_id == self.selected_section.pk:
+                self.initial['slot_ids'] = list(initial_plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position'))
 
     def clean_month(self):
         return normalize_month_start(self.cleaned_data['month'])
@@ -288,9 +318,7 @@ class StaffStudentMonthlyPlanForm(forms.Form):
     def clean_slot_ids(self):
         slots = list(self.cleaned_data.get('slot_ids') or [])
         if not slots:
-            raise forms.ValidationError('Elegí entre 1 y 3 horarios para guardar el plan mensual.')
-        if len(slots) > 3:
-            raise forms.ValidationError('Solo podés elegir hasta 3 horarios para el plan mensual.')
+            raise forms.ValidationError('Elegí al menos 1 horario para guardar el plan mensual.')
         return slots
 
     def clean(self):
@@ -298,12 +326,13 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         if self.errors:
             return cleaned_data
 
-        if self.student.primary_section_id is None:
-            raise forms.ValidationError('La alumna necesita una actividad principal antes de configurar el plan mensual.')
+        selected_section = cleaned_data.get('section')
+        if selected_section is None:
+            raise forms.ValidationError('Elegí una actividad para configurar el plan mensual.')
 
         for slot in cleaned_data.get('slot_ids', []):
-            if slot.section_id != self.student.primary_section_id:
-                raise forms.ValidationError('Todos los horarios del plan mensual tienen que pertenecer a la actividad principal de la alumna.')
+            if slot.section_id != selected_section.id:
+                raise forms.ValidationError('Todos los horarios del plan mensual tienen que pertenecer a la actividad seleccionada.')
 
         return cleaned_data
 
@@ -311,10 +340,10 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         plan = self.plan or StudentMonthlyPlan(
             student=self.student,
             month=self.cleaned_data['month'],
-            section=self.student.primary_section,
+            section=self.cleaned_data['section'],
         )
         plan.month = self.cleaned_data['month']
-        plan.section = self.student.primary_section
+        plan.section = self.cleaned_data['section']
         plan.notes = self.cleaned_data.get('notes', '').strip()
         plan.assign_weekly_slots(self.cleaned_data['slot_ids'])
         return plan

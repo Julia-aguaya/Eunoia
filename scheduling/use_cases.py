@@ -25,6 +25,7 @@ from .models import (
     MonthlyAccessStatus,
     MonthlyAccessStatusType,
     RecoveryCredit,
+    SessionStatus,
     WeeklyClassSlot,
     normalize_month_start,
 )
@@ -73,6 +74,104 @@ class GenerateClassSessionsResult:
     created_count: int
     skipped_duplicates: int
     inspected_matches: int
+
+
+def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, section_code=None):
+    sessions = list(
+        ClassSession.objects.select_related('slot', 'section')
+        .filter(
+            date__range=(start_date, end_date),
+            status=SessionStatus.SCHEDULED,
+        )
+        .order_by('date', 'start_time', 'pk')
+    )
+    if section_code:
+        sessions = [session for session in sessions if session.section.code == section_code]
+    if not sessions:
+        return 0
+
+    sessions_by_id = {session.id: session for session in sessions}
+    sessions_by_month_and_signature = {}
+    month_starts = set()
+    for session in sessions:
+        month_start = normalize_month_start(session.date)
+        month_starts.add(month_start)
+        sessions_by_month_and_signature.setdefault(
+            (month_start, session.section_id, session.date.isoweekday(), session.start_time),
+            [],
+        ).append(session)
+
+    active_accesses = list(
+        MonthlyAccessStatus.objects.select_related('student')
+        .filter(
+            month__in=month_starts,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        .order_by('student_id', 'month')
+    )
+    if not active_accesses:
+        return 0
+
+    plan_cache = {}
+    students_by_id = {}
+    candidate_pairs = []
+    candidate_student_ids = set()
+
+    for access in active_accesses:
+        students_by_id[access.student_id] = access.student
+        candidate_student_ids.add(access.student_id)
+        cache_key = (access.student_id, access.month)
+        effective_plan = plan_cache.get(cache_key)
+        if effective_plan is None:
+            effective_plan = access.student.get_effective_monthly_plan_for(access.month)
+            plan_cache[cache_key] = effective_plan
+        if effective_plan is None:
+            continue
+
+        for slot in effective_plan.get_weekly_slots():
+            session_signature = (
+                access.month,
+                effective_plan.section_id,
+                slot.weekday,
+                slot.start_time,
+            )
+            for session in sessions_by_month_and_signature.get(session_signature, []):
+                if not slot.is_effective_on(session.date):
+                    continue
+                candidate_pairs.append((session.id, access.student_id))
+
+    if not candidate_pairs:
+        return 0
+
+    existing_pairs = set(
+        Booking.objects.filter(
+            session_id__in=sessions_by_id.keys(),
+            student_id__in=candidate_student_ids,
+        ).values_list('session_id', 'student_id')
+    )
+
+    created_count = 0
+    for session_id, student_id in candidate_pairs:
+        pair = (session_id, student_id)
+        if pair in existing_pairs:
+            continue
+
+        session = sessions_by_id[session_id]
+        student = students_by_id[student_id]
+        try:
+            Booking.objects.create_booking(
+                session=session,
+                student=student,
+                source=BookingSource.FIXED_SLOT,
+            )
+        except ValidationError:
+            continue
+
+        existing_pairs.add(pair)
+        created_count += 1
+
+    return created_count
 
 
 def create_booking(*, session_id, student, used_recovery_credit_id=None, source=BookingSource.FIXED_SLOT):
@@ -182,6 +281,12 @@ def generate_class_sessions(*, start_date, end_date, section_code=None, dry_run=
 
     if not dry_run and created_sessions:
         ClassSession.objects.bulk_create(created_sessions)
+    if not dry_run:
+        _sync_monthly_plan_bookings_for_published_sessions(
+            start_date=start_date,
+            end_date=end_date,
+            section_code=section_code,
+        )
 
     return GenerateClassSessionsResult(
         created_count=len(created_sessions),

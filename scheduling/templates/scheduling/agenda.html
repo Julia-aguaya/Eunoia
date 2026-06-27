@@ -1,4 +1,5 @@
 {% extends "scheduling/student_base.html" %}
+{% load staff_labels %}
 
 {% block title %}Agenda | Eunoia{% endblock %}
 {% block hero_title %}Agenda{% endblock %}
@@ -103,14 +104,19 @@
     }
 
     .agenda-status {
+        display: grid;
+        gap: 10px;
+        padding: 18px 20px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(105, 132, 119, 0.14);
+    }
+
+    .agenda-status-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 14px 18px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.84);
-        border: 1px solid rgba(105, 132, 119, 0.14);
     }
 
     .agenda-status strong {
@@ -153,6 +159,31 @@
         gap: 14px;
     }
 
+    .calendar-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+    }
+
+    .legend-swatch.confirmed { background: linear-gradient(145deg, #dbe8dd 0%, #9ab49f 45%, #5a7466 100%); }
+    .legend-swatch.makeup { background: #e79853; }
+
     .calendar-weekdays,
     .calendar-week {
         display: grid;
@@ -166,33 +197,80 @@
     }
 
     .calendar-weekdays span {
+        min-height: 42px;
+        display: grid;
+        place-items: center;
+        padding: 6px 4px;
+        border-radius: 14px;
+        background: rgba(244, 247, 243, 0.9);
         text-align: center;
         color: var(--muted);
         font-weight: 600;
+        font-size: 0.88rem;
+        line-height: 1.05;
     }
 
     .calendar-day {
-        min-height: 68px;
-        display: grid;
-        place-items: center;
+        min-height: 76px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
         position: relative;
         color: var(--text);
         font-size: 1rem;
     }
 
+    .calendar-day .day-number {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .calendar-day-markers {
+        min-height: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .calendar-day-marker {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        display: inline-block;
+    }
+
+    .calendar-day-marker.plan { background: #9ab49f; }
+    .calendar-day-marker.booking { background: #5a7466; }
+    .calendar-day-marker.makeup { background: #e79853; }
+
     .calendar-day.muted {
         color: rgba(100, 117, 109, 0.35);
     }
 
+    .calendar-day.has-monthly-plan .day-number {
+        background: rgba(219, 232, 221, 0.9);
+        border-color: rgba(105, 132, 119, 0.22);
+        color: var(--primary-strong);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    }
+
     .calendar-day.has-booking .day-number {
-        width: 48px;
-        height: 48px;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        background: #86aa90;
+        background: #5a7466;
         color: #fff;
-        font-weight: 700;
+        border-radius: 999px;
+    }
+
+    .calendar-day.has-makeup-booking .day-number {
+        background: #e79853;
+        color: #fff;
+        box-shadow: 0 8px 16px rgba(231, 152, 83, 0.2);
     }
 
     .calendar-day.is-today .day-number {
@@ -209,10 +287,15 @@
         display: grid;
         place-items: center;
         background: #fff;
-        color: #86aa90;
-        border: 1px solid rgba(134, 170, 144, 0.4);
+        color: #5a7466;
+        border: 1px solid rgba(90, 116, 102, 0.24);
         font-size: 0.82rem;
         font-weight: 700;
+    }
+
+    .calendar-day.has-makeup-booking .booking-check {
+        color: #d57b27;
+        border-color: rgba(231, 152, 83, 0.35);
     }
 
     .confirmed-header {
@@ -239,6 +322,54 @@
         background: linear-gradient(145deg, #eef5ee, #e4ece1);
         color: var(--primary-strong);
         font-weight: 600;
+    }
+
+    .plan-summary {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        background: linear-gradient(145deg, rgba(239, 245, 239, 0.92), rgba(229, 238, 227, 0.92));
+        border: 1px solid rgba(105, 132, 119, 0.14);
+    }
+
+    .plan-summary strong {
+        color: var(--text);
+    }
+
+    .plan-slot-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .plan-slot-pill,
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .plan-slot-pill {
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--primary-strong);
+        border: 1px solid rgba(105, 132, 119, 0.12);
+    }
+
+    .status-chip {
+        margin-top: 8px;
+        background: rgba(231, 244, 235, 0.88);
+        color: #3d5b49;
+    }
+
+    .status-chip.makeup {
+        background: rgba(252, 237, 221, 0.96);
+        color: #b06320;
     }
 
     .confirmed-list {
@@ -394,7 +525,7 @@
             border-radius: 24px;
         }
 
-        .agenda-status,
+        .agenda-status-head,
         .confirmed-header {
             flex-direction: column;
             align-items: flex-start;
@@ -406,13 +537,19 @@
         }
 
         .calendar-day {
-            min-height: 56px;
+            min-height: 68px;
             font-size: 0.95rem;
         }
 
-        .calendar-day.has-booking .day-number {
+        .calendar-day .day-number {
             width: 42px;
             height: 42px;
+        }
+
+        .calendar-weekdays span {
+            min-height: 46px;
+            font-size: 0.76rem;
+            padding: 4px 2px;
         }
 
         .calendar-day .booking-check {
@@ -439,10 +576,13 @@
 {% block content %}
 <section class="agenda-layout">
     <div class="agenda-status">
-        <strong>{{ operational_status.title }}</strong>
-        <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
-            {% if operational_status.can_operate %}Todo disponible{% else %}Solo para ver{% endif %}
-        </span>
+        <div class="agenda-status-head">
+            <strong>{{ operational_status.title }}</strong>
+            <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
+                {% if operational_status.can_operate %}Todo disponible{% else %}Sin reservas por ahora{% endif %}
+            </span>
+        </div>
+        <p class="meta">{{ operational_status.message }}</p>
     </div>
 
     <article class="card agenda-card">
@@ -461,6 +601,10 @@
         </div>
 
         <div class="calendar-grid">
+            <div class="calendar-legend" aria-label="Referencias del calendario">
+                <span class="legend-item"><span class="legend-swatch confirmed" aria-hidden="true"></span>Clase confirmada</span>
+                <span class="legend-item"><span class="legend-swatch makeup" aria-hidden="true"></span>Recuperación</span>
+            </div>
             <div class="calendar-weekdays">
                 {% for label in agenda_weekday_labels %}
                     <span>{{ label }}</span>
@@ -470,8 +614,13 @@
             {% for week in agenda_calendar_weeks %}
                 <div class="calendar-week">
                     {% for day in week %}
-                        <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_booking %} has-booking{% endif %}{% if day.is_today %} is-today{% endif %}">
+                        <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_monthly_plan %} has-monthly-plan{% endif %}{% if day.has_booking %} has-booking{% endif %}{% if day.has_makeup_booking %} has-makeup-booking{% endif %}{% if day.is_today %} is-today{% endif %}">
                             <span class="day-number">{{ day.day_number }}</span>
+                            <span class="calendar-day-markers" aria-hidden="true">
+                                {% if day.has_monthly_plan %}<span class="calendar-day-marker plan"></span>{% endif %}
+                                {% if day.has_regular_booking %}<span class="calendar-day-marker booking"></span>{% endif %}
+                                {% if day.has_makeup_booking %}<span class="calendar-day-marker makeup"></span>{% endif %}
+                            </span>
                             {% if day.has_booking %}
                                 <span class="booking-check">✓</span>
                             {% endif %}
@@ -485,12 +634,23 @@
     <article class="card agenda-card">
         <div class="confirmed-header">
             <h3>Tus clases confirmadas</h3>
-            <span class="month-count-chip">{{ agenda_monthly_bookings_count }} clase{{ agenda_monthly_bookings_count|pluralize:"s" }} este mes</span>
+            <span class="month-count-chip">{{ agenda_visible_bookings_count }} clase{{ agenda_visible_bookings_count|pluralize:"s" }} visible{{ agenda_visible_bookings_count|pluralize:"s" }}</span>
         </div>
 
-        {% if agenda_monthly_booking_cards %}
+        {% if agenda_monthly_plan_summary %}
+            <div class="plan-summary">
+                <strong>Tu plan mensual queda marcado en verde para que ubiques rápido tus días fijos.</strong>
+                <div class="plan-slot-list">
+                    {% for item in agenda_monthly_plan_summary.slots %}
+                        <span class="plan-slot-pill">{{ item.label }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if agenda_visible_booking_cards %}
             <div class="confirmed-list">
-                {% for card in agenda_monthly_booking_cards %}
+                {% for card in agenda_visible_booking_cards %}
                     {% with booking=card.booking %}
                         <div class="confirmed-item">
                             <span class="confirmed-icon" aria-hidden="true">
@@ -499,37 +659,43 @@
                                 </svg>
                             </span>
                             <div class="confirmed-copy">
-                                <strong>{{ booking.session.date|date:"D j"|capfirst }} · {{ booking.session.start_time|time:"H:i" }}</strong>
+                                <strong>{{ booking.session.date|long_date_spanish }} · {{ booking.session.start_time|time:"H:i" }}</strong>
+                                <div>
+                                    <span class="status-chip{% if card.status_tone == 'warning' %} makeup{% endif %}">{{ card.status_label }}</span>
+                                </div>
                                 <div class="confirmed-actions">
                                     <a href="{% url 'agenda' %}?month={{ agenda_month_start|date:'Y-m' }}&detail={{ booking.id }}" class="button-secondary">Ver detalle</a>
+                                    {% if card.cancel_action and card.cancel_action.can_cancel %}
+                                        <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin-top: 10px;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{% url 'agenda' %}?month={{ agenda_month_start|date:'Y-m' }}">
+                                            <button type="submit" class="button-secondary">Cancelar turno</button>
+                                        </form>
+                                    {% elif card.cancel_action %}
+                                        <span class="button-disabled" aria-disabled="true">{{ card.cancel_action.label }}</span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     {% endwith %}
                 {% endfor %}
             </div>
-
-            {% if agenda_fixed_schedule_booking %}
-                <div class="fixed-schedule">
-                    <span class="schedule-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="9"></circle>
-                            <path d="M12 7v6l4 2"></path>
-                        </svg>
-                    </span>
-                    <div class="confirmed-copy">
-                        <strong>Horario fijo: {{ agenda_fixed_schedule_booking.session.date|date:"l"|capfirst }} · {{ agenda_fixed_schedule_booking.session.start_time|time:"H:i" }}</strong>
-                    </div>
-                </div>
-            {% endif %}
         {% else %}
             <div class="empty">
-                <p class="empty-copy"><strong>Todavía no tenés clases confirmadas este mes.</strong></p>
-                <p class="meta" style="margin-top: 8px;">Apenas reserves una clase, la vas a ver marcada en el calendario y listada acá.</p>
+                {% if agenda_monthly_plan_summary %}
+                    <p class="empty-copy"><strong>Todavía no hay clases publicadas para tus horarios fijos de este mes.</strong></p>
+                    <p class="meta" style="margin-top: 8px;">Cuando publiquemos cada clase, la vas a ver confirmada acá automáticamente.</p>
+                    <div class="empty-actions">
+                        <a href="{% url 'dashboard' %}" class="button-secondary">Volver al inicio</a>
+                    </div>
+                {% else %}
+                    <p class="empty-copy"><strong>Todavía no tenés clases confirmadas este mes.</strong></p>
+                <p class="meta" style="margin-top: 8px;">Cuando haya clases publicadas para tu plan o una reserva activa, las vas a ver marcadas acá.</p>
                 <div class="empty-actions">
                     <a href="{% url 'my-bookings' %}" class="button">Reservar clase</a>
                     <a href="{% url 'dashboard' %}" class="button-secondary">Volver al inicio</a>
                 </div>
+                {% endif %}
             </div>
         {% endif %}
     </article>
@@ -544,12 +710,21 @@
             <div class="detail-handle" aria-hidden="true"></div>
             <h3>Detalle de la clase</h3>
             <div class="detail-grid">
-                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Día</span><span class="detail-value">{{ booking.session.date|date:"l j \d\e F"|capfirst }}</span></div>
+                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Día</span><span class="detail-value">{{ booking.session.date|long_date_spanish }}</span></div>
                 <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6l4 2"></path></svg></span><span class="detail-label">Horario</span><span class="detail-value">{{ booking.session.start_time|time:"H:i" }} a {{ booking.session.end_time|time:"H:i" }} hs</span></div>
                 <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path><path d="M2 18h20"></path><path d="M6 14h12"></path></svg></span><span class="detail-label">Actividad</span><span class="detail-value">{{ booking.session.section.name }}</span></div>
-                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-3-6 3z"></path></svg></span><span class="detail-label">Estado</span><span class="detail-value">{% if booking.source == 'makeup' %}Recuperación aplicada{% else %}Reserva activa{% endif %}</span></div>
+                <div class="detail-row-sheet"><span class="detail-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-3-6 3z"></path></svg></span><span class="detail-label">Estado</span><span class="detail-value">{{ detail_booking_card.status_label }}</span></div>
             </div>
             <div class="detail-actions">
+                {% if detail_booking_card.cancel_action and detail_booking_card.cancel_action.can_cancel %}
+                    <form method="post" action="{% url 'cancel-booking' booking.id %}" style="margin: 0;">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ detail_back_url }}">
+                        <button type="submit" class="button-secondary">Cancelar turno</button>
+                    </form>
+                {% elif detail_booking_card.cancel_action %}
+                    <span class="button-disabled" aria-disabled="true">{{ detail_booking_card.cancel_action.label }}</span>
+                {% endif %}
                 <a href="{{ detail_back_url }}" class="button-secondary">Cerrar</a>
             </div>
         </div>

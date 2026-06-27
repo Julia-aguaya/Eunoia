@@ -58,7 +58,17 @@
 
         <div class="field{% if form.password1.errors %} has-error{% endif %}">
             <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
-            {{ form.password1 }}
+            <div class="password-field">
+                {{ form.password1 }}
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ form.password1.id_for_label }}" aria-label="Mostrar contrasena" aria-pressed="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path class="password-toggle-slash" d="M4 4l16 16"></path>
+                    </svg>
+                    <span class="visually-hidden">Mostrar contrasena</span>
+                </button>
+            </div>
             <div class="field-meta">
                 <p class="field-help">Definí una contraseña segura para entrar después.</p>
                 {% if form.password1.errors %}<div class="field-errors" role="alert">{{ form.password1.errors|striptags }}</div>{% endif %}
@@ -67,7 +77,17 @@
 
         <div class="field{% if form.password2.errors %} has-error{% endif %}">
             <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
-            {{ form.password2 }}
+            <div class="password-field">
+                {{ form.password2 }}
+                <button type="button" class="password-toggle" data-password-toggle aria-controls="{{ form.password2.id_for_label }}" aria-label="Mostrar contrasena" aria-pressed="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path class="password-toggle-slash" d="M4 4l16 16"></path>
+                    </svg>
+                    <span class="visually-hidden">Mostrar contrasena</span>
+                </button>
+            </div>
             {% if form.password2.errors %}<div class="field-errors" role="alert">{{ form.password2.errors|striptags }}</div>{% endif %}
         </div>
 

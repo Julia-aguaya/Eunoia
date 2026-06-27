@@ -73,6 +73,10 @@ class RecoveryCreditSource(models.TextChoices):
     MANUAL = 'manual', 'Manual'
 
 
+LEGACY_RECOVERABLETURNS_NOTES_START = '[legacy-recoverableturns-import]'
+LEGACY_RECOVERABLETURNS_NOTES_END = '[/legacy-recoverableturns-import]'
+
+
 class MonthlyAccessStatusType(models.TextChoices):
     PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
     ACTIVE = 'active', 'Active'
@@ -169,6 +173,62 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
             .first()
         )
 
+    def get_effective_monthly_plan_for(self, target_date):
+        target_month = normalize_month_start(target_date)
+        return (
+            self.monthly_plans.select_related('section')
+            .prefetch_related('plan_slots__weekly_class_slot')
+            .filter(month__lte=target_month)
+            .order_by('-month')
+            .first()
+        )
+
+    def get_effective_portal_section_for(self, target_date):
+        if self.primary_section_id is not None:
+            return self.primary_section
+
+        effective_plan = self.get_effective_monthly_plan_for(target_date)
+        if effective_plan is None:
+            return None
+        return effective_plan.section
+
+    def get_effective_monthly_plan_slot_for_session(self, session):
+        if session is None or session.date is None or session.section_id is None:
+            return None
+
+        effective_plan = self.get_effective_monthly_plan_for(session.date)
+        if effective_plan is None or effective_plan.section_id != session.section_id:
+            return None
+
+        for slot in effective_plan.get_weekly_slots():
+            if not slot.is_effective_on(session.date):
+                continue
+            if slot.start_time != session.start_time:
+                continue
+            if slot.end_time != session.end_time:
+                continue
+            return slot
+
+        return None
+
+    def session_matches_effective_monthly_plan(self, session):
+        return self.get_effective_monthly_plan_slot_for_session(session) is not None
+
+    def get_operational_monthly_access_for(self, target_date):
+        access = self.get_monthly_access_for(target_date)
+        if access is not None:
+            return access
+
+        if not self.is_active or target_date.day > 10:
+            return None
+
+        previous_month = add_months(normalize_month_start(target_date), -1)
+        previous_access = self.monthly_access_statuses.filter(month=previous_month).first()
+        if previous_access is None or not previous_access.grants_operational_booking_access():
+            return None
+
+        return previous_access
+
     def set_initial_password(self, raw_password, *, require_password_change=True):
         self.set_password(raw_password)
         self.must_change_password = require_password_change
@@ -179,7 +239,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         return self.set_initial_password(raw_password, require_password_change=True)
 
     def has_operational_booking_access_for(self, target_date):
-        access = self.get_monthly_access_for(target_date)
+        access = self.get_operational_monthly_access_for(target_date)
         if access is None:
             return False
         return access.grants_operational_booking_access()
@@ -280,24 +340,9 @@ class StudentMonthlyPlan(TimeStampedModel):
 
     def clean(self):
         super().clean()
-        errors = {}
         normalized_month = normalize_month_start(self.month) if self.month else None
         if normalized_month is not None:
             self.month = normalized_month
-
-        if self.student_id is None or self.section_id is None:
-            if errors:
-                raise ValidationError(errors)
-            return
-
-        student_primary_section_id = self.student.primary_section_id
-        if student_primary_section_id is None:
-            errors.setdefault('student', []).append('Student must have a primary section before configuring a monthly plan.')
-        elif student_primary_section_id != self.section_id:
-            errors.setdefault('section', []).append('Monthly plan section must match the student primary section.')
-
-        if errors:
-            raise ValidationError(errors)
 
     def assign_weekly_slots(self, weekly_slots):
         slot_list = list(weekly_slots)
@@ -305,15 +350,13 @@ class StudentMonthlyPlan(TimeStampedModel):
         slot_ids = [slot.pk for slot in slot_list]
 
         if len(slot_list) == 0:
-            errors.setdefault('weekly_slots', []).append('Monthly plan must include between 1 and 3 weekly slots.')
-        if len(slot_list) > 3:
-            errors.setdefault('weekly_slots', []).append('Monthly plan cannot include more than 3 weekly slots.')
+            errors.setdefault('weekly_slots', []).append('Monthly plan must include at least 1 weekly slot.')
         if len(set(slot_ids)) != len(slot_ids):
             errors.setdefault('weekly_slots', []).append('Monthly plan cannot include duplicate weekly slots.')
 
         for slot in slot_list:
             if slot.section_id != self.section_id:
-                errors.setdefault('weekly_slots', []).append('Monthly plan weekly slots must match the student section.')
+                errors.setdefault('weekly_slots', []).append('Monthly plan weekly slots must match the selected section.')
                 break
 
         if errors:
@@ -361,11 +404,7 @@ class StudentMonthlyPlanSlot(TimeStampedModel):
             return
 
         if self.weekly_class_slot.section_id != self.monthly_plan.section_id:
-            errors.setdefault('weekly_class_slot', []).append('Monthly plan weekly slots must match the student section.')
-
-        existing_count = self.monthly_plan.plan_slots.exclude(pk=self.pk).count()
-        if existing_count >= 3:
-            errors.setdefault('monthly_plan', []).append('Monthly plan cannot include more than 3 weekly slots.')
+            errors.setdefault('weekly_class_slot', []).append('Monthly plan weekly slots must match the selected section.')
 
         if errors:
             raise ValidationError(errors)
@@ -713,6 +752,64 @@ class RecoveryCredit(TimeStampedModel):
     def is_session_compatible(self, session):
         return session.section.code in self.compatible_section_codes()
 
+    @property
+    def legacy_recoverableturn_metadata(self):
+        notes = (self.notes or '').strip()
+        if not notes:
+            return {}
+
+        start_index = notes.find(LEGACY_RECOVERABLETURNS_NOTES_START)
+        end_index = notes.find(LEGACY_RECOVERABLETURNS_NOTES_END)
+        if start_index == -1 or end_index == -1 or end_index <= start_index:
+            return {}
+
+        block = notes[start_index + len(LEGACY_RECOVERABLETURNS_NOTES_START):end_index].strip()
+        metadata = {}
+        for line in block.splitlines():
+            if '=' not in line:
+                continue
+            key, value = line.split('=', 1)
+            metadata[key.strip()] = value.strip()
+        return metadata
+
+    @property
+    def has_legacy_recoverableturn_context(self):
+        return bool(self.legacy_recoverableturn_metadata)
+
+    @property
+    def legacy_recovery_date(self):
+        raw_value = self.legacy_recoverableturn_metadata.get('legacy_recovery_date', '')
+        if not raw_value:
+            return None
+
+        normalized_value = raw_value.replace('Z', '+00:00')
+        try:
+            parsed = datetime.fromisoformat(normalized_value)
+        except ValueError:
+            return None
+
+        if timezone.is_naive(parsed):
+            return timezone.make_aware(parsed)
+        return parsed
+
+    @property
+    def legacy_original_slot_label(self):
+        metadata = self.legacy_recoverableturn_metadata
+        original_day = metadata.get('legacy_original_day', '')
+        original_hour = metadata.get('legacy_original_hour', '')
+        if not original_day or not original_hour:
+            return ''
+        return f'{original_day} {original_hour} hs'
+
+    @property
+    def legacy_assigned_slot_label(self):
+        metadata = self.legacy_recoverableturn_metadata
+        assigned_day = metadata.get('legacy_assigned_day', '')
+        assigned_hour = metadata.get('legacy_assigned_hour', '')
+        if not assigned_day or not assigned_hour:
+            return ''
+        return f'{assigned_day} {assigned_hour} hs'
+
 
 class BookingManager(models.Manager):
     def create_booking(self, *, session, student, source=BookingSource.FIXED_SLOT, **extra_fields):
@@ -909,9 +1006,11 @@ class Booking(TimeStampedModel):
         student = self.student
         session = self.session
 
-        if student.primary_section_id is None:
+        effective_section = student.get_effective_portal_section_for(session.date)
+
+        if effective_section is None:
             add_error('student', 'Student must have a primary section before reserving.')
-        elif student.primary_section_id != session.section_id:
+        elif effective_section.id != session.section_id:
             add_error('student', 'Student can only reserve sessions in their primary section.')
 
         if not student.has_operational_booking_access_for(session.date):
@@ -921,12 +1020,20 @@ class Booking(TimeStampedModel):
             add_error('session', 'This session is closed and cannot be booked.')
 
         active_bookings = session.active_bookings().exclude(pk=self.pk)
+        existing_student_bookings = Booking.objects.filter(session=session, student_id=self.student_id).exclude(pk=self.pk)
         if active_bookings.count() >= session.capacity:
             add_error('session', 'This session has reached its capacity.')
 
         duplicate_exists = active_bookings.filter(student_id=self.student_id).exists()
         if duplicate_exists:
             add_error('student', 'Student already has an active booking for this session.')
+
+        if (
+            not duplicate_exists
+            and student.session_matches_effective_monthly_plan(session)
+            and existing_student_bookings.exists()
+        ):
+            add_error('student', 'Student already has booking history for this fixed plan session.')
 
         if self.used_recovery_credit_id is not None:
             reuses_original_recovery_credit = (

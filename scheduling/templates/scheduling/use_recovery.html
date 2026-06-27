@@ -1,8 +1,9 @@
 {% extends "scheduling/student_base.html" %}
+{% load staff_labels %}
 
 {% block title %}Usar recuperación | Eunoia{% endblock %}
 {% block hero_title %}Usar recuperación{% endblock %}
-{% block hero_copy %}Elegí un día y horario disponible de {% if recovery_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %}.{% endblock %}
+{% block hero_copy %}Elegí un día y un horario de {% if recovery_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %} para usar tu recuperación.{% endblock %}
 {% block hero_class %}recovery-picker-hero{% endblock %}
 
 {% block topbar_context %}{% endblock %}
@@ -159,65 +160,153 @@
     }
 
     .calendar-weekdays span {
+        min-height: 42px;
+        display: grid;
+        place-items: center;
+        padding: 6px 4px;
+        border-radius: 14px;
+        background: rgba(244, 247, 243, 0.9);
         text-align: center;
         color: var(--muted);
         font-weight: 600;
+        font-size: 0.88rem;
+        line-height: 1.05;
+    }
+
+    .calendar-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+    }
+
+    .legend-swatch.fixed { background: #9ab49f; }
+    .legend-swatch.available { background: #e79853; }
+    .legend-swatch.blocked {
+        background: rgba(255, 248, 241, 0.92);
+        border: 1px dashed rgba(231, 152, 83, 0.6);
+        box-sizing: border-box;
     }
 
     .calendar-day {
-        min-height: 56px;
-        display: grid;
-        place-items: center;
+        min-height: 76px;
         position: relative;
         color: var(--text);
+    }
+
+    .calendar-day .day-link,
+    .calendar-day .day-content {
+        min-height: 76px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .calendar-day .day-link {
+        cursor: pointer;
+    }
+
+    .calendar-day .day-link:focus-visible {
+        outline: 2px solid rgba(231, 152, 83, 0.55);
+        outline-offset: 2px;
+        border-radius: 18px;
     }
 
     .calendar-day.muted {
         color: rgba(100, 117, 109, 0.35);
     }
 
-    .calendar-day.fixed span,
-    .calendar-day.fixed a,
-    .calendar-day.selectable a,
-    .calendar-day.selected a {
+    .calendar-day .day-number {
         width: 44px;
         height: 44px;
-        border-radius: 999px;
+        border-radius: 16px;
         display: grid;
         place-items: center;
-        text-decoration: none;
         color: inherit;
+        font-weight: 700;
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.88);
     }
 
-    .calendar-day.fixed span,
-    .calendar-day.fixed a {
-        background: #5a7466;
+    .calendar-day-markers {
+        min-height: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .calendar-day-marker {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        display: inline-block;
+    }
+
+    .calendar-day-marker.plan { background: #9ab49f; }
+    .calendar-day-marker.recovery { background: #e79853; }
+
+    .calendar-day.has-habitual-plan .day-number {
+        background: rgba(219, 232, 221, 0.95);
+        color: var(--primary-strong);
+        border: 1px solid rgba(90, 116, 102, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    }
+
+    .calendar-day.has-available-recovery .day-number {
+        border-color: rgba(231, 152, 83, 0.34);
+        background: rgba(252, 237, 221, 0.96);
+        color: #b06320;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    }
+
+    .calendar-day.has-unavailable-recovery:not(.has-available-recovery) .day-number {
+        border-style: dashed;
+        border-color: rgba(231, 152, 83, 0.6);
+        background: rgba(255, 248, 241, 0.92);
+        color: #b06320;
+    }
+
+    .calendar-day.is-selectable .day-number {
+        cursor: pointer;
+    }
+
+    .calendar-day.selected.has-available-recovery .day-number {
+        background: #e79853;
         color: #fff;
+        border-color: #e79853;
+        box-shadow: 0 0 0 3px rgba(231, 152, 83, 0.22);
     }
 
-    .calendar-day.selectable a {
-        border: 1px dashed rgba(90, 116, 102, 0.34);
-        background: rgba(255, 255, 255, 0.86);
+    .calendar-day.selected.has-unavailable-recovery:not(.has-available-recovery) .day-number {
+        background: rgba(252, 237, 221, 0.96);
+        color: #b06320;
+        border-style: dashed;
+        border-color: #e79853;
+        box-shadow: 0 0 0 3px rgba(231, 152, 83, 0.18);
     }
 
-    .calendar-day.available:not(.selected) a {
-        border-color: transparent;
-        background: rgba(196, 213, 194, 0.54);
-    }
-
-    .calendar-day.selectable:not(.available):not(.selected) a {
-        color: var(--text);
-    }
-
-    .calendar-day.selected a {
-        background: #86aa90;
-        color: #fff;
-        box-shadow: 0 0 0 3px rgba(90, 116, 102, 0.18);
-    }
-
-    .calendar-day.fixed.available.selected a {
-        background: #86aa90;
-        color: #fff;
+    .calendar-day.selected:not(.has-available-recovery):not(.has-unavailable-recovery) .day-number {
+        box-shadow: 0 0 0 3px rgba(90, 116, 102, 0.12);
     }
 
     .slots-title {
@@ -234,31 +323,70 @@
 
     .slot-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 180px));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         justify-content: center;
         gap: 12px;
         margin: 0 auto;
     }
 
     .slot-button {
-        min-height: 58px;
+        min-height: 62px;
         border-radius: 18px;
         border: 1px solid rgba(105, 132, 119, 0.22);
         background: rgba(255, 255, 255, 0.9);
         color: var(--text);
         font: inherit;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 700;
-        cursor: pointer;
-        display: grid;
-        place-items: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         text-decoration: none;
+        text-align: center;
+        padding: 10px 12px;
+    }
+
+    .slot-button.available {
+        cursor: pointer;
+        border-style: solid;
+        border-color: rgba(231, 152, 83, 0.22);
+        background: rgba(255, 248, 241, 0.98);
+        color: #b06320;
     }
 
     .slot-button.active {
-        background: #5a7466;
+        background: #e79853;
         color: #fff;
-        border-color: #5a7466;
+        border-color: #e79853;
+    }
+
+    .slot-button.blocked {
+        border-style: dashed;
+        color: rgba(54, 69, 61, 0.72);
+        background: rgba(247, 249, 247, 0.96);
+        border-color: rgba(105, 132, 119, 0.2);
+        cursor: default;
+    }
+
+    .slot-button.full {
+        border-style: solid;
+        border-color: rgba(231, 152, 83, 0.28);
+        background: rgba(252, 237, 221, 0.55);
+        color: #b06320;
+    }
+
+    .slot-button.booked {
+        border-style: dashed;
+        border-color: rgba(90, 116, 102, 0.28);
+        background: rgba(232, 239, 234, 0.76);
+        color: #56685f;
+    }
+
+    .slot-button.paused {
+        border-style: dashed;
+        border-color: rgba(196, 115, 63, 0.22);
+        background: rgba(250, 242, 237, 0.86);
+        color: #9b6b43;
     }
 
     .confirm-card {
@@ -390,6 +518,12 @@
             grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
         }
 
+        .calendar-weekdays span {
+            min-height: 46px;
+            font-size: 0.76rem;
+            padding: 4px 2px;
+        }
+
         .bottom-nav {
             width: calc(100% - 14px);
         }
@@ -425,10 +559,8 @@
                 <span>{{ recovery_focus_credit.section.name }}</span>
             </div>
         </div>
-        <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} opción{{ eligible_sessions_count|pluralize:"es" }} con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }} para esta actividad.</p>
+        <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} horario{{ eligible_sessions_count|pluralize:"s" }} con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }}.</p>
     </article>
-
-    <p class="helper-copy">Elegí un día de la semana y revisá sus horarios disponibles.</p>
 
     <article class="card picker-card">
         <div class="calendar-header">
@@ -445,6 +577,12 @@
             </a>
         </div>
 
+        <div class="calendar-legend" aria-label="Referencias del calendario">
+            <span class="legend-item"><span class="legend-swatch fixed" aria-hidden="true"></span>Tu plan mensual</span>
+            <span class="legend-item"><span class="legend-swatch available" aria-hidden="true"></span>Día con horarios para recuperar</span>
+            <span class="legend-item"><span class="legend-swatch blocked" aria-hidden="true"></span>Clase publicada sin cupo</span>
+        </div>
+
         <div class="calendar-weekdays">
             {% for label in recovery_weekday_labels %}
                 <span>{{ label }}</span>
@@ -454,11 +592,23 @@
         {% for week in recovery_calendar_weeks %}
             <div class="calendar-week">
                 {% for day in week %}
-                    <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_fixed_schedule %} fixed{% endif %}{% if day.has_availability %} available{% endif %}{% if day.is_selectable %} selectable{% endif %}{% if day.is_selected %} selected{% endif %}">
+                    <div class="calendar-day {% if not day.in_month %}muted{% endif %}{% if day.has_habitual_plan %} has-habitual-plan{% endif %}{% if day.has_available_recovery %} has-available-recovery{% endif %}{% if day.has_unavailable_recovery %} has-unavailable-recovery{% endif %}{% if day.is_selectable %} is-selectable{% endif %}{% if day.is_selected %} selected{% endif %}">
                         {% if day.select_url %}
-                            <a href="{{ day.select_url }}">{{ day.day_number }}</a>
+                            <a href="{{ day.select_url }}" class="day-link"{% if day.is_selected %} aria-current="date"{% endif %}>
+                                <span class="day-number">{{ day.day_number }}</span>
+                                <span class="calendar-day-markers" aria-hidden="true">
+                                    {% if day.has_habitual_plan %}<span class="calendar-day-marker plan"></span>{% endif %}
+                                    {% if day.has_available_recovery %}<span class="calendar-day-marker recovery"></span>{% endif %}
+                                </span>
+                            </a>
                         {% else %}
-                            <span>{{ day.day_number }}</span>
+                            <span class="day-content">
+                                <span class="day-number">{{ day.day_number }}</span>
+                                <span class="calendar-day-markers" aria-hidden="true">
+                                    {% if day.has_habitual_plan %}<span class="calendar-day-marker plan"></span>{% endif %}
+                                    {% if day.has_available_recovery %}<span class="calendar-day-marker recovery"></span>{% endif %}
+                                </span>
+                            </span>
                         {% endif %}
                     </div>
                 {% endfor %}
@@ -467,29 +617,33 @@
     </article>
 
     <article class="card picker-card">
-        <h3 class="slots-title">Horarios disponibles</h3>
+        <h3 class="slots-title">Horarios del día</h3>
         {% if recovery_selected_date %}
-            <p class="selected-date-label">{{ recovery_selected_date|date:"D d/m"|capfirst }}</p>
+            <p class="selected-date-label">{{ recovery_selected_date|full_day_month_spanish }}</p>
             {% if recovery_selected_day_cards %}
                 <div class="slot-grid">
                     {% for card in recovery_selected_day_cards %}
-                        <a class="slot-button{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}">{{ card.session.start_time|time:"H:i" }}</a>
+                        {% if card.action.can_book %}
+                            <a class="slot-button available{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}">{{ card.display_label }}</a>
+                        {% else %}
+                            <span class="slot-button blocked {{ card.action.state|default:'blocked' }}">{{ card.display_label }}</span>
+                        {% endif %}
                     {% endfor %}
                 </div>
             {% else %}
                 <div class="slots-empty-state">
-                    <strong>Sin horarios disponibles</strong>
-                    <p class="empty-copy" style="margin: 0;">Ese día no tiene cupos de recuperación para esta semana.</p>
-                    <p class="meta" style="margin: 0;">Podés elegir otra fecha marcada dentro de la misma semana.</p>
+                    <strong>Sin horarios con cupo</strong>
+                    <p class="empty-copy" style="margin: 0;">Ese día no tiene horarios disponibles para usar esta recuperación.</p>
+                    <p class="meta" style="margin: 0;">Probá con otra fecha marcada de la misma semana.</p>
                 </div>
             {% endif %}
         {% else %}
             <div class="empty">
-                <p class="empty-copy"><strong>No hay horarios disponibles para usar esta recuperación en la semana actual.</strong></p>
+                <p class="empty-copy"><strong>Esta semana no hay horarios con cupo para esta recuperación.</strong></p>
                 {% if recovery_workweek_is_next %}
-                    <p class="meta" style="margin-top: 8px;">No hay horarios disponibles para usar esta recuperación la próxima semana.</p>
+                    <p class="meta" style="margin-top: 8px;">Todavía no hay cupos publicados para la próxima semana.</p>
                 {% else %}
-                <p class="meta" style="margin-top: 8px;">Probá más adelante o revisá tus turnos para seguir el estado de tus créditos.</p>
+                <p class="meta" style="margin-top: 8px;">Probá más tarde o revisá tus turnos para seguir tus recuperaciones.</p>
                 {% endif %}
             </div>
         {% endif %}
@@ -507,7 +661,7 @@
                 </div>
                 <div class="confirm-copy">
                     <div class="meta">Vas a reservar:</div>
-                    <strong>{{ session.date|date:"D d/m"|capfirst }} · {{ session.start_time|time:"H:i" }}</strong>
+                    <strong>{{ session.date|short_day_month_spanish }} · {{ session.start_time|time:"H:i" }}</strong>
                     <p>{{ session.section.name }}</p>
                     <div class="discount-note">
                         <span class="info-icon-wrap" aria-hidden="true" style="width:24px;height:24px;background:transparent;">
