@@ -2,7 +2,18 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
 from django.utils import timezone
 
-from .models import ClassSession, HolidayClosure, RecoveryCredit, Section, SessionStatus, StudentMonthlyPlan, WeeklyClassSlot, normalize_month_start
+from .models import (
+    ClassSession,
+    HolidayClosure,
+    RecoveryCredit,
+    Section,
+    SessionStatus,
+    StudentMonthlyPlan,
+    WeeklyClassSlot,
+    merge_notes_with_legacy_userselections_metadata,
+    normalize_month_start,
+    strip_legacy_userselections_notes,
+)
 
 
 class EmailAuthenticationForm(forms.Form):
@@ -308,7 +319,7 @@ class StaffStudentMonthlyPlanForm(forms.Form):
             if self.plan is not None:
                 self.initial['monthly_plan_id'] = self.plan.pk
             self.initial['section'] = initial_plan.section_id
-            self.initial['notes'] = initial_plan.notes
+            self.initial['notes'] = strip_legacy_userselections_notes(initial_plan.notes)
             if self.selected_section is not None and initial_plan.section_id == self.selected_section.pk:
                 self.initial['slot_ids'] = list(initial_plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position'))
 
@@ -344,7 +355,10 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         )
         plan.month = self.cleaned_data['month']
         plan.section = self.cleaned_data['section']
-        plan.notes = self.cleaned_data.get('notes', '').strip()
+        plan.notes = merge_notes_with_legacy_userselections_metadata(
+            self.cleaned_data.get('notes', '').strip(),
+            existing_notes=plan.notes,
+        )
         plan.assign_weekly_slots(self.cleaned_data['slot_ids'])
         return plan
 

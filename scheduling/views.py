@@ -45,6 +45,7 @@ from .models import (
     Weekday,
     WeeklyClassSlot,
     normalize_month_start,
+    strip_legacy_userselections_notes,
 )
 from .use_cases import (
     activate_student_monthly_access,
@@ -227,13 +228,35 @@ def _resolve_staff_plan_section(raw_value, fallback=None):
         return fallback
 
 
-def _build_admin_student_row(student, access, *, query=''):
+def _get_student_activity_section(student, *, target_date):
+    target_month = normalize_month_start(target_date)
+    prefetched_plans = getattr(student, 'admin_effective_monthly_plans', None)
+    if prefetched_plans is not None:
+        for plan in prefetched_plans:
+            if plan.month <= target_month and plan.section_id is not None:
+                return plan.section
+
+    effective_plan = student.get_effective_monthly_plan_for(target_date)
+    if effective_plan is not None and effective_plan.section_id is not None:
+        return effective_plan.section
+    return student.primary_section
+
+
+def _get_student_activity_label(student, *, target_date):
+    section = _get_student_activity_section(student, target_date=target_date)
+    if section is None:
+        return 'Sin sección principal'
+    return section.name
+
+
+def _build_admin_student_row(student, access, *, query='', target_date=None):
     badges = _build_admin_status_badges(access)
     initials = ''.join(part[0] for part in [student.first_name, student.last_name] if part).upper()[:2] or student.email[:2].upper()
+    activity_date = target_date or timezone.localdate()
     return {
         'student': student,
         'current_access': access,
-        'section_name': student.primary_section.name if student.primary_section_id else 'Sin sección principal',
+        'section_name': _get_student_activity_label(student, target_date=activity_date),
         'detail_url': _build_admin_student_detail_url(student.pk, query=query),
         'initials': initials,
         **badges,
@@ -250,6 +273,11 @@ def _get_admin_students_context(*, query='', status_filter='all'):
                 'monthly_access_statuses',
                 queryset=MonthlyAccessStatus.objects.filter(month=current_month),
                 to_attr='current_month_accesses',
+            ),
+            Prefetch(
+                'monthly_plans',
+                queryset=StudentMonthlyPlan.objects.select_related('section').filter(month__lte=current_month).order_by('-month'),
+                to_attr='admin_effective_monthly_plans',
             )
         )
     )
@@ -269,7 +297,7 @@ def _get_admin_students_context(*, query='', status_filter='all'):
 
     for student in students:
         access = student.current_month_accesses[0] if student.current_month_accesses else None
-        row = _build_admin_student_row(student, access, query=query)
+        row = _build_admin_student_row(student, access, query=query, target_date=current_month)
         summary[row['summary_key']] += 1
         if row['payment_label'] == 'Impaga':
             summary['impaga'] += 1
@@ -517,6 +545,7 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
     selected_month = _resolve_month_value(month, fallback=today)
     current_access = student.get_monthly_access_for(today)
     current_monthly_plan = student.get_effective_monthly_plan_for(selected_month)
+    activity_section = _get_student_activity_section(student, target_date=selected_month)
     status_badges = _build_admin_status_badges(current_access)
     relevant_credits = list(
         student.recovery_credits.select_related('section', 'origin_session')
@@ -555,7 +584,7 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         .order_by('-created_at')[:ADMIN_DETAIL_PREVIEW_LIMIT]
     )
     recent_window_start = today - timedelta(days=30)
-    selected_section = _resolve_staff_plan_section(section, fallback=student.primary_section)
+    selected_section = _resolve_staff_plan_section(section, fallback=activity_section)
     resolved_monthly_plan_form = monthly_plan_form or StaffStudentMonthlyPlanForm(student=student, month=selected_month, section=selected_section)
     selected_plan_section = resolved_monthly_plan_form.selected_section
 
@@ -567,7 +596,7 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         'admin_detail_current_month_label': selected_month.strftime('%m/%Y'),
         'admin_detail_current_month_input': selected_month.strftime('%Y-%m'),
         'admin_detail_current_access': current_access,
-        'admin_detail_section_name': student.primary_section.name if student.primary_section_id else 'Sin sección principal',
+        'admin_detail_section_name': activity_section.name if activity_section is not None else 'Sin sección principal',
         'admin_detail_selected_plan_section_id': selected_plan_section.pk if selected_plan_section is not None else '',
         'admin_detail_selected_plan_section_name': selected_plan_section.name if selected_plan_section is not None else 'Sin actividad seleccionada',
         'admin_detail_upcoming_bookings': upcoming_bookings,
@@ -1029,7 +1058,7 @@ def _build_staff_monthly_plan_picker(form, *, month):
             'is_selected': slot.pk in selected_ids,
             'is_disabled': is_full and slot.pk not in selected_ids,
             'is_full': is_full,
-            'notes': slot.notes.strip(),
+            'notes': strip_legacy_userselections_notes(slot.notes),
         }
         if slot.weekday in day_map:
             day_map[slot.weekday]['slots'].append(slot_card)

@@ -455,6 +455,77 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Pago del mes')
         self.assertContains(response, 'Volver al listado')
 
+    def test_staff_list_uses_effective_plan_activity_when_primary_section_is_missing(self):
+        self.active_student.primary_section = None
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.other_section,
+            notes='Plan efectivo para mostrar actividad',
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-list'), {'q': 'ada'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.other_section.name)
+        self.assertNotContains(response, 'Sin sección principal')
+
+    def test_staff_detail_uses_effective_plan_activity_when_primary_section_is_missing(self):
+        self.active_student.primary_section = None
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.other_section,
+            notes='Plan efectivo para el detalle',
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.other_section.name)
+        self.assertNotContains(response, 'Sin sección principal')
+
+    def test_staff_list_prefers_effective_plan_activity_over_stale_primary_section(self):
+        legacy_primary_section = Section.objects.get(code='reformer_abajo')
+        self.active_student.primary_section = legacy_primary_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.other_section,
+            notes='Plan efectivo para corregir actividad legacy',
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-list'), {'q': 'ada'})
+
+        self.assertEqual(response.status_code, 200)
+        row = next(row for row in response.context['admin_students'] if row['student'].pk == self.active_student.pk)
+        self.assertEqual(row['section_name'], self.other_section.name)
+
+    def test_staff_detail_prefers_effective_plan_activity_over_stale_primary_section(self):
+        legacy_primary_section = Section.objects.get(code='reformer_abajo')
+        self.active_student.primary_section = legacy_primary_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.other_section,
+            notes='Plan efectivo para el detalle legacy',
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['admin_detail_section_name'], self.other_section.name)
+        self.assertEqual(response.context['admin_detail_selected_plan_section_name'], self.other_section.name)
+        self.assertEqual(response.context['admin_detail_monthly_plan_form'].selected_section, self.other_section)
+
     def test_staff_can_assign_monthly_plan_from_student_detail(self):
         slot_one = WeeklyClassSlot.objects.create(
             section=self.section,
@@ -494,6 +565,78 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')), [slot_one.pk, slot_two.pk])
         self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
         self.assertContains(response, 'Plan mensual fijo')
+
+    def test_staff_detail_hides_legacy_monthly_plan_metadata_from_slots_and_notes(self):
+        legacy_block = (
+            '[legacy-userselections-import]\n'
+            'source=eunoia.userselections.json\n'
+            'legacy_userselection_id=legacy-123\n'
+            '[/legacy-userselections-import]'
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+            notes=legacy_block,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.section,
+            notes=f'Recordar priorizar este horario\n\n{legacy_block}',
+        )
+        plan.assign_weekly_slots([slot])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Recordar priorizar este horario')
+        self.assertNotContains(response, '[legacy-userselections-import]')
+        self.assertNotContains(response, 'legacy_userselection_id=legacy-123')
+
+    def test_staff_monthly_plan_update_preserves_hidden_legacy_metadata(self):
+        legacy_block = (
+            '[legacy-userselections-import]\n'
+            'source=eunoia.userselections.json\n'
+            'legacy_userselection_id=legacy-keep\n'
+            '[/legacy-userselections-import]'
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.section,
+            notes=f'Nota visible vieja\n\n{legacy_block}',
+        )
+        plan.assign_weekly_slots([slot])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': self.current_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [slot.pk],
+                'notes': 'Nota visible nueva',
+            },
+            follow=True,
+        )
+
+        plan.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Nota visible nueva', plan.notes)
+        self.assertIn('[legacy-userselections-import]', plan.notes)
+        self.assertIn('legacy_userselection_id=legacy-keep', plan.notes)
+        self.assertNotIn('Nota visible vieja', plan.notes)
 
     def test_staff_can_choose_month_and_save_plan_for_that_month(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
@@ -1126,7 +1269,7 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Detalle de clase')
         self.assertContains(response, self.section.name)
         self.assertContains(response, self.upcoming_session.date.strftime('%d/%m/%Y'))
-        self.assertContains(response, 'Ocupacion actual')
+        self.assertContains(response, 'Ocupacion')
         self.assertContains(response, '2 / 6')
         self.assertContains(response, 'Alumnas anotadas')
         self.assertContains(response, 'Ada Lovelace')
@@ -1134,6 +1277,7 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Reserva por recuperación manual')
         self.assertContains(response, 'Con recuperación')
         self.assertContains(response, 'Reservas recientes')
+        self.assertLess(response.content.decode().find('Alumnas anotadas'), response.content.decode().find('Reservas recientes'))
         self.assertContains(response, 'Grace Hopper')
         self.assertContains(response, 'Volver a la agenda')
         self.assertContains(

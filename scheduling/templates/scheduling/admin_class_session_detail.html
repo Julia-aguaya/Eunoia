@@ -6,7 +6,56 @@
 {% block extra_head %}
     <style>
         .hero-metrics {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            display: none;
+        }
+
+        .compact-session-panel {
+            margin-bottom: 16px;
+        }
+
+        .session-overview {
+            display: grid;
+            gap: 14px;
+        }
+
+        .session-overview-copy {
+            display: grid;
+            gap: 6px;
+        }
+
+        .session-overview-copy h3,
+        .session-overview-copy p,
+        .overview-pill strong,
+        .overview-pill span {
+            margin: 0;
+        }
+
+        .overview-pills {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .overview-pill {
+            display: grid;
+            gap: 2px;
+            min-width: 116px;
+            padding: 12px 14px;
+            border-radius: 18px;
+            border: 1px solid rgba(63, 85, 97, 0.1);
+            background: rgba(255, 255, 255, 0.84);
+        }
+
+        .overview-pill span {
+            font-size: 0.76rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .overview-pill strong {
+            color: var(--primary-strong);
+            font-size: 1.05rem;
         }
 
         .metric.metric-summary {
@@ -96,10 +145,62 @@
         .back-link {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            min-height: 42px;
+            justify-content: flex-start;
+            gap: 12px;
+            min-height: 48px;
+            padding: 10px 16px 10px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(63, 85, 97, 0.14);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 246, 0.92));
+            box-shadow: 0 14px 30px rgba(32, 61, 75, 0.08);
             text-decoration: none;
             color: var(--primary-strong);
+            transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+        }
+
+        .back-link:hover {
+            transform: translateY(-1px);
+            border-color: rgba(69, 101, 86, 0.24);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(232, 239, 233, 0.96));
+            box-shadow: 0 18px 34px rgba(32, 61, 75, 0.12);
+        }
+
+        .back-link:focus {
+            outline: 3px solid rgba(32, 61, 75, 0.18);
+            outline-offset: 3px;
+        }
+
+        .back-link-icon {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: var(--primary-soft);
+            color: var(--primary-strong);
+        }
+
+        .back-link-copy {
+            display: grid;
+            gap: 2px;
+        }
+
+        .back-link-kicker,
+        .back-link-label {
+            margin: 0;
+        }
+
+        .back-link-kicker {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .back-link-label {
+            font-weight: 600;
+            line-height: 1.15;
         }
 
         .facts {
@@ -149,7 +250,7 @@
         }
 
         .detail-grid {
-            grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
         }
 
         .booking-list,
@@ -330,100 +431,61 @@
 {% endblock %}
 
 {% block hero_title %}Detalle de clase{% endblock %}
-{% block hero_copy %}Revisá cupo, reservas y cierre del día en una sola vista.{% endblock %}
+{% block hero_copy %}Vista corta para ver quién viene y qué acción hace falta.{% endblock %}
 
-{% block hero_metrics %}
-    <div class="metric metric-summary">
-        <div class="metric-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <rect x="3" y="4" width="18" height="17" rx="3"></rect>
-                <path d="M3 10h18"></path>
-            </svg>
-        </div>
-        <div class="metric-copy">
-            <strong>{{ staff_session.date|date:"d/m" }}</strong>
-            <span>Fecha</span>
-        </div>
-    </div>
-    <div class="metric metric-summary">
-        <div class="metric-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 12h16"></path>
-                <path d="M4 7h16"></path>
-                <path d="M4 17h10"></path>
-            </svg>
-        </div>
-        <div class="metric-copy">
-            <strong>{{ staff_session_booked_count }}/{{ staff_session.capacity }}</strong>
-            <span>Ocupacion actual</span>
-        </div>
-    </div>
-    <div class="metric metric-summary warning">
-        <div class="metric-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M12 8v4"></path>
-                <path d="M12 16h.01"></path>
-            </svg>
-        </div>
-        <div class="metric-copy">
-            <strong>{{ staff_session.status|staff_session_status_label }}</strong>
-            <span>Estado</span>
-        </div>
-    </div>
-{% endblock %}
+{% block hero_metrics %}{% endblock %}
 
 {% block content %}
     <div class="page-actions">
-        <a href="{{ staff_session_back_url }}" class="back-link">Volver a la agenda</a>
-        <div class="booking-meta">
-            <span class="status-badge {% if staff_session.status == 'scheduled' %}success{% else %}danger{% endif %}">{{ staff_session.status|staff_session_status_label }}</span>
-            <span class="status-badge muted">{{ staff_session.section.name }}</span>
-            <span class="status-badge muted">{{ staff_session.date|date:"d/m/Y" }}</span>
-        </div>
+        <a href="{{ staff_session_back_url }}" class="back-link">
+            <span class="back-link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6"></path>
+                    <path d="M9 12h10"></path>
+                </svg>
+            </span>
+            <span class="back-link-copy">
+                <span class="back-link-kicker">Agenda</span>
+                <span class="back-link-label">Volver a la agenda</span>
+            </span>
+        </a>
     </div>
 
-    <section class="panel" style="margin-bottom: 16px;">
-        <div class="panel-head">
-            <div>
-                <p class="eyebrow-copy">Sesión #{{ staff_session.pk }}</p>
-                <h3>{{ staff_session.section.name }} · <span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></h3>
+    <section class="panel compact-session-panel">
+        <div class="session-overview">
+            <div class="panel-head">
+                <div class="session-overview-copy">
+                    <p class="eyebrow-copy">Sesión #{{ staff_session.pk }}</p>
+                    <h3>{{ staff_session.section.name }} · <span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></h3>
+                    <p class="tiny-copy">{{ staff_session.date|date:"l j \\d\\e F \\d\\e Y" }}</p>
+                </div>
+                <div class="booking-meta">
+                    <span class="status-badge {% if staff_session.status == 'scheduled' %}success{% else %}danger{% endif %}">{{ staff_session.status|staff_session_status_label }}</span>
+                    <span class="status-badge muted">{{ staff_session_occupancy_percent }}% ocupado</span>
+                </div>
             </div>
-            <span class="status-badge {% if staff_session_available_spots > 0 and staff_session.status == 'scheduled' %}success{% else %}warning{% endif %}">
-                {{ staff_session_available_spots }} cupo{{ staff_session_available_spots|pluralize }} libre{{ staff_session_available_spots|pluralize }}
-            </span>
+
+            <div class="overview-pills" aria-label="Resumen rápido de la clase">
+                <article class="overview-pill">
+                    <span>Ocupacion</span>
+                    <strong>{{ staff_session_booked_count }} / {{ staff_session.capacity }}</strong>
+                </article>
+                <article class="overview-pill">
+                    <span>Cupos libres</span>
+                    <strong>{{ staff_session_available_spots }}</strong>
+                </article>
+                <article class="overview-pill">
+                    <span>Recuperaciones</span>
+                    <strong>{{ staff_session_makeup_bookings_count }}</strong>
+                </article>
+                <article class="overview-pill">
+                    <span>Movimientos</span>
+                    <strong>{{ staff_session_total_movements_count }}</strong>
+                </article>
+            </div>
+
+            <div class="tone-note">{{ staff_session_summary_text }}</div>
         </div>
-
-        <dl class="facts" style="margin-top: 14px;">
-            <div class="fact">
-                <dt>Fecha</dt>
-                <dd>{{ staff_session.date|date:"l j \\d\\e F \\d\\e Y" }}</dd>
-            </div>
-            <div class="fact">
-                <dt>Horario</dt>
-                <dd><span class="mono">{{ staff_session.start_time|time:"H:i" }} - {{ staff_session.end_time|time:"H:i" }}</span></dd>
-            </div>
-            <div class="fact">
-                <dt>Sección</dt>
-                <dd>{{ staff_session.section.name }}</dd>
-            </div>
-            <div class="fact">
-                <dt>Estado</dt>
-                <dd>{{ staff_session.status|staff_session_status_label }}</dd>
-            </div>
-            <div class="fact">
-                <dt>Cupo total</dt>
-                <dd>{{ staff_session.capacity }}</dd>
-            </div>
-            <div class="fact">
-                <dt>Ocupacion actual</dt>
-                <dd>{{ staff_session_booked_count }} / {{ staff_session.capacity }} ({{ staff_session_occupancy_percent }}%)</dd>
-            </div>
-        </dl>
-
-        <div class="tone-note">{{ staff_session_summary_text }}</div>
     </section>
 
     {% if staff_session_is_manual %}
@@ -485,69 +547,46 @@
         </section>
     {% endif %}
 
-    <div class="summary-grid">
-        <article class="summary-card">
-            <span>Reservas activas</span>
-            <strong>{{ staff_session_booked_count }}</strong>
-            <p>Reservas activas de esta sesión.</p>
-        </article>
-        <article class="summary-card">
-            <span>Lugares libres</span>
-            <strong>{{ staff_session_available_spots }}</strong>
-            <p>Lugares disponibles ahora.</p>
-        </article>
-        <article class="summary-card">
-            <span>Con recuperación</span>
-            <strong>{{ staff_session_makeup_bookings_count }}</strong>
-            <p>Reservas activas con recuperación.</p>
-        </article>
-        <article class="summary-card">
-            <span>Movimientos visibles</span>
-            <strong>{{ staff_session_total_movements_count }}</strong>
-            <p>Activas y recientes no activas.</p>
-        </article>
-    </div>
+    <section class="panel" style="margin-bottom: 16px;">
+        <div class="panel-head" style="margin-bottom: 14px;">
+            <div>
+                <h3>Alumnas anotadas</h3>
+                <p class="tiny-copy">Reservas activas de esta sesión.</p>
+            </div>
+            <span class="status-badge muted">{{ staff_session_regular_bookings_count }} sin recuperación</span>
+        </div>
+
+        {% if staff_session_active_bookings %}
+            <div class="booking-list">
+                {% for booking in staff_session_active_bookings %}
+                    <article class="booking-row">
+                        <div class="booking-top">
+                            <div class="booking-copy">
+                                <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                <p>{{ booking.student.email }}</p>
+                                {% if booking.used_recovery_credit %}
+                                    <p>Reserva por recuperación {% if booking.used_recovery_credit.source == 'manual' %}manual{% else %}{{ booking.used_recovery_credit.source|staff_recovery_source_label }}{% endif %}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
+                                {% else %}
+                                    <p>Reserva regular sin recuperación asociada.</p>
+                                {% endif %}
+                            </div>
+                            <div class="booking-meta">
+                                <span class="status-badge success">{{ booking.status|staff_booking_status_label }}</span>
+                                <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
+                                    {% if booking.used_recovery_credit %}Con recuperación{% else %}Regular{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty">Todavía no hay reservas activas para esta sesión.</div>
+        {% endif %}
+    </section>
 
     <div class="detail-grid">
         <div class="stack">
-            <section class="panel">
-                <div class="panel-head" style="margin-bottom: 14px;">
-                    <div>
-                        <h3>Alumnas anotadas</h3>
-                        <p class="tiny-copy">Reservas activas de esta sesión.</p>
-                    </div>
-                    <span class="status-badge muted">{{ staff_session_regular_bookings_count }} sin recuperación</span>
-                </div>
-
-                {% if staff_session_active_bookings %}
-                    <div class="booking-list">
-                        {% for booking in staff_session_active_bookings %}
-                            <article class="booking-row">
-                                <div class="booking-top">
-                                    <div class="booking-copy">
-                                        <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
-                                        <p>{{ booking.student.email }}</p>
-                                        {% if booking.used_recovery_credit %}
-                                            <p>Reserva por recuperación {% if booking.used_recovery_credit.source == 'manual' %}manual{% else %}{{ booking.used_recovery_credit.source|staff_recovery_source_label }}{% endif %}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
-                                        {% else %}
-                                            <p>Reserva regular sin recuperación asociada.</p>
-                                        {% endif %}
-                                    </div>
-                                    <div class="booking-meta">
-                                        <span class="status-badge success">{{ booking.status|staff_booking_status_label }}</span>
-                                        <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
-                                            {% if booking.used_recovery_credit %}Con recuperación{% else %}Regular{% endif %}
-                                        </span>
-                                    </div>
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty">Todavía no hay reservas activas para esta sesión.</div>
-                {% endif %}
-            </section>
-
             <section class="panel">
                 <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
@@ -587,8 +626,8 @@
             <section class="panel">
                 <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
-                        <h3>Resumen de estado</h3>
-                        <p class="tiny-copy">Lectura rápida para decidir la siguiente acción.</p>
+                        <h3>Estado, notas y cierre</h3>
+                        <p class="tiny-copy">Todo lo necesario para decidir la siguiente acción.</p>
                     </div>
                 </div>
 
@@ -610,18 +649,6 @@
                             <p>Sesión cerrada por feriado con {{ staff_session_generated_recovery_credits_count }} recuperaciones asociadas.</p>
                         </article>
                     {% endif %}
-                </div>
-            </section>
-
-            <section class="panel">
-                <div class="panel-head" style="margin-bottom: 14px;">
-                    <div>
-                        <h3>Notas y cierre del día</h3>
-                        <p class="tiny-copy">Solo muestra datos ya registrados.</p>
-                    </div>
-                </div>
-
-                <div class="info-grid">
                     <article class="info-block">
                         <span class="eyebrow-copy">Notas de la sesión</span>
                         <strong>{% if staff_session.notes %}Cargadas{% else %}Sin notas{% endif %}</strong>

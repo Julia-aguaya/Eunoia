@@ -75,6 +75,51 @@ class RecoveryCreditSource(models.TextChoices):
 
 LEGACY_RECOVERABLETURNS_NOTES_START = '[legacy-recoverableturns-import]'
 LEGACY_RECOVERABLETURNS_NOTES_END = '[/legacy-recoverableturns-import]'
+LEGACY_USERSELECTIONS_NOTES_START = '[legacy-userselections-import]'
+LEGACY_USERSELECTIONS_NOTES_END = '[/legacy-userselections-import]'
+
+
+def strip_managed_notes_block(notes, *, start_marker, end_marker):
+    raw_notes = (notes or '').strip()
+    start_index = raw_notes.find(start_marker)
+    end_index = raw_notes.find(end_marker)
+    if start_index == -1 or end_index == -1 or end_index < start_index:
+        return raw_notes
+
+    visible_prefix = raw_notes[:start_index].rstrip()
+    visible_suffix = raw_notes[end_index + len(end_marker):].strip()
+    return '\n\n'.join(chunk for chunk in (visible_prefix, visible_suffix) if chunk)
+
+
+def extract_managed_notes_block(notes, *, start_marker, end_marker):
+    raw_notes = (notes or '').strip()
+    start_index = raw_notes.find(start_marker)
+    end_index = raw_notes.find(end_marker)
+    if start_index == -1 or end_index == -1 or end_index < start_index:
+        return ''
+    return raw_notes[start_index:end_index + len(end_marker)].strip()
+
+
+def strip_legacy_userselections_notes(notes):
+    return strip_managed_notes_block(
+        notes,
+        start_marker=LEGACY_USERSELECTIONS_NOTES_START,
+        end_marker=LEGACY_USERSELECTIONS_NOTES_END,
+    )
+
+
+def merge_notes_with_legacy_userselections_metadata(public_notes, existing_notes=''):
+    visible_notes = strip_legacy_userselections_notes(public_notes)
+    legacy_block = extract_managed_notes_block(
+        existing_notes,
+        start_marker=LEGACY_USERSELECTIONS_NOTES_START,
+        end_marker=LEGACY_USERSELECTIONS_NOTES_END,
+    )
+    if visible_notes and legacy_block:
+        return f'{visible_notes}\n\n{legacy_block}'
+    if legacy_block:
+        return legacy_block
+    return visible_notes
 
 
 class MonthlyAccessStatusType(models.TextChoices):
