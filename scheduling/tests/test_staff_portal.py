@@ -1579,6 +1579,115 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, '1 con recuperación')
         self.assertContains(response, '1 recuperaciones generadas')
 
+    def test_staff_agenda_lists_attendees_and_highlights_makeup_bookings(self):
+        makeup_student = User.objects.create_user(
+            email='agenda-attendee-makeup@example.com',
+            password='StudentPass2026!',
+            first_name='Dorothy',
+            last_name='Vaughan',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=makeup_student,
+            month=normalize_month_start(self.upcoming_session.date),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=makeup_student,
+            section=self.section,
+            granted_by=self.staff_user,
+            reference_date=self.upcoming_session.date,
+        )
+        Booking.objects.create_booking(
+            session=self.upcoming_session,
+            student=makeup_student,
+            used_recovery_credit=recovery_credit,
+        )
+        Booking.objects.create(
+            session=self.upcoming_session,
+            student=self.pending_student,
+            status=BookingStatus.CANCELLED,
+            source=BookingSource.MANUAL,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': self.today.isoformat(),
+                'section': self.section.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        upcoming_row = next(
+            row
+            for group in response.context['staff_agenda_groups']
+            for row in group['sessions']
+            if row['session'].pk == self.upcoming_session.pk
+        )
+        self.assertEqual(
+            upcoming_row['attendees'],
+            [
+                {'full_name': 'Ada Lovelace', 'is_makeup': False},
+                {'full_name': 'Dorothy Vaughan', 'is_makeup': True},
+            ],
+        )
+        self.assertContains(response, 'Alumnas anotadas')
+        self.assertContains(response, 'Ada Lovelace')
+        self.assertContains(response, 'Dorothy Vaughan')
+        self.assertContains(response, 'class="session-attendee-makeup"', count=1)
+        self.assertNotContains(response, 'Grace Hopper</span></li>')
+
+    def test_staff_agenda_keeps_same_time_sessions_split_by_section_in_context(self):
+        target_date = self.today + timedelta(days=1)
+        shared_start = time(6, 30)
+        shared_end = time(7, 30)
+        third_section = Section.objects.get(code='reformer_abajo')
+        for section, capacity in (
+            (self.section, 4),
+            (self.other_section, 5),
+            (third_section, 6),
+        ):
+            WeeklyClassSlot.objects.create(
+                section=section,
+                weekday=target_date.isoweekday(),
+                start_time=shared_start,
+                end_time=shared_end,
+                capacity=capacity,
+                is_active=True,
+            )
+        ClassSession.objects.filter(
+            section__in=[self.section, self.other_section, third_section],
+            date=target_date,
+            start_time=shared_start,
+        ).delete()
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': self.today.isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        target_group = next(group for group in response.context['staff_agenda_groups'] if group['date'] == target_date)
+        matching_rows = [
+            row for row in target_group['sessions'] if row['session'].start_time == shared_start and row['session'].end_time == shared_end
+        ]
+        self.assertEqual(len(matching_rows), 3)
+        self.assertEqual(
+            [row['session'].section.name for row in matching_rows],
+            ['Cadillac', 'Reformer Abajo', 'Reformer Arriba'],
+        )
+        self.assertEqual(
+            {row['session'].section_id for row in matching_rows},
+            {self.section.pk, self.other_section.pk, third_section.pk},
+        )
+
     def test_staff_session_detail_surfaces_holiday_closure_impact(self):
         closure_date = self.today + timedelta(days=9)
         holiday_session = ClassSession.objects.create(

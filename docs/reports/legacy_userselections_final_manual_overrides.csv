@@ -1,0 +1,5 @@
+student_email,student_name,student_id,legacy_user_id,legacy_userselection_id,source_index,month,selection_kind,status,possible_sections,,resolved_section,manual_override,manual_override_reason
+c.lobais@gmail.com,celina lobais,21,683afe2124d4d1b7adb0fbd1,683e4c1554c3c5d82dd87c7c,18,2026-06-01,original,ambiguous,reformer_abajo | reformer_arriba,,cadillac,true,business_manual_override_to_cadillac_despite_possible_sections
+danascarafia@hotmail.com,dana scarafia,105,69fe08c927e24d7c86c461b6,69fe09ae27e24d7c86c462d6,104,2026-06-01,original,ambiguous,reformer_abajo | reformer_arriba,,cadillac,true,business_manual_override_to_cadillac_despite_possible_sections
+ferreropagetaylen@gmail.com,aylen ferrero paget,93,69efa045e85c03079de6c548,69efa078e85c03079de6c646,92,2026-06-01,original,ambiguous,reformer_abajo | reformer_arriba,,cadillac,true,business_manual_override_to_cadillac_despite_possible_sections
+rolleluciana@gmail.com,luciana rolle,15,6839ac8c24d4d1b7adb0943c,683e2d8e54c3c5d82dd8403b,9,2026-06-01,original,ambiguous,reformer_abajo | reformer_arriba,,cadillac,true,business_manual_override_to_cadillac_despite_possible_sections

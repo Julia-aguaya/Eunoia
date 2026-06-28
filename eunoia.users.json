@@ -1,0 +1,2643 @@
+[{
+  "_id": {
+    "$oid": "6830dfcc83de8c19b9a5dfff"
+  },
+  "nombre": "ornella",
+  "apellido": "eunoia",
+  "email": "ornelnob93@gmail.com",
+  "celular": "3416296495",
+  "diasSemanales": 1,
+  "password": "$2b$10$zp81NqLIk3c6NdQ7zM9CweFoEZSdsszw4QdwVzqOTzSaeOkaYFTrK",
+  "pago": false,
+  "rol": "admin",
+  "fechaRegistro": {
+    "$date": "2025-05-23T20:51:24.471Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838bd5f24d4d1b7adb01017"
+  },
+  "nombre": "luciana",
+  "apellido": "castellani",
+  "email": "luciana.castellani@hotmail.com",
+  "celular": "3416435486",
+  "diasSemanales": 2,
+  "password": "$2b$10$Z5ziGddpaDtrzsVsH4ORmuxA6Vla.GD9gcDz0lBj/g..XYFP6lsqq",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:34.529Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T20:02:39.052Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838c1a024d4d1b7adb01292"
+  },
+  "nombre": "macarena ",
+  "apellido": "allende",
+  "email": "allendemacarenayael14@gmail.com",
+  "celular": "3416888576",
+  "diasSemanales": 2,
+  "password": "$2b$10$EtlfoJxAf4PX9vJMAhVAEeOpjKXk/HyAE2I6gtBTkkYgUVyYSV.lm",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:41.771Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T20:20:48.246Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-06-11T14:20:14.182Z"
+  },
+  "resetPasswordToken": "90382054cf9e0f21ee5bc474b9c139688a4034eab6a29b3395a05ed6c2a3e85e"
+},
+{
+  "_id": {
+    "$oid": "6838c30724d4d1b7adb014be"
+  },
+  "nombre": "ana paz",
+  "apellido": "reybet",
+  "email": "anapazreybet@hotmail.com",
+  "celular": "3412168536",
+  "diasSemanales": 2,
+  "password": "$2b$10$6Vf5muL/dofv3unyguaFquShbniPRxqGb4qdTnbYNbmANOZY4q/ue",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:43.731Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T20:26:47.749Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838c76d24d4d1b7adb01ff7"
+  },
+  "nombre": "paula lina",
+  "apellido": "mangiameli",
+  "email": "paulalinamg@gmail.com",
+  "celular": "3415995791",
+  "diasSemanales": 1,
+  "password": "$2b$10$VI9SfZ3sDqK1Cvztufo0gu5gEmX9p3ssq35Gg1p3YmPojBI6DjU8i",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:47.322Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T20:45:33.146Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838c77124d4d1b7adb01ffa"
+  },
+  "nombre": "betina",
+  "apellido": "delbaldo",
+  "email": "bmdelbaldo@gmail.com",
+  "celular": "3412127879",
+  "diasSemanales": 2,
+  "password": "$2b$10$QJZxZDdJLiZht5ffTyDhm.dmpV6cJxcNEnm4HVe5E8igj5C16Lp8O",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:59.273Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T20:45:37.949Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838c78a24d4d1b7adb02044"
+  },
+  "nombre": "estefania",
+  "apellido": "bellomo",
+  "email": "estefybellomo@hotmail.com",
+  "celular": "3416104545",
+  "diasSemanales": 1,
+  "password": "$2b$10$Clkdn1QIXEWMhvSOV/jGEuOjvvO2vCaFstefV.XAz/TwV/6iwesvW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:52.131Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T20:46:02.653Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838d20224d4d1b7adb03574"
+  },
+  "nombre": "guillermo",
+  "apellido": "damen",
+  "email": "guilledamen@gmail.com",
+  "celular": "3413111927",
+  "diasSemanales": 2,
+  "password": "$2b$10$GzBgYcEZK/67nQJ5zWv17eqIqJfeH5bqQSUjYHHVojGry0z1ES0mK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:54.188Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T21:30:42.955Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-06-16T03:03:42.265Z"
+  },
+  "resetPasswordToken": "427c6973c5575de4f6d7144037e90002956d5f01d31521b677c006d60cc697be"
+},
+{
+  "_id": {
+    "$oid": "6838d67d24d4d1b7adb03b39"
+  },
+  "nombre": "debora",
+  "apellido": "militello ",
+  "email": "dmilitello86@gmail.com",
+  "celular": "3416933763",
+  "diasSemanales": 1,
+  "password": "$2b$10$60nsfLTSufe1K175pqXWLuc7MyLnziTdHtfD9HmuueKSE6MNnx46W",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:04.581Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T21:49:49.249Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6838dc2824d4d1b7adb046e8"
+  },
+  "nombre": "maria florencia",
+  "apellido": "planiscig",
+  "email": "florplaniscig5@gmail.com",
+  "celular": "3435416557",
+  "diasSemanales": 1,
+  "password": "$2b$10$knyP0LMWrJzTRDYyn5MGJuxfNXuu2/XkhiwZXITOHlrPigH6NbO/i",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:38:57.532Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-29T22:14:00.344Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839123424d4d1b7adb073f2"
+  },
+  "nombre": "jessica ",
+  "apellido": "baez",
+  "email": "jessica.baez.1977@gmail.com",
+  "celular": "3416850400",
+  "diasSemanales": 1,
+  "password": "$2b$10$DFzoFC4OGFELnt9br2hi2uiBccqNiQAf8OTeJOrFvYPLOEl87iROG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:08.291Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T02:04:36.851Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683985d224d4d1b7adb07997"
+  },
+  "nombre": "silvia andre ",
+  "apellido": "garcia ",
+  "email": "silvia_77_13@hotmail.com",
+  "celular": "3412254499",
+  "diasSemanales": 2,
+  "password": "$2b$10$77VwZJO5EF/i6Lt5lItHGOuHUOzaBNSis56xh8rIGzRQMxvlq1jvG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:11.707Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T10:17:54.746Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839a86624d4d1b7adb07ff0"
+  },
+  "nombre": "natalia",
+  "apellido": "morello",
+  "email": "nataliamorello@hotmail.com",
+  "celular": "3413216434",
+  "diasSemanales": 2,
+  "password": "$2b$10$k5fBnamo1MtgfkpWCsl4Rea1dzqmSB3SKrJEL2/bKgXlZ.hpsPxti",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:13.538Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T12:45:26.552Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839abe324d4d1b7adb09059"
+  },
+  "nombre": "berenice",
+  "apellido": "di stefano",
+  "email": "berediste@gmail.com",
+  "celular": "3416719800",
+  "diasSemanales": 3,
+  "password": "$2b$10$POUQsdergSb5xLa7OcJtPunr.nmTiSveTsmVdz.wzQ6I4pZYcuTI.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:16.067Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T13:00:19.248Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839ac8c24d4d1b7adb0943c"
+  },
+  "nombre": "luciana",
+  "apellido": "rolle",
+  "email": "rolleluciana@gmail.com",
+  "celular": "3415077028",
+  "diasSemanales": 1,
+  "password": "$2b$10$xMTNoKtqe0.0DQbOPw87OONS3xrIWSu363kh4hgei0iuGmEx/vlOG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:19.396Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T13:03:08.659Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839b02f24d4d1b7adb09ac4"
+  },
+  "nombre": "helena",
+  "apellido": "comba",
+  "email": "helenacomba98@gmail.com",
+  "celular": "3472557192",
+  "diasSemanales": 1,
+  "password": "$2b$10$ksssVAovydt6Af08E9MHXOZuGseLWxrzHgnsR/R7I13uU0w4o62mC",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:29.697Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T13:18:39.658Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839dec224d4d1b7adb0b0ff"
+  },
+  "nombre": "nanda ",
+  "apellido": "ballarini ",
+  "email": "nandaballarini@gmail.com",
+  "celular": "3416552233",
+  "diasSemanales": 2,
+  "password": "$2b$10$krbt17Mhp/igTmxcDAhaOebdAgDfT4L/ez3W554KvpvDwF5.EhVhG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:30.463Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T16:37:22.147Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6839e89a24d4d1b7adb0b551"
+  },
+  "nombre": "agustina",
+  "apellido": "jurjo",
+  "email": "agusjurjo@gmail.com",
+  "celular": "3416525294",
+  "diasSemanales": 2,
+  "password": "$2b$10$Qg89/sk4IebnuinPguShXuAE3kPfJ2Wf45XlfwQHhdiXtTgrRadV2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:31.895Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-30T17:19:22.253Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683ae93624d4d1b7adb0e7d1"
+  },
+  "nombre": "florencia ",
+  "apellido": "de ha colina ",
+  "email": "florenciadelacolina@hotmail.com",
+  "celular": "3412887700",
+  "diasSemanales": 3,
+  "password": "$2b$10$GtouBmg5Tjn6TKwV7Moorukm9wYHr3cM22HTtVesmKDV9vZ.JdBH2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:32.259Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-31T11:34:14.852Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683af38a24d4d1b7adb0eeb6"
+  },
+  "nombre": "lucia",
+  "apellido": "ingaramo",
+  "email": "luciav.ingaramo@gmail.com",
+  "celular": "3413288164",
+  "diasSemanales": 2,
+  "password": "$2b$10$EtRbgdfXLO4BpUz0bWZJcOZK71L5GS8trfVa81xN/PdXDQeLhBFze",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:33.520Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-31T12:18:18.954Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-02-23T21:14:00.373Z"
+  },
+  "resetPasswordToken": "ca5e98e02a9d9a105751d10c71de8e3a6188f7af6bb9c418103fd59330b3d466"
+},
+{
+  "_id": {
+    "$oid": "683afe2124d4d1b7adb0fbd1"
+  },
+  "nombre": "celina",
+  "apellido": "lobais",
+  "email": "c.lobais@gmail.com",
+  "celular": "3364322665",
+  "diasSemanales": 1,
+  "password": "$2b$10$v3n7rvunFXLDVvHgFNftj.PUiTJ3QAkuLw8pVDIw6Ot4WFMqYR2NS",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:35.147Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-31T13:03:29.658Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683b088924d4d1b7adb10cd6"
+  },
+  "nombre": "martina",
+  "apellido": "aguirre",
+  "email": "martina.a890@gmail.com",
+  "celular": "3413169558",
+  "diasSemanales": 2,
+  "password": "$2b$10$DuvatlkvaIqO2ODbhNwRzuubCtBUKDR29yVlqESbpDXHQmC5pS3wG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:35.843Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-05-31T13:47:53.149Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683dbb1d24d4d1b7adb161d5"
+  },
+  "nombre": "maria ines",
+  "apellido": "gonzalez ibarra",
+  "email": "enam1007@hotmail.es",
+  "celular": "3416927462",
+  "diasSemanales": 2,
+  "password": "$2b$10$ukVrwWVVU1vlFLsXnuU2FOhcwmw/E5qIjMuNMOGJOfTKuaxSrio7C",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:37.414Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-06-02T14:54:21.047Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683e1a9d54c3c5d82dd8267d"
+  },
+  "nombre": "martina ",
+  "apellido": "guridi ",
+  "email": "martinagurididelbaldo@gmail.com",
+  "celular": "3415405168",
+  "diasSemanales": 1,
+  "password": "$2b$10$PpAyRGz3f/sFXdn4tUCa/eJ4.i/EpqMxVbLseydRGHDGQRczKbjMe",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:38.975Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-06-02T21:41:49.814Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "683e1dbd54c3c5d82dd82747"
+  },
+  "nombre": "macarena ",
+  "apellido": "allende",
+  "email": "maca_allende20@hotmail.com",
+  "celular": "3416888576",
+  "diasSemanales": 2,
+  "password": "$2b$10$Dm2LM2CD.In0pkk1rWlzWOq2z5Ywk4cJAeDDK0xO4iMCuOCjTRSNO",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:43.039Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-06-02T21:55:09.115Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-06-11T13:38:59.529Z"
+  },
+  "resetPasswordToken": "b49aa8da2383c63edb43ecb891bdd1bd4533106ceb848640dc2f8d99e38b42f2"
+},
+{
+  "_id": {
+    "$oid": "6846d52c111d7b41131851ff"
+  },
+  "nombre": "agustina ",
+  "apellido": "gomez",
+  "email": "agustinagomezz@hotmail.com",
+  "celular": "3444530350",
+  "diasSemanales": 1,
+  "password": "$2b$10$6.n.QF/J7v8BbV/oIw.Fx.ldf61wRR6SNCviuL.AyIvjFSjwFd8EW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:45.715Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-06-09T12:35:56.826Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6851e40d1f26ed9b2d3cd112"
+  },
+  "nombre": "monica",
+  "apellido": "melgarejo",
+  "email": "profesoramonicamelgarejo@hotmail.com",
+  "celular": "03416870341",
+  "diasSemanales": 2,
+  "password": "$2b$10$LCWiSrzmZBBpgIxis5ikJ.HE96NUZu2BmCiewGJMO/NGUWmx8JWZe",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:47.174Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-06-17T21:54:21.354Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6862f6d267c2c7e758ba9b85"
+  },
+  "nombre": "lara",
+  "apellido": "olivera",
+  "email": "lara.olivera@hotmail.com",
+  "celular": "3413650702",
+  "diasSemanales": 1,
+  "password": "$2b$10$Isvb4W9kJeBTku1k1NfbPOyyhklCoj/KVv4ypB5bUB1DoKZax63IG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:56.732Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-06-30T20:42:58.800Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "686a98dc437e48d8681d4a17"
+  },
+  "nombre": "danisa",
+  "apellido": "hadad",
+  "email": "danisahadad@hotmail.com",
+  "celular": "3465538115",
+  "diasSemanales": 2,
+  "password": "$2b$10$PDNf4jCxQwSiS8v/RtvgaOiyJmZnVbu3MLAVLXeJ4lMqC0cBrrhVW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:52.135Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-07-06T15:40:12.139Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6870f8e0437e48d8686c7a0a"
+  },
+  "nombre": "micaela",
+  "apellido": "rad",
+  "email": "micaela.rad15@gmail.com",
+  "celular": "3413636649",
+  "diasSemanales": 2,
+  "password": "$2b$10$Nf6bzptTgATcHn3zkz1EWOWUaj2dfAQLLiIjcRuy8qnqPHaSx3FEa",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:53.901Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-07-11T11:43:28.039Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68751e85437e48d86889b138"
+  },
+  "nombre": "brenda",
+  "apellido": "vaquie",
+  "email": "brenvaquie@gmail.com",
+  "celular": "3436401860",
+  "diasSemanales": 3,
+  "password": "$2b$10$syhmhHLMMTOPiAcBuS00meGcX.S8CLOgkfuHSUDQlNb8tLaJ0RD8K",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:39:54.630Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-07-14T15:13:09.841Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "688a02706c3009473a5d018a"
+  },
+  "nombre": "veronica",
+  "apellido": "lizzi",
+  "email": "veronicagabrielalizzi@gmail.com",
+  "celular": "3413530280",
+  "diasSemanales": 2,
+  "password": "$2b$10$vNrLrAMHrXyGqiswO1W.X.pjea/HfHLMIkuLC6NhG4ppZgH2ctIm.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:01.221Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-07-30T11:30:56.539Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68973bc9418f2e9a6b6cbef4"
+  },
+  "nombre": "alejandra",
+  "apellido": "giulianelli",
+  "email": "alejandra_giulianelli@hotmail.com",
+  "celular": "01138170810",
+  "diasSemanales": 2,
+  "password": "$2b$10$ZGO/kmIEE0fdPAHVt890z.ImPbRp3PT1hGIm2zYmM0zo9u8hCSNRO",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:02.524Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-08-09T12:15:05.305Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "689d0832a7bc02c2bf317d3a"
+  },
+  "nombre": "diego gabriel",
+  "apellido": "fernandez",
+  "email": "diegogfernandez99@gmail.com",
+  "celular": "3412010716",
+  "diasSemanales": 2,
+  "password": "$2b$10$48VkEsFGhLUn6GW.pFvrIu0kPT.xUjGlxiV8zz/.gti50TFo48M9S",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:03.873Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-08-13T21:48:34.568Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68af80aa65a2e69a26a84afd"
+  },
+  "nombre": "lila",
+  "apellido": "grigüelo",
+  "email": "griguelolila@gmail.com",
+  "celular": "2474417885",
+  "diasSemanales": 1,
+  "password": "$2b$10$kX0okr2cLQMzoZU1ADFVd.cOVHuCPgvt9y8umx/ak24aQP7fJgZui",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:05.234Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-08-27T22:03:22.540Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68b3352e470911da156799cc"
+  },
+  "nombre": "claudia",
+  "apellido": "tonarelli",
+  "email": "claudiatonarelli@gmail.com",
+  "celular": "3413276918",
+  "diasSemanales": 1,
+  "password": "$2b$10$fSUsx4Rg.lgeXnv3rzb5sOM0aCv7HzraXzpD9Mw8soznUkxIcHCJ6",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-16T10:08:52.584Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-08-30T17:30:22.150Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68f280013d5cf39df1406a67"
+  },
+  "nombre": "guillermina",
+  "apellido": "quiroga",
+  "email": "guillequiroga3116@gmail.com",
+  "celular": "3413900793",
+  "diasSemanales": 1,
+  "password": "$2b$10$FJx7mSZCqaAn8iGn4QRa8OllpTpYlx3Ki0gIY/2V1U8lUgkw4lc1.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-23T19:04:35.185Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-10-17T17:42:25.337Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6904ee5ddfa89949cd6070fe"
+  },
+  "nombre": "estela",
+  "apellido": "sosa",
+  "email": "eb-sosa@hotmail.com",
+  "celular": "3416128086",
+  "diasSemanales": 2,
+  "password": "$2b$10$pTU0/lJHaONoMNK3PRBP4u0vheQ96U7R1o.GEhe1k8UcGi/jDFVSG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:08.400Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-10-31T17:14:05.327Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6908c4b1123d0671aede04d2"
+  },
+  "nombre": "madelaine",
+  "apellido": "fregenal",
+  "email": "madelainefregenal@gmail.com",
+  "celular": "3416903232",
+  "diasSemanales": 1,
+  "password": "$2b$10$FCT31VL5oGGEKfjfvQkxi.2WSImwTKWZ1Q3P6iNqDdO8S6IrOX9/O",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:09.994Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-11-03T15:05:21.172Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "690c9b6587e38f361217995f"
+  },
+  "nombre": "milena",
+  "apellido": "albornoz",
+  "email": "milena.alb.2008@hotmail.com",
+  "celular": "3476580493",
+  "diasSemanales": 2,
+  "password": "$2b$10$bYujVRz6E83IpXWZnF5Aqu7iMer4Q3a00vXqkZ0kY/yFlDr4V/6ny",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:03.504Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-11-06T12:58:13.454Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6912331618c10abc35d45c18"
+  },
+  "nombre": "antonela",
+  "apellido": "vignolo",
+  "email": "vignoloantonela@gmail.com",
+  "celular": "3416020423",
+  "diasSemanales": 1,
+  "password": "$2b$10$t9wkz6Dnj5LNncZa63.gzunnBFFIkUv0N2IlY3efRrLbmfRYdte/.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:04.444Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-11-10T18:46:46.766Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "692a1526f9567aa86a7850ba"
+  },
+  "nombre": "anna maria",
+  "apellido": "tano",
+  "email": "ana@estudiosvazquez.com",
+  "celular": "3416020423",
+  "diasSemanales": 2,
+  "password": "$2b$10$jgz5zvL46gc97V77Hu/zbO3Qvq9hqda3x/LpI2WDnC7PowIt6Zq/q",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:05.352Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-11-28T21:33:26.216Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6949a4acf61c580ccf5bcdc3"
+  },
+  "nombre": "ana",
+  "apellido": "virgili",
+  "email": "anivirgili83@gmail.com",
+  "celular": "153285311",
+  "diasSemanales": 2,
+  "password": "$2b$10$hGVoskRr2/CCRnaBHdodMOKbypNV1BGB3MNxf0lPI49cztm8EKoe.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:14.087Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-12-22T20:06:04.058Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "695314e5f61c580ccf81f83f"
+  },
+  "nombre": "alina",
+  "apellido": "guagliano",
+  "email": "alinaguagliano26@gmail.com",
+  "celular": "2473464542",
+  "diasSemanales": 2,
+  "password": "$2b$10$54yMTBOQrm8yo5PIAre29e6sEOrjXDayHRDYcPfeOuKpspDTK0nBO",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:14.879Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2025-12-29T23:55:17.355Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-03-23T02:17:45.570Z"
+  },
+  "resetPasswordToken": "02f6f3992ea49892e6b7ccd521fd1471013c6f40f254dca8e674933c99cee479"
+},
+{
+  "_id": {
+    "$oid": "695d1cdef61c580ccf91a408"
+  },
+  "nombre": "elsa",
+  "apellido": "sason",
+  "email": "elsasason@gmail.com",
+  "celular": "3416258936",
+  "diasSemanales": 1,
+  "password": "$2b$10$BnMI2eoM3m9wkO0wqvn0u.vCLfsh3Oa43Hr9yN.zCRBtbwbvOZYru",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:23.952Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-06T14:31:58.446Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "695d48aef61c580ccf9271e1"
+  },
+  "nombre": "micaela anabel",
+  "apellido": "roatta",
+  "email": "micaroatta@gmail.com",
+  "celular": "3406438696",
+  "diasSemanales": 2,
+  "password": "$2b$10$ok.JOA03dYavVB7nzB.J8uIa2atOT8L5E1OifmmwCCvoGhebf7KOq",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:17.768Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-06T17:38:54.548Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "695e55f5f61c580ccf95cd0d"
+  },
+  "nombre": "paula",
+  "apellido": "leotta",
+  "email": "pauleotta@gmail.com",
+  "celular": "3416759423",
+  "diasSemanales": 2,
+  "password": "$2b$10$B/O6FMxej2VFVaxmtJEEF./8NWFW5MNFRSX8K4nVbKHT4GcxS1.nq",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:19.519Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-07T12:47:49.751Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69654495f61c580ccfc25259"
+  },
+  "nombre": "ariana",
+  "apellido": "seghezzo",
+  "email": "arianaseghezzo1@gmail.com",
+  "celular": "3413766874",
+  "diasSemanales": 3,
+  "password": "$2b$10$ERoOl3XYH4qqR2uOjqHUw.6tUsXPE0/qz715IaHcffj1OTJM3GcN2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:19.909Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-12T18:59:33.652Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69681da5f61c580ccfdf03f4"
+  },
+  "nombre": "estefanía",
+  "apellido": "ronconi",
+  "email": "estefania.ronconic@gmail.com",
+  "celular": "3446478236",
+  "diasSemanales": 1,
+  "password": "$2b$10$k15HNcKf./5ClNr40NiajOnfbNDWKvMyEnGK7qKJzbrbtJXrwI6NW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:21.570Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-14T22:50:13.150Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "696f849ff61c580ccffbf9e8"
+  },
+  "nombre": "sofia",
+  "apellido": "martin",
+  "email": "sofia.0054@gmail.com",
+  "celular": "3412744773",
+  "diasSemanales": 2,
+  "password": "$2b$10$knRc2G5ZrzfKbG3mKljzBOV7dXgovjJ0tD8u5fzxeJ08NXM9J9eTm",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:50.832Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-20T13:35:27.756Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "697a96e4f61c580ccf353190"
+  },
+  "nombre": "delfina",
+  "apellido": "griguelo",
+  "email": "delfigriguelo@gmail.com",
+  "celular": "2474417623",
+  "diasSemanales": 2,
+  "password": "$2b$10$6ufJUBLd4l7tTyPdY41h3eFU9tP9y6vMbR9u0cyBVEu8Hrb8O2SGW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:52.455Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-28T23:08:20.849Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "697c90fff61c580ccf445a2d"
+  },
+  "nombre": "camila",
+  "apellido": "giuliani",
+  "email": "giulianicamila@gmail.com",
+  "celular": "3471526334",
+  "diasSemanales": 2,
+  "password": "$2b$10$oXQazGK1t4EdXfZxrCgxGu8ZmF5HmQqyJawnz1nVtYRzoBlyB58Em",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:52.893Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-30T11:07:43.051Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "697ccdc7f61c580ccf4d0a35"
+  },
+  "nombre": "mariela",
+  "apellido": "homs",
+  "email": "marielhoms@gmail.com",
+  "celular": "3415327589",
+  "diasSemanales": 2,
+  "password": "$2b$10$VoURwzP.tcj/Hg.9ZCCZbO2dieW6s9Dj4N4EGDMw97MVpqFExoT8W",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:53.894Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-30T15:27:03.048Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "697e0eaaf61c580ccf520447"
+  },
+  "nombre": "rocío maría",
+  "apellido": "miguel",
+  "email": "rociommiguel02@gmail.com",
+  "celular": "3413601135",
+  "diasSemanales": 2,
+  "password": "$2b$10$a.iHt.PI31oIY4u0NiTGU.rI7lbkuKBnv1qNMSlUnjZWxAJwaq/Cm",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:55.332Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-01-31T14:16:10.646Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69809730f61c580ccf5b2f45"
+  },
+  "nombre": "delfina",
+  "apellido": "fantino",
+  "email": "delfinafantino@gmail.com",
+  "celular": "3426119750",
+  "diasSemanales": 2,
+  "password": "$2b$10$mCMugQOnoxiJKvgzJ8dYV.jhbmFfc0AGAX3VLEodYRRQ7cwZNUGQK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:55.834Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-02T12:23:12.456Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6980b3acf61c580ccf5d3326"
+  },
+  "nombre": "vanina",
+  "apellido": "zanotti jalil",
+  "email": "vaninazanotti@gmail.com",
+  "celular": "3468643955",
+  "diasSemanales": 1,
+  "password": "$2b$10$4Jyx1L1NNH3jKsKFB0q60.smM6DHkYtA2ifHP6xJMrCcSx6ryf46e",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:57.381Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-02T14:24:44.858Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6984a90ff61c580ccf7e7c03"
+  },
+  "nombre": "agustina",
+  "apellido": "comelli",
+  "email": "carluccifranco9@gmail.com",
+  "celular": "3412667700",
+  "diasSemanales": 1,
+  "password": "$2b$10$L1l9vaYEeyE0fKdTlvHlC.ZEjOjgdNuUyn1EAVWU.lNZB1boR5N4O",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:58.119Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-05T14:28:31.859Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "699c5b7ba777fa9be075863f"
+  },
+  "nombre": "romina",
+  "apellido": "luna",
+  "email": "rominaluna1999@gmail.com",
+  "celular": "3415974094",
+  "diasSemanales": 2,
+  "password": "$2b$10$lMQohTVfJKhXzO4FhGGKuu/XCCqvsJQeIejpBM02/e2YzkZv66QFm",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:59.619Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-23T13:51:55.817Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "699ca1a6a777fa9be07a25ef"
+  },
+  "nombre": "angela",
+  "apellido": "llonch",
+  "email": "angie.llonch9@gmail.com",
+  "celular": "3412708839",
+  "diasSemanales": 3,
+  "password": "$2b$10$8kXsIsGrf/fcu7YBuuNTXOICmXCBxedo/JpMOCuwNeV/48aUx6SIK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:39.485Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-23T18:51:18.919Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "699e06f6a777fa9be09485f4"
+  },
+  "nombre": "cynthia",
+  "apellido": "g",
+  "email": "gervasonicyn@gmail.com",
+  "celular": "3415636120",
+  "diasSemanales": 2,
+  "password": "$2b$10$edBGaUJL8TgPm1sx.SJ32O1MdhknmAP9j.iYmJGc/Bzqaakf96KNK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:40.176Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-24T20:15:50.011Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1981ca777fa9be0b8d04d"
+  },
+  "nombre": "nerea",
+  "apellido": "godoy",
+  "email": "nereagdoy@hotmail.com.ar",
+  "celular": "3413216384",
+  "diasSemanales": 1,
+  "password": "$2b$10$M102YdacgoJ00doOgdKJLe6tRskb2lV6lDfPTCv.fqEJuDeDF3uV2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:44.978Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T13:11:56.112Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1be06a777fa9be0baddf3"
+  },
+  "nombre": "laura",
+  "apellido": "prece",
+  "email": "lauraprece@hotmail.com",
+  "celular": "3415098946",
+  "diasSemanales": 2,
+  "password": "$2b$10$T8ZORESfCOqdCaTXjNQd5e2MiADSS8OS8QIEW/.gnztbhdty3sRc.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:41:48.295Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T15:53:42.813Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1bfc7a777fa9be0bbb1e4"
+  },
+  "nombre": "julieta",
+  "apellido": "oldani",
+  "email": "julioldani53@gmail.com",
+  "celular": "3416092014",
+  "diasSemanales": 2,
+  "password": "$2b$10$xZK7y7vrai33hHVZU44HIOk3YF093nEq86qhJG0UaImByXxtUDa/y",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:18.650Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T16:01:11.023Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1da29a777fa9be0bcf081"
+  },
+  "nombre": "maria paola",
+  "apellido": "lopez",
+  "email": "maripalopez@live.com",
+  "celular": "3413546364",
+  "diasSemanales": 1,
+  "password": "$2b$10$uhLdIipKMDel5aMtk.PfDeAmfeK8TfRgGTayKGihW1PZdY5IJEQtO",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-16T10:08:56.443Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T17:53:45.316Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1e451a777fa9be0bdb76d"
+  },
+  "nombre": "horiany",
+  "apellido": "gonzalez",
+  "email": "horyvalent@gmail.com",
+  "celular": "3415483581",
+  "diasSemanales": 1,
+  "password": "$2b$10$wtkt1Nh5dFEpWaQQnkTm3exX.NBD9iH524AtA5PT.tCIvDhJifIgu",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:20.401Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T18:37:05.212Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1ed57a777fa9be0bea7d9"
+  },
+  "nombre": "valeria",
+  "apellido": "silvestri",
+  "email": "valery528@hotmail.com",
+  "celular": "3415862827",
+  "diasSemanales": 3,
+  "password": "$2b$10$f7buImFMk197T5fLe0zYou3B9nj49sxPWAf9V7KR8FKDbkyG0r..a",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:22.135Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T19:15:35.714Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1f9d8a777fa9be0bf8cc4"
+  },
+  "nombre": "ticiana",
+  "apellido": "cabral",
+  "email": "ticianacabral23@gmail.com",
+  "celular": "3406643275",
+  "diasSemanales": 2,
+  "password": "$2b$10$SM0y7gnR.6.cJhOYhk5qg.2h654Vk8QQ/P4vfzdIaRYiM7GVkqN/G",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:22.564Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-27T20:08:56.611Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a3167ba777fa9be0c63fac"
+  },
+  "nombre": "melisa",
+  "apellido": "sciutto",
+  "email": "melisa.ss41011@gmail.com",
+  "celular": "3412673859",
+  "diasSemanales": 3,
+  "password": "$2b$10$sHP7tqc.EYcdlvP.xP4TyebvTm55jKvHrSkg3jySw2DqIrnZ9vq92",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-16T10:09:02.217Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-28T16:23:23.613Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a35ebba777fa9be0c8d307"
+  },
+  "nombre": "karine",
+  "apellido": "freitas",
+  "email": "karinefreitasdefaria.kf@gmail.com",
+  "celular": "3417200248",
+  "diasSemanales": 1,
+  "password": "$2b$10$4ODbofXxeJhzqnEz3t1/1u9shp2VGe335TmVOLrqyjXOXQ.7nH/O.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-11T04:06:37.786Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-02-28T21:31:39.215Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a5d111a777fa9be0d84ff3"
+  },
+  "nombre": "valeria",
+  "apellido": "marzzan",
+  "email": "valerymarzzan@hotmail.com",
+  "celular": "3413542166",
+  "diasSemanales": 2,
+  "password": "$2b$10$GeBYpAvgeaIfAPJI7BvabeN2A.35YjdEHeLD6X8/pbnDOFNPIJsUa",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:26.348Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-02T18:04:01.319Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a7371ba777fa9be0e4c1eb"
+  },
+  "nombre": "mirta",
+  "apellido": "rua",
+  "email": "mirtarua@gmail.com",
+  "celular": "3415280808",
+  "diasSemanales": 2,
+  "password": "$2b$10$NJq3LbjYh2w3uPgpuux2uuLqPcMkkBlHzdSruDymlm1zWvjNt1KR6",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:27.882Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-03T19:31:39.714Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a9bd9da777fa9be0039146"
+  },
+  "nombre": "alondra",
+  "apellido": "ruiz",
+  "email": "aloruiz88@gmail.com",
+  "celular": "3644726999",
+  "diasSemanales": 1,
+  "password": "$2b$10$cihlIAME6MEdZneJRLyGzev9cb85VRmjAtwNaH1FPGErPw6FoL7ei",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:53.095Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-05T17:30:05.312Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69adfa6ea777fa9be0264759"
+  },
+  "nombre": "lucas",
+  "apellido": "lorenzatti",
+  "email": "lucaslorenzatti48@gmail.com",
+  "celular": "3412655432",
+  "diasSemanales": 1,
+  "password": "$2b$10$y5VNQWTCjV9Xm00yNYXDtueBV9.pBNXPkRuaDmGVRxZdrGK5aylJK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:53.936Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-08T22:38:38.917Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69b07d53a777fa9be041aa6a"
+  },
+  "nombre": "laura",
+  "apellido": "armoa",
+  "email": "laura@rosario.com",
+  "celular": "3416809003",
+  "diasSemanales": 3,
+  "password": "$2b$10$DWdoUclUOVo6UZJu1Zm5s.5Fb6iTpPVdT22IIcC0g/uplsxIShqbC",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:32.199Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-10T20:21:39.011Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69b9a2acfbd57cfb0e289ad4"
+  },
+  "nombre": "fiorella",
+  "apellido": "camilletti grijalba",
+  "email": "fiorella.camilletti.grijalba@gmail.com",
+  "celular": "3413355177",
+  "diasSemanales": 1,
+  "password": "$2b$10$o7NSWVFCuFZ1gWA1Rq2eme9IrcGCEPX8shdSFjtNxONJgVBJCtw0G",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:32.691Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-17T18:51:24.131Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69cabd8bb4cdddc241b1a709"
+  },
+  "nombre": "ana clara",
+  "apellido": "palombo",
+  "email": "anaclarapalombo@hotmail.com",
+  "celular": "3413552218",
+  "diasSemanales": 1,
+  "password": "$2b$10$rcZWvi.o4OqyFZ4Vmm8lH.xhXiCi8RuGh8vouU0jnYbcP9akAXRDC",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:34.013Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-30T18:14:35.122Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-06-16T14:38:25.234Z"
+  },
+  "resetPasswordToken": "30f96a9c040f317b0b11431cbf4fb8610d8163bbe217500370f7732053edf837"
+},
+{
+  "_id": {
+    "$oid": "69cac8dfb4cdddc241b1f310"
+  },
+  "nombre": "emma",
+  "apellido": "sabbag",
+  "email": "es.emmasabbag@gmail.com",
+  "celular": "3412104097",
+  "diasSemanales": 2,
+  "password": "$2b$10$L4mIlCC7ud5m8Kmq25WDVuI7paXCy5RBWeTOkubh85z19pJzYKhim",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:34.540Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-30T19:02:55.921Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69cad35db4cdddc241b1f81d"
+  },
+  "nombre": "valentina",
+  "apellido": "chiavassa",
+  "email": "valechiavassa09@gmail.com",
+  "celular": "3401594477",
+  "diasSemanales": 2,
+  "password": "$2b$10$V765IncqG83iZHjs3lb0He6H6f.8QdNQ9KjcjdUqskqperLXcxdEG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:35.497Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-03-30T19:47:41.524Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69cd1b6de85c03079de062c0"
+  },
+  "nombre": "jazmin",
+  "apellido": "banchio",
+  "email": "jazchubanchio@gmail.com",
+  "celular": "3492621106",
+  "diasSemanales": 2,
+  "password": "$2b$10$MjMIRbMrBxuXqiOXUU3v6./QGFo24bSc6.ZnQoNh.RDmNcwDB.LG.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:42.716Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-01T13:19:41.189Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d3cc4be85c03079de0d2cf"
+  },
+  "nombre": "julia",
+  "apellido": "aguaya",
+  "email": "juliag2020@outlook.com",
+  "celular": "3415442249",
+  "diasSemanales": 2,
+  "password": "$2b$10$cv4Z2dYC7vrrLqpZPofC7.jR35bWAZ82DTHl1mbxpm4mG3W6C2652",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:44.088Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-06T15:07:55.102Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d4d933e85c03079de15250"
+  },
+  "nombre": "roxana",
+  "apellido": "trobbiani",
+  "email": "r.g.chani@gmail.com",
+  "celular": "3413650702",
+  "diasSemanales": 2,
+  "password": "$2b$10$tpVA8FE8abuErFPEGfehNupZshKCU9SK3abhyx4l8tijwqDqVIyyK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:40:44.538Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-07T10:15:15.692Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d55b33e85c03079de1ea21"
+  },
+  "nombre": "camila",
+  "apellido": "rosso",
+  "email": "camilajulietarosso@gmail.com",
+  "celular": "3413716106",
+  "diasSemanales": 2,
+  "password": "$2b$10$/98Hl8fhl6DHu1ZmOMVi1.zRAOzjO63gc7X9mv9CY24cosYBavmUW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:00.892Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-07T19:29:55.290Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d55b93e85c03079de1ea26"
+  },
+  "nombre": "romina",
+  "apellido": "rosso",
+  "email": "romi_rosso@outlook.com",
+  "celular": "3413540890",
+  "diasSemanales": 2,
+  "password": "$2b$10$BbeENewScKs5KdJ0S.pcCuxEx/.xn/GA5UpJcVbAYnFpIrWXfweq6",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:02.303Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-07T19:31:31.592Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d63cdee85c03079de25529"
+  },
+  "nombre": "evangelina",
+  "apellido": "reglero",
+  "email": "regleroevangelina@gmail.com",
+  "celular": "3412802224",
+  "diasSemanales": 2,
+  "password": "$2b$10$i0QeBXsVvKKT6.YJtqOJ0uSXC15c.naP6RE0sH0pTYlROPcE.TQby",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-11T04:06:40.935Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-08T11:32:46.591Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d64345e85c03079de25b00"
+  },
+  "nombre": "agustín",
+  "apellido": "marquardt",
+  "email": "amarquardt20@gmail.com",
+  "celular": "3416833514",
+  "diasSemanales": 2,
+  "password": "$2b$10$kOJdBZkATuR0E1O0hDD33eol0CY0pPNy9CMMrlll2KRPY2QsXo.RW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:06.392Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-08T12:00:05.596Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69d6a3d0e85c03079de29a8b"
+  },
+  "nombre": "ariana",
+  "apellido": "gonzalez",
+  "email": "gonzalezarianavictoria@gmail.com",
+  "celular": "1123193960",
+  "diasSemanales": 1,
+  "password": "$2b$10$PACepkH.E7.3BdsiqAbHpu4pS3VttZxrVtKBOxXJGB31Tzz1IzfK2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:07.775Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-08T18:52:00.100Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69dcf1e9e85c03079de359f5"
+  },
+  "nombre": "julieta",
+  "apellido": "garcia",
+  "email": "julietagarcia97@outlook.com",
+  "celular": "3416809003",
+  "diasSemanales": 1,
+  "password": "$2b$10$VrCuSc7ltropNVMQkkaxk..YoRURRk3HjEllgyrGyvtgYfnqMTzwi",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:09.268Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-13T13:38:49.396Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69dd7f82e85c03079de38263"
+  },
+  "nombre": "ines",
+  "apellido": "vigo",
+  "email": "inesvigo2305@gmail.com",
+  "celular": "3425094501",
+  "diasSemanales": 2,
+  "password": "$2b$10$Squc6VKoECVj1UWaXSXWi.8cZD6nT597aFRuLe2DcWFZrhtidu2XK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:09.584Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-13T23:42:58.909Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69dd811de85c03079de386fe"
+  },
+  "nombre": "delfina",
+  "apellido": "trucco",
+  "email": "delfitrucco@gmail.com",
+  "celular": "93425434897",
+  "diasSemanales": 2,
+  "password": "$2b$10$plYh1BCP7ZG8oYHSpBGTEeLsPDeNbKDnLvfsE9DrDWbw0A4a0WUEy",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:03.518Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-13T23:49:49.292Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69ded466e85c03079de3dc86"
+  },
+  "nombre": "maddalena",
+  "apellido": "badas",
+  "email": "maddyyb4@gmail.com",
+  "celular": "3413120804",
+  "diasSemanales": 2,
+  "password": "$2b$10$ruaTfxZAX8zJou3IzlJV.eErTrnsIX71OwHpN3E4PUyFLde8nVlde",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:04.880Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-14T23:57:26.394Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69ea8f6be85c03079de611fd"
+  },
+  "nombre": "agustina",
+  "apellido": "quiroga",
+  "email": "quirogaagustina109@gmail.com",
+  "celular": "3364372621",
+  "diasSemanales": 2,
+  "password": "$2b$10$yDsJXNM/ts8U4YCZff9I0elI0rWKy1CF08vZcXdJsIynn5/cwe0Mu",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:08.384Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-23T21:30:19.104Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69ea923fe85c03079de61e7c"
+  },
+  "nombre": "victoria",
+  "apellido": "fernandez",
+  "email": "fernandez.a.victoria2023@gmail.com",
+  "celular": "3413933476",
+  "diasSemanales": 1,
+  "password": "$2b$10$Szv.GCPXNOFt72f11PsNmulNR.eNU59BAvIRIiuhg2J2U3Yz./Xye",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:09.994Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-23T21:42:23.694Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69efa045e85c03079de6c548"
+  },
+  "nombre": "aylén",
+  "apellido": "ferrero paget",
+  "email": "ferreropagetaylen@gmail.com",
+  "celular": "93462654107",
+  "diasSemanales": 1,
+  "password": "$2b$10$Z9VHAJNcIcAC.scgxtPT6.GObY9CnQC7gVkXrDXWtgxCvI/ur6Ws.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:15.937Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-27T17:43:33.389Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f09489e85c03079de6ef06"
+  },
+  "nombre": "lucía",
+  "apellido": "primo brochiero",
+  "email": "luciabrochiero@gmail.com",
+  "celular": "3388434133",
+  "diasSemanales": 2,
+  "password": "$2b$10$hjzXz4x5FALgn5e/F12i9.ptvtQsTLth7RJjmfjfz0wKpjHSL3Jye",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:17.360Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-28T11:05:45.303Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f0b8c9e85c03079de701e7"
+  },
+  "nombre": "abril",
+  "apellido": "bidrera",
+  "email": "bidrera.abril@gmail.com",
+  "celular": "03412530120",
+  "diasSemanales": 1,
+  "password": "$2b$10$E0kP2kgX7DDzQN3ZZq1Euup3sgeqIZw4gnWnb3qTxvhBWD2mzyhsO",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:18.915Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-28T13:40:25.697Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f2738381af73680465c4a7"
+  },
+  "nombre": "juan carlos",
+  "apellido": "lamas",
+  "email": "juanlamas@hotmail.com",
+  "celular": "03416464356",
+  "diasSemanales": 2,
+  "password": "$2b$10$iAlW.MphC2cN5UUe6iAnzusuoQFWYWqBa3NMmp.IS/IGK3rpZIG.W",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:20.117Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-29T21:09:23.566Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f3bd516e43b612a8d56123"
+  },
+  "nombre": "malena",
+  "apellido": "navarro",
+  "email": "malenanavarro12@gmail.com",
+  "celular": "3415932712",
+  "diasSemanales": 2,
+  "password": "$2b$10$OvazZdhJ/lPGYtWcCfqQ7.xzeotcZASKtzASEV7jnsZmMZsz2htmK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:21.914Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-30T20:36:33.116Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f3be786e43b612a8d5660a"
+  },
+  "nombre": "victoria",
+  "apellido": "mainetti",
+  "email": "viquimainetti@hotmail.com.ar",
+  "celular": "3412474869",
+  "diasSemanales": 1,
+  "password": "$2b$10$pryVUmLbd20tpKWRwfQ8JectKxxy/c6Sq6k8SWq9.bYuXVcnnNsiy",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:35.130Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-04-30T20:41:28.210Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f4abda6e43b612a8d56dee"
+  },
+  "nombre": "malena",
+  "apellido": "altamirano",
+  "email": "malenaaltamirano@gmail.com",
+  "celular": "3416809003",
+  "diasSemanales": 2,
+  "password": "$2b$10$.1.FpcsRokLtSsbFR1o.Cuwh0LsOp7s4djjWKci.6PEVsbI4UZgfa",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:35.767Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-01T13:34:18.213Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f74def6e43b612a8d58595"
+  },
+  "nombre": "lara",
+  "apellido": "blunda",
+  "email": "laraeevs@gmail.com",
+  "celular": "3412512206",
+  "diasSemanales": 2,
+  "password": "$2b$10$8hO/C/CaBMkr8cdAe1Rc8uSydHIYYVhc0ftl.8PBSFXfyj6rhEtuW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:37.190Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-03T13:30:23.223Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f8881d6e43b612a8d5a974"
+  },
+  "nombre": "patricia",
+  "apellido": "battaglia",
+  "email": "patribattagl@gmail.com",
+  "celular": "3415200064",
+  "diasSemanales": 2,
+  "password": "$2b$10$mqn5HxBjZ4Z7oL5vl2cmq.SkU7f/R3kQEVt11d/miPqxN4Q6YwPRa",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:38.741Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-04T11:50:53.410Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f8ff9f6e43b612a8d5d348"
+  },
+  "nombre": "sol",
+  "apellido": "arquiel",
+  "email": "solarquiel2008@hotmail.es",
+  "celular": "3416223344",
+  "diasSemanales": 1,
+  "password": "$2b$10$13MOUuAg7kfwA37LESh/meOrwHqpIOVb18z05mSf3tcKlKJobmC3m",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:39.942Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-04T20:20:47.417Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69f9019b6e43b612a8d5dd5d"
+  },
+  "nombre": "victoria",
+  "apellido": "michelini",
+  "email": "victoriamichelini52@gmail.com",
+  "celular": "346515404202",
+  "diasSemanales": 2,
+  "password": "$2b$10$ngSyP9qODORKhmU0W4hQ9.19q5Bf6r0x1Gql/6LqB9UAdOZzdvDBe",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:41.476Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-04T20:29:15.223Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69fbbcf927e24d7c86c3dd8f"
+  },
+  "nombre": "maria",
+  "apellido": "bergero",
+  "email": "mariaagustinabergero@gmail.com",
+  "celular": "3401408740",
+  "diasSemanales": 2,
+  "password": "$2b$10$A1wTGZ3VqghHNc4ngHElBO1r4HxIecQ0NoQlZVx86s9DqLuzWS17u",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:41.477Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-06T22:13:13.753Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69fe08c927e24d7c86c461b6"
+  },
+  "nombre": "dana",
+  "apellido": "scarafia",
+  "email": "danascarafia@hotmail.com",
+  "celular": "3438408051",
+  "diasSemanales": 1,
+  "password": "$2b$10$h.cdLGQaONfYKLy6wxm5reM1El/yTZLnWUFyaTHDizlnFuZitB3Fe",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:42:43.226Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-08T16:01:13.257Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a03aa962d3685d81683a044"
+  },
+  "nombre": "solange",
+  "apellido": "duks",
+  "email": "solangeduks3@gmail.com",
+  "celular": "3562416084",
+  "diasSemanales": 1,
+  "password": "$2b$10$DX2P3hAz82a21NwuxfinM.n5JhccCTSsgW2Qpxr9z1J1ZepTByD/i",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:23.393Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-12T22:32:54.579Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a046b732d3685d81683ad9c"
+  },
+  "nombre": "osiris",
+  "apellido": "moschen",
+  "email": "osirismoschen65@gmail.com",
+  "celular": "3472557192",
+  "diasSemanales": 2,
+  "password": "$2b$10$NzxQGLThCQcl/7FXrjWkZerfNmtBfTRhv2oNxvXr/AgXBgQMMHYU2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:24.937Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-13T12:15:47.085Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a0af5c01021c0c1fbd83db1"
+  },
+  "nombre": "melisa",
+  "apellido": "mazzei",
+  "email": "melisamazzei@gmail.com",
+  "celular": "3416557799",
+  "diasSemanales": 1,
+  "password": "$2b$10$bRnWYQGNmjsBwr80XBmuUOYBeSDhwuCD74KASMEgbO2mhTBR4eW/K",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:25.560Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-18T11:19:28.373Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a10395e1021c0c1fbd998d0"
+  },
+  "nombre": "alejandra",
+  "apellido": "bracone",
+  "email": "braconealejandra@gmail.com",
+  "celular": "3415880099",
+  "diasSemanales": 1,
+  "password": "$2b$10$Z.He3ZqmDI0NSzOGE369a.gpsYXy6f/M3YZzoqlS69DHK09rjcxxq",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:26.995Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-22T11:09:18.381Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a18380d1021c0c1fbdb7b1c"
+  },
+  "nombre": "nicolas",
+  "apellido": "valls",
+  "email": "nico_valls91@hotmail.com",
+  "celular": "3416418375",
+  "diasSemanales": 1,
+  "password": "$2b$10$WliZDO15TcDBLDYZ.4ti6./0zF4U20.hvDuP9DRyuMlDxWOfpWbqq",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:27.775Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-28T12:41:49.784Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a184c9e1021c0c1fbdb9084"
+  },
+  "nombre": "malena",
+  "apellido": "collel",
+  "email": "malenacollel7@gmail.com",
+  "celular": "3412889900",
+  "diasSemanales": 2,
+  "password": "$2b$10$ngBih2xb3Dpr/Ui7YhRFKuxhnD3I1WFbJBOQxQNEN/rss66kf2b4K",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:28.524Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-28T14:09:34.186Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1851e31021c0c1fbdb998d"
+  },
+  "nombre": "barbara",
+  "apellido": "roots",
+  "email": "barbara_roots@hotmail.com",
+  "celular": "3415443388",
+  "diasSemanales": 2,
+  "password": "$2b$10$u5at8QnDP3nBZlxYOC6KvePpLIUizLlxvGP./.y9DouQcWFn0ucx6",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:29.938Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-28T14:32:03.479Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1872101021c0c1fbdbbbfb"
+  },
+  "nombre": "gianella",
+  "apellido": "mattioli",
+  "email": "gianemattioli@gmail.com",
+  "celular": "3465446469",
+  "diasSemanales": 2,
+  "password": "$2b$10$dCwgsXFwawtOONCteaE3T.VmACdGmo/FKCCCsUcKSm79PM9GX3vw6",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:32.326Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-28T16:49:20.380Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a197af31021c0c1fbdc39c8"
+  },
+  "nombre": "m eugenia",
+  "apellido": "tomatis",
+  "email": "mariaeugeniatomatis@hotmail.com",
+  "celular": "3413650702",
+  "diasSemanales": 1,
+  "password": "$2b$10$pRPvDKTLCe49rlLKT93ng.gfx26OPsK4pO9FiyviKkFfpmqWvITmK",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:39.012Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-29T11:39:31.578Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a197bac1021c0c1fbdc3f8a"
+  },
+  "nombre": "agustina",
+  "apellido": "poggiani",
+  "email": "aguspoggiani96@gmail.com",
+  "celular": "3416128086",
+  "diasSemanales": 1,
+  "password": "$2b$10$Xnumw6olbYqMPJUgx0c34uzQtbUS6sS/y51SlRpQ1fQLEdfMGkEYe",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:39.699Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-29T11:42:36.382Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a199ba91021c0c1fbdc4ef4"
+  },
+  "nombre": "delfina",
+  "apellido": "bonci",
+  "email": "delfinagomezbonci@gmail.com",
+  "celular": "3412802224",
+  "diasSemanales": 2,
+  "password": "$2b$10$aKebvYXAxuuVtBb5ISc/huVG6SepwTi8IlnxlHTIj0/v.lc6dSneW",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:41.740Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-29T13:59:05.585Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a19fe4b1021c0c1fbdc6556"
+  },
+  "nombre": "gisela",
+  "apellido": "velasco",
+  "email": "gvelasco79@gmail.com",
+  "celular": "3416778899",
+  "diasSemanales": 2,
+  "password": "$2b$10$EZb6WLnHWX/Uf5TDqOr4LuC8dZPB9B3OzSu5bB6b6h7lGM6m.NNfm",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:42.202Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-29T20:59:55.087Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1b06f41021c0c1fbdc821c"
+  },
+  "nombre": "julieta",
+  "apellido": "bailaque",
+  "email": "julietab17@hotmail.com",
+  "celular": "3415951401",
+  "diasSemanales": 1,
+  "password": "$2b$10$bjJEsDDaTkxnVVM7Vtj6POmy77MWkTn0hb0F/hBSAOzlNvVV/e126",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-16T10:09:05.587Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-05-30T15:49:08.975Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1d78631021c0c1fbdcb7c7"
+  },
+  "nombre": "nerina",
+  "apellido": "mairal",
+  "email": "mairalnerina@gmail.com",
+  "celular": "3416558899",
+  "diasSemanales": 2,
+  "password": "$2b$10$.a5vL9UlnW.n7G1b1beK5uB2K/.iJiswPafbfZEscpf8zzK3JQBUu",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:49.231Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-01T12:17:39.875Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1db7b71021c0c1fbdcd01f"
+  },
+  "nombre": "francisco",
+  "apellido": "pons",
+  "email": "franciscopons2001@gmail.com",
+  "celular": "3464592337",
+  "diasSemanales": 2,
+  "password": "$2b$10$JK4dHDinalPqEfqEMhLw7u3PY9KkywE.NNyiREiR0.//WxLTUBEXi",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:53.807Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-01T16:47:51.879Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1deddc1021c0c1fbdcedd3"
+  },
+  "nombre": "emilia",
+  "apellido": "solares",
+  "email": "emisolares08@gmail.com",
+  "celular": "3412665544",
+  "diasSemanales": 1,
+  "password": "$2b$10$nhmZC9T6ekkhJelrvQw4M.B.9h2pFdZsGJlRDvMfMfxd5YK8lBGp2",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:55.343Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-01T20:38:52.075Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1f436e1021c0c1fbdd530d"
+  },
+  "nombre": "eugenia",
+  "apellido": "blanc",
+  "email": "eugeblanc.94@gmail.com",
+  "celular": "342887766",
+  "diasSemanales": 1,
+  "password": "$2b$10$luWzQNDtdjLobrH7YvSwWukQ3PQ7tposb5gc0aLV8/hf80HdrKjXG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:57.091Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-02T20:56:14.574Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a2070d11021c0c1fbdd9f32"
+  },
+  "nombre": "guadalupe",
+  "apellido": "ribba guridi",
+  "email": "guadaluperibba@hotmail.com",
+  "celular": "3415481498",
+  "diasSemanales": 1,
+  "password": "$2b$10$Mz3WlsNdbu6KkMfytvmiQ.9fTrpCOo27IRxt./5qPh4q28KUjQJfm",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:57.533Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-03T18:22:09.790Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a23fefd1021c0c1fbde77c9"
+  },
+  "nombre": "jimena",
+  "apellido": "alesandrelli",
+  "email": "jimena_2598@hotmail.com",
+  "celular": "3471680410",
+  "diasSemanales": 1,
+  "password": "$2b$10$aM9JXGqQeuzOqJP7hzBm9eWI5Dtyefioz1EFZLNEGV0qzDVSxdu1.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:43:58.543Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-06T11:05:33.177Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a26b6421021c0c1fbdeb08f"
+  },
+  "nombre": "cintia",
+  "apellido": "osterwalder",
+  "email": "cintu.oster@gmail.com",
+  "celular": "3413746076",
+  "diasSemanales": 2,
+  "password": "$2b$10$Sh8RR1uU/vCLYpcC5M3pY.a4tdU8Xq8FpH8XeMdHgPofokG/DVaSS",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:44:04.665Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-08T12:32:02.974Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a28021c1021c0c1fbdf3ac0"
+  },
+  "nombre": "milena",
+  "apellido": "moreira",
+  "email": "milenacmds@gmail.com",
+  "celular": "342772211",
+  "diasSemanales": 1,
+  "password": "$2b$10$oOCt8VxPdSlZEFjZpybxveMtOWVkBdRYMVw3NZ8j3mcccljXVwPeS",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:44:05.602Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-09T12:07:56.078Z"
+  },
+  "__v": 0,
+  "resetPasswordExpires": {
+    "$date": "2026-06-09T17:48:02.616Z"
+  },
+  "resetPasswordToken": "ffe76ee1407c581f393f3b1a26c85adc73e1e74e609f6159b8407f80c08866a5"
+},
+{
+  "_id": {
+    "$oid": "6a2874c61021c0c1fbdf5f61"
+  },
+  "nombre": "cecilia",
+  "apellido": "pedrido",
+  "email": "pedridoceci@gmail.com",
+  "celular": "3415503103",
+  "diasSemanales": 2,
+  "password": "$2b$10$fr2DHR2wRa/1xOKqXriK2OkVeSOCPEv9y5Z7katM2tv4rWRSSaK8C",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:44:07.009Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-09T20:17:10.178Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a29d5671021c0c1fbdffcab"
+  },
+  "nombre": "tania",
+  "apellido": "perez",
+  "email": "taniap2121@hotmail.com",
+  "celular": "3414779900",
+  "diasSemanales": 1,
+  "password": "$2b$10$s99DafAErXFUJWsyzXtwvOEhfZK6UuPQPkJJQgXdjdqFCrnaZkJ/W",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-10T23:44:09.169Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-10T21:21:43.778Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a2adbb41021c0c1fbe05988"
+  },
+  "nombre": "monica",
+  "apellido": "gimenez",
+  "email": "nikigimenez18@gmail.com",
+  "celular": "3794832075",
+  "diasSemanales": 2,
+  "password": "$2b$10$zpRd.HL3mQCIKtMkLv.PQutVrDa2ikTaXBmZCdDtITpHWoTaAbaSG",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-16T10:09:08.310Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-11T16:00:52.383Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a35a10e1021c0c1fbe2f29d"
+  },
+  "nombre": "regina",
+  "apellido": "trossero",
+  "email": "trosseroregina@gmail.com",
+  "celular": "3407466137",
+  "diasSemanales": 2,
+  "password": "$2b$10$h80CgUh6Jb/.N5WYnKRcpu2BTJPgGFxFhnQ/lfJ5qrImT9Hpprih.",
+  "pago": true,
+  "fechaPago": {
+    "$date": "2026-06-23T19:04:37.101Z"
+  },
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-19T20:05:34.977Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a3bb7741021c0c1fbe42045"
+  },
+  "nombre": "albertina",
+  "apellido": "macoritto",
+  "email": "albertina_macoritto@hotmail.com",
+  "celular": "00598096656037",
+  "diasSemanales": 1,
+  "password": "$2b$10$AbQKLm5NzEDCZxZ8mRYM9Oj73D5ZPsWoycYGgayYi7L/aGfINxna2",
+  "pago": false,
+  "fechaPago": null,
+  "rol": "usuario",
+  "fechaRegistro": {
+    "$date": "2026-06-24T10:54:44.074Z"
+  },
+  "__v": 0
+}]

@@ -1,0 +1,3438 @@
+[{
+  "_id": {
+    "$oid": "683e1ab354c3c5d82dd82689"
+  },
+  "user": {
+    "$oid": "683e1a9d54c3c5d82dd8267d"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "683e1ab354c3c5d82dd8268a"
+      }
+    }
+  ],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-22T19:06:27.519Z"
+  },
+  "__v": 38,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e1db254c3c5d82dd82726"
+  },
+  "user": {
+    "$oid": "6839123424d4d1b7adb073f2"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "683e1db254c3c5d82dd82727"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-08T22:05:05.602Z"
+  },
+  "__v": 2,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e1ddc54c3c5d82dd82774"
+  },
+  "user": {
+    "$oid": "683e1dbd54c3c5d82dd82747"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "683e1ddc54c3c5d82dd82775"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "683e1ddc54c3c5d82dd82776"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e211054c3c5d82dd829a8"
+  },
+  "user": {
+    "$oid": "683dbb1d24d4d1b7adb161d5"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69bd39acfbd57cfb0e4d9a9a"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69c803e72a1c963ea9ad113c"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 41,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e219454c3c5d82dd82a3f"
+  },
+  "user": {
+    "$oid": "6839dec224d4d1b7adb0b0ff"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "683e219454c3c5d82dd82a40"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "683e219454c3c5d82dd82a41"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 5,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e219954c3c5d82dd82a6c"
+  },
+  "user": {
+    "$oid": "6839b02f24d4d1b7adb09ac4"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "68d80926c11c04213fc24582"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-22T01:14:16.015Z"
+  },
+  "__v": 14,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e28f654c3c5d82dd835b9"
+  },
+  "user": {
+    "$oid": "6838d67d24d4d1b7adb03b39"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "68b1bfb865a2e69a26bd3999"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-07T20:17:43.174Z"
+  },
+  "__v": 31,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e2bdc54c3c5d82dd83993"
+  },
+  "user": {
+    "$oid": "6839abe324d4d1b7adb09059"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "683e2bdc54c3c5d82dd83994"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "683e2bdc54c3c5d82dd83995"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "683e2bdc54c3c5d82dd83996"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 27,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e2d8e54c3c5d82dd8403b"
+  },
+  "user": {
+    "$oid": "6839ac8c24d4d1b7adb0943c"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69c7f56d2a1c963ea9acf5a7"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-11T23:20:38.340Z"
+  },
+  "__v": 13,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e2ece54c3c5d82dd844a9"
+  },
+  "user": {
+    "$oid": "6838c77124d4d1b7adb01ffa"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "683e2ece54c3c5d82dd844ab"
+      }
+    },
+    {
+      "day": "Martes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "697a9b49f61c580ccf385397"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-23T20:22:17.399Z"
+  },
+  "__v": 50,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e307654c3c5d82dd849e2"
+  },
+  "user": {
+    "$oid": "6838c30724d4d1b7adb014be"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69f74f4e6e43b612a8d58b25"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "6a29c6031021c0c1fbdfdad2"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-23T20:51:54.451Z"
+  },
+  "__v": 13,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e31ce54c3c5d82dd84fa2"
+  },
+  "user": {
+    "$oid": "6838dc2824d4d1b7adb046e8"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69f26ae981af73680465bde2"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-24T20:16:06.884Z"
+  },
+  "__v": 36,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e31dd54c3c5d82dd850a4"
+  },
+  "user": {
+    "$oid": "683985d224d4d1b7adb07997"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "683e31dd54c3c5d82dd850a5"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "683e31dd54c3c5d82dd850a6"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-02T19:10:46.644Z"
+  },
+  "__v": 17,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e369854c3c5d82dd854be"
+  },
+  "user": {
+    "$oid": "683ae93624d4d1b7adb0e7d1"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "683e369854c3c5d82dd854bf"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "683e369854c3c5d82dd854c0"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "697ca5abf61c580ccf48b113"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 11,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e3aa354c3c5d82dd85f5c"
+  },
+  "user": {
+    "$oid": "6838c78a24d4d1b7adb02044"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69cc28bfe85c03079de00c98"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-26T20:10:42.591Z"
+  },
+  "__v": 28,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e3b8d54c3c5d82dd861bc"
+  },
+  "user": {
+    "$oid": "6838d20224d4d1b7adb03574"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "683e3b8d54c3c5d82dd861be"
+      }
+    },
+    {
+      "day": "Lunes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69b02f7ba777fa9be0375018"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-16T02:05:42.217Z"
+  },
+  "__v": 13,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e410d54c3c5d82dd86933"
+  },
+  "user": {
+    "$oid": "6839e89a24d4d1b7adb0b551"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "683e410d54c3c5d82dd86934"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "697ca4b6f61c580ccf480a7a"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-10T21:16:50.583Z"
+  },
+  "__v": 30,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683e4c1554c3c5d82dd87c7c"
+  },
+  "user": {
+    "$oid": "683afe2124d4d1b7adb0fbd1"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "683e4c1554c3c5d82dd87c7d"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 10,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683edd5654c3c5d82dd8a8f4"
+  },
+  "user": {
+    "$oid": "683af38a24d4d1b7adb0eeb6"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "688566156c3009473a25ba1b"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "697bddadf61c580ccf429c4f"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-24T01:29:37.291Z"
+  },
+  "__v": 22,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683edfc554c3c5d82dd8b508"
+  },
+  "user": {
+    "$oid": "6839a86624d4d1b7adb07ff0"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69dce53ce85c03079de3574f"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69dce53ce85c03079de35750"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 18,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683ee7e354c3c5d82dd8c7c6"
+  },
+  "user": {
+    "$oid": "6838bd5f24d4d1b7adb01017"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "683ee7e354c3c5d82dd8c7c7"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "683ee7e354c3c5d82dd8c7c9"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-22T20:04:17.494Z"
+  },
+  "__v": 23,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683ef05c54c3c5d82dd8d911"
+  },
+  "user": {
+    "$oid": "683b088924d4d1b7adb10cd6"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "687ec65845779e699688c0cb"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69bda1a8fbd57cfb0e513ba4"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-25T18:22:26.450Z"
+  },
+  "__v": 48,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "683efab154c3c5d82dd8e90a"
+  },
+  "user": {
+    "$oid": "6838c76d24d4d1b7adb01ff7"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "683efab154c3c5d82dd8e90b"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 23,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6846d54c111d7b411318530a"
+  },
+  "user": {
+    "$oid": "6846d52c111d7b41131851ff"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6867bbf21ce3537e43be70b6"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-15T18:27:13.890Z"
+  },
+  "__v": 36,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6851e4581f26ed9b2d3cd223"
+  },
+  "user": {
+    "$oid": "6851e40d1f26ed9b2d3cd112"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69774128f61c580ccf13de51"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69df7b0fe85c03079de3fa3b"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-10T19:29:30.854Z"
+  },
+  "__v": 47,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6862fdd62e6b6e0973a429a8"
+  },
+  "user": {
+    "$oid": "6862f6d267c2c7e758ba9b85"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69f1e30ee85c03079de74ea1"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-03T19:50:04.612Z"
+  },
+  "__v": 45,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "686a9915437e48d8681d63fb"
+  },
+  "user": {
+    "$oid": "686a98dc437e48d8681d4a17"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "688bfe668ced41d0c73189ee"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "688bfe748ced41d0c7319c4e"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 19,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6870f916437e48d8686c9c02"
+  },
+  "user": {
+    "$oid": "6870f8e0437e48d8686c7a0a"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "68af687365a2e69a26a03130"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "68b1bf8d65a2e69a26bd161d"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-25T00:44:08.492Z"
+  },
+  "__v": 38,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "68751eab437e48d86889d928"
+  },
+  "user": {
+    "$oid": "68751e85437e48d86889b138"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69cbc1a6e85c03079ddff044"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69cbc1a6e85c03079ddff045"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69cbc1a6e85c03079ddff046"
+      }
+    }
+  ],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-17T21:11:08.518Z"
+  },
+  "__v": 50,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "688a3e176c3009473a6726cc"
+  },
+  "user": {
+    "$oid": "688a02706c3009473a5d018a"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "688a3e176c3009473a6726cf"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "699c3389a777fa9be06cd11d"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-23T23:09:03.435Z"
+  },
+  "__v": 17,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "68973c06418f2e9a6b6cd709"
+  },
+  "user": {
+    "$oid": "68973bc9418f2e9a6b6cbef4"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "68973c06418f2e9a6b6cd70a"
+      }
+    },
+    {
+      "day": "Martes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "68bb08d5816bba3a6e158e83"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-21T14:13:47.710Z"
+  },
+  "__v": 25,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "689d0887a7bc02c2bf31f5fa"
+  },
+  "user": {
+    "$oid": "689d0832a7bc02c2bf317d3a"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "692b1088557f6fbd076c90cf"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "692b1097557f6fbd076c9be2"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-03T21:32:25.604Z"
+  },
+  "__v": 23,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "68af80cf65a2e69a26a85c03"
+  },
+  "user": {
+    "$oid": "68af80aa65a2e69a26a84afd"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "68af80cf65a2e69a26a85c04"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 13,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "68b33557470911da1567aa58"
+  },
+  "user": {
+    "$oid": "68b3352e470911da156799cc"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69ea8627e85c03079de5f96d"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 21,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "68ee9fd4653980b777d85449"
+  },
+  "user": {
+    "$oid": "6830dfcc83de8c19b9a5dfff"
+  },
+  "originalSelections": [
+    {
+      "day": "",
+      "hour": "",
+      "_id": {
+        "$oid": "68ee9fd4653980b777d8544a"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 22,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "68f280a83d5cf39df1408bad"
+  },
+  "user": {
+    "$oid": "68f280013d5cf39df1406a67"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "68f280a83d5cf39df1408bae"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 10,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6904ef4fdfa89949cd60a56d"
+  },
+  "user": {
+    "$oid": "6904ee5ddfa89949cd6070fe"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "69c927c22a1c963ea9ad2b99"
+      }
+    },
+    {
+      "day": "Lunes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6a3e5d6c1021c0c1fbe4c7dc"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 28,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6908c526123d0671aede5bd3"
+  },
+  "user": {
+    "$oid": "6908c4b1123d0671aede04d2"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69f272b681af73680465c3b6"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 13,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "690c9dc887e38f3612183dba"
+  },
+  "user": {
+    "$oid": "690c9b6587e38f361217995f"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a0b0f971021c0c1fbd851f1"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a0b0f971021c0c1fbd851f2"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-03T18:57:25.617Z"
+  },
+  "__v": 19,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "691233bf18c10abc35d4ac43"
+  },
+  "user": {
+    "$oid": "6912331618c10abc35d45c18"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "692b102d557f6fbd076c5987"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-24T10:36:18.310Z"
+  },
+  "__v": 15,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "692a156cf9567aa86a78679e"
+  },
+  "user": {
+    "$oid": "692a1526f9567aa86a7850ba"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "692a156cf9567aa86a78679f"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "692a156cf9567aa86a7867a0"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6949a580f61c580ccf5c01f6"
+  },
+  "user": {
+    "$oid": "6949a4acf61c580ccf5bcdc3"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6949a580f61c580ccf5c01f8"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69caf082b4cdddc241b20a66"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-01T10:33:28.144Z"
+  },
+  "__v": 14,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6953154bf61c580ccf820c86"
+  },
+  "user": {
+    "$oid": "695314e5f61c580ccf81f83f"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69a17fa9a777fa9be0b56998"
+      }
+    },
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69c087e6fbd57cfb0e5def92"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 21,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "695d1d24f61c580ccf91ae6a"
+  },
+  "user": {
+    "$oid": "695d1cdef61c580ccf91a408"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "695d1d24f61c580ccf91ae6b"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "695d494bf61c580ccf929775"
+  },
+  "user": {
+    "$oid": "695d48aef61c580ccf9271e1"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "695d494bf61c580ccf929776"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "695d494bf61c580ccf929777"
+      }
+    }
+  ],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-24T22:50:01.746Z"
+  },
+  "__v": 3,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "695e5829f61c580ccf973bfe"
+  },
+  "user": {
+    "$oid": "695e55f5f61c580ccf95cd0d"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "6990d4f1a777fa9be0421f79"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69e6a0abe85c03079de5535f"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-01T17:04:31.253Z"
+  },
+  "__v": 18,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69654544f61c580ccfc261cb"
+  },
+  "user": {
+    "$oid": "69654495f61c580ccfc25259"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69d40398e85c03079de0ddcd"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69d40398e85c03079de0ddce"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69d40398e85c03079de0ddcf"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-24T21:32:23.298Z"
+  },
+  "__v": 17,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69681eb8f61c580ccfdf646e"
+  },
+  "user": {
+    "$oid": "69681da5f61c580ccfdf03f4"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69681eb8f61c580ccfdf646f"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-07T18:32:55.028Z"
+  },
+  "__v": 6,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "696f8536f61c580ccffc01e6"
+  },
+  "user": {
+    "$oid": "696f849ff61c580ccffbf9e8"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69c9b5872a1c963ea9ad60ca"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69c9c0c6e73f9b117f7271c4"
+      }
+    }
+  ],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-25T01:19:17.202Z"
+  },
+  "__v": 23,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "697a9786f61c580ccf35ab98"
+  },
+  "user": {
+    "$oid": "697a96e4f61c580ccf353190"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "697a9786f61c580ccf35ab99"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "697a9786f61c580ccf35ab9a"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-09T19:42:34.120Z"
+  },
+  "__v": 9,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "697c9177f61c580ccf447554"
+  },
+  "user": {
+    "$oid": "697c90fff61c580ccf445a2d"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "697c9177f61c580ccf447555"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "697c9177f61c580ccf447556"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-17T15:48:01.100Z"
+  },
+  "__v": 12,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "697ccf0df61c580ccf4d2d89"
+  },
+  "user": {
+    "$oid": "697ccdc7f61c580ccf4d0a35"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "697ccf0df61c580ccf4d2d8a"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69c803b42a1c963ea9ad1027"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-24T12:01:36.561Z"
+  },
+  "__v": 14,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "697e0f23f61c580ccf521d37"
+  },
+  "user": {
+    "$oid": "697e0eaaf61c580ccf520447"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "697e0f23f61c580ccf521d38"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "697e0f23f61c580ccf521d39"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "698097c5f61c580ccf5b93bc"
+  },
+  "user": {
+    "$oid": "69809730f61c580ccf5b2f45"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "698097c5f61c580ccf5b93bd"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "698097c5f61c580ccf5b93be"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-09T00:32:40.584Z"
+  },
+  "__v": 11,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "6984a944f61c580ccf7e84a7"
+  },
+  "user": {
+    "$oid": "6984a90ff61c580ccf7e7c03"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6984a944f61c580ccf7e84a8"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-22T14:03:34.264Z"
+  },
+  "__v": 9,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "699c5c2ba777fa9be075cf5e"
+  },
+  "user": {
+    "$oid": "699c5b7ba777fa9be075863f"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "699c5c2ba777fa9be075cf5f"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "699c5c2ba777fa9be075cf60"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-03T18:37:17.963Z"
+  },
+  "__v": 3,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "699ca2dba777fa9be07a93b8"
+  },
+  "user": {
+    "$oid": "699ca1a6a777fa9be07a25ef"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "69f0cf65e85c03079de7097a"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f0cf65e85c03079de7097b"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f0cf65e85c03079de7097c"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-08T12:03:07.236Z"
+  },
+  "__v": 8,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "699e07a1a777fa9be094bd50"
+  },
+  "user": {
+    "$oid": "699e06f6a777fa9be09485f4"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "699e07a1a777fa9be094bd51"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "699e07a1a777fa9be094bd52"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-04T03:31:58.756Z"
+  },
+  "__v": 3,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a1a758a777fa9be0ba27e9"
+  },
+  "user": {
+    "$oid": "69a1981ca777fa9be0b8d04d"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "69a1a758a777fa9be0ba27ea"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 9,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a1c062a777fa9be0bbba5f"
+  },
+  "user": {
+    "$oid": "69a1bfc7a777fa9be0bbb1e4"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69c9c143e73f9b117f7271c7"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69c9c160e73f9b117f7271c8"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-23T22:31:09.677Z"
+  },
+  "__v": 11,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a1c255a777fa9be0bc6209"
+  },
+  "user": {
+    "$oid": "69a1be06a777fa9be0baddf3"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69a1c255a777fa9be0bc620b"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f1f24ce85c03079de75b59"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 5,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a1dab6a777fa9be0bd49a7"
+  },
+  "user": {
+    "$oid": "69a1da29a777fa9be0bcf081"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69a1dab6a777fa9be0bd49a8"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-17T12:08:33.335Z"
+  },
+  "__v": 2,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a1f5aca777fa9be0bf2a6a"
+  },
+  "user": {
+    "$oid": "69a1ed57a777fa9be0bea7d9"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "69a1f5aca777fa9be0bf2a6b"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69a1f5aca777fa9be0bf2a6c"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "69a1f5aca777fa9be0bf2a6d"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 1,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a1fa50a777fa9be0bfb8eb"
+  },
+  "user": {
+    "$oid": "69a1f9d8a777fa9be0bf8cc4"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69a1fa50a777fa9be0bfb8ec"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69a1fa50a777fa9be0bfb8ed"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-24T14:25:14.587Z"
+  },
+  "__v": 1,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a273aaa777fa9be0c155e6"
+  },
+  "user": {
+    "$oid": "69a1e451a777fa9be0bdb76d"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69a273aaa777fa9be0c155e7"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 3,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a317faa777fa9be0c66b04"
+  },
+  "user": {
+    "$oid": "69a3167ba777fa9be0c63fac"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69a317faa777fa9be0c66b07"
+      }
+    },
+    {
+      "day": "Lunes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69ea8c9ee85c03079de60edd"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69ea8ca9e85c03079de60fe8"
+      }
+    }
+  ],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-10T13:45:09.854Z"
+  },
+  "__v": 27,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a36098a777fa9be0c996b4"
+  },
+  "user": {
+    "$oid": "69a35ebba777fa9be0c8d307"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69c928052a1c963ea9ad2d3b"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-11T14:39:53.836Z"
+  },
+  "__v": 11,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a5d1b1a777fa9be0d866f0"
+  },
+  "user": {
+    "$oid": "69a5d111a777fa9be0d84ff3"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "69a5d1b1a777fa9be0d866f1"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "69a5d1b1a777fa9be0d866f2"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a73784a777fa9be0e4dbc8"
+  },
+  "user": {
+    "$oid": "69a7371ba777fa9be0e4c1eb"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69a73784a777fa9be0e4dbc9"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69a73784a777fa9be0e4dbca"
+      }
+    }
+  ],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 1,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69a9c074a777fa9be0045aa6"
+  },
+  "user": {
+    "$oid": "69a9bd9da777fa9be0039146"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a0328882d3685d816836ebf"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-18T14:29:38.196Z"
+  },
+  "__v": 8,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69adfb6da777fa9be02716b0"
+  },
+  "user": {
+    "$oid": "69adfa6ea777fa9be0264759"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69cb9eefe85c03079ddfd912"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-19T14:51:42.666Z"
+  },
+  "__v": 14,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69b07daaa777fa9be041bdb2"
+  },
+  "user": {
+    "$oid": "69b07d53a777fa9be041aa6a"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69b07daaa777fa9be041bdb5"
+      }
+    },
+    {
+      "day": "Martes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6a1833f31021c0c1fbdb78cd"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "6a3f07fb1021c0c1fbe4ed00"
+      }
+    }
+  ],
+  "changesThisMonth": 2,
+  "lastChange": null,
+  "__v": 18,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69b9a32efbd57cfb0e28e223"
+  },
+  "user": {
+    "$oid": "69b9a2acfbd57cfb0e289ad4"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69b9a32efbd57cfb0e28e224"
+      }
+    }
+  ],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-15T00:33:14.016Z"
+  },
+  "__v": 5,
+  "temporarySelections": []
+},
+{
+  "_id": {
+    "$oid": "69cac2c5b4cdddc241b1cf88"
+  },
+  "user": {
+    "$oid": "69cabd8bb4cdddc241b1a709"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69cac2c5b4cdddc241b1cf89"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-18T21:08:02.156Z"
+  },
+  "__v": 6
+},
+{
+  "_id": {
+    "$oid": "69cac983b4cdddc241b1f3f0"
+  },
+  "user": {
+    "$oid": "69cac8dfb4cdddc241b1f310"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69cac983b4cdddc241b1f3f1"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69cac983b4cdddc241b1f3f2"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-15T12:16:24.264Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "69cad424b4cdddc241b1f901"
+  },
+  "user": {
+    "$oid": "69cad35db4cdddc241b1f81d"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69cad424b4cdddc241b1f902"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69cad424b4cdddc241b1f903"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-18T16:49:38.716Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "69cd1c0de85c03079de063b0"
+  },
+  "user": {
+    "$oid": "69cd1b6de85c03079de062c0"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69cd1c0de85c03079de063b1"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69cd1c0de85c03079de063b2"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-22T19:13:46.308Z"
+  },
+  "__v": 8
+},
+{
+  "_id": {
+    "$oid": "69d3ce55e85c03079de0d3bd"
+  },
+  "user": {
+    "$oid": "69d3cc4be85c03079de0d2cf"
+  },
+  "originalSelections": [],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 18
+},
+{
+  "_id": {
+    "$oid": "69d4d9f6e85c03079de1560d"
+  },
+  "user": {
+    "$oid": "69d4d933e85c03079de15250"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69fcfeb327e24d7c86c42da4"
+      }
+    },
+    {
+      "day": "Martes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "6a27ff4f1021c0c1fbdf3681"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-23T21:54:56.576Z"
+  },
+  "__v": 32
+},
+{
+  "_id": {
+    "$oid": "69d55bc8e85c03079de1eb1c"
+  },
+  "user": {
+    "$oid": "69d55b33e85c03079de1ea21"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69d55bc8e85c03079de1eb1d"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a1977441021c0c1fbdc31b3"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-25T19:42:53.765Z"
+  },
+  "__v": 7
+},
+{
+  "_id": {
+    "$oid": "69d55c2ee85c03079de1ed00"
+  },
+  "user": {
+    "$oid": "69d55b93e85c03079de1ea26"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69d55c2ee85c03079de1ed01"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a1977511021c0c1fbdc32d6"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-25T20:20:09.161Z"
+  },
+  "__v": 10
+},
+{
+  "_id": {
+    "$oid": "69d63d15e85c03079de25625"
+  },
+  "user": {
+    "$oid": "69d63cdee85c03079de25529"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "69d63d15e85c03079de25626"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6a3f108d1021c0c1fbe4f172"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-09T04:30:47.464Z"
+  },
+  "__v": 11
+},
+{
+  "_id": {
+    "$oid": "69d64369e85c03079de25bff"
+  },
+  "user": {
+    "$oid": "69d64345e85c03079de25b00"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "69dcf336e85c03079de35cac"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "69dcf336e85c03079de35cad"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "69d6a3eee85c03079de29b8c"
+  },
+  "user": {
+    "$oid": "69d6a3d0e85c03079de29a8b"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69d6a3eee85c03079de29b8d"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-05T00:28:30.971Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "69dcf26ae85c03079de35ae0"
+  },
+  "user": {
+    "$oid": "69dcf1e9e85c03079de359f5"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69dcf26ae85c03079de35ae1"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "69dd805ce85c03079de3852d"
+  },
+  "user": {
+    "$oid": "69dd7f82e85c03079de38263"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69f264ea81af73680465ae81"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69f264ea81af73680465ae82"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-23T12:11:26.999Z"
+  },
+  "__v": 5
+},
+{
+  "_id": {
+    "$oid": "69dd8182e85c03079de387f1"
+  },
+  "user": {
+    "$oid": "69dd811de85c03079de386fe"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69f2678a81af73680465b44d"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69f2678a81af73680465b44e"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-23T12:04:26.724Z"
+  },
+  "__v": 6
+},
+{
+  "_id": {
+    "$oid": "69dede37e85c03079de3e498"
+  },
+  "user": {
+    "$oid": "69ded466e85c03079de3dc86"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69e226a6e85c03079de49bae"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69e226a6e85c03079de49baf"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-14T02:09:53.568Z"
+  },
+  "__v": 4
+},
+{
+  "_id": {
+    "$oid": "69ea9008e85c03079de61522"
+  },
+  "user": {
+    "$oid": "69ea8f6be85c03079de611fd"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69ea9008e85c03079de61523"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "6a1888631021c0c1fbdbd6da"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-22T15:01:24.206Z"
+  },
+  "__v": 18
+},
+{
+  "_id": {
+    "$oid": "69ea925ee85c03079de61f91"
+  },
+  "user": {
+    "$oid": "69ea923fe85c03079de61e7c"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69ea925ee85c03079de61f92"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-25T21:00:28.998Z"
+  },
+  "__v": 4
+},
+{
+  "_id": {
+    "$oid": "69efa078e85c03079de6c646"
+  },
+  "user": {
+    "$oid": "69efa045e85c03079de6c548"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69efa078e85c03079de6c647"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "69f094afe85c03079de6effb"
+  },
+  "user": {
+    "$oid": "69f09489e85c03079de6ef06"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f094afe85c03079de6effc"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f094afe85c03079de6effd"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-23T02:04:29.195Z"
+  },
+  "__v": 6
+},
+{
+  "_id": {
+    "$oid": "69f0b8e0e85c03079de702dd"
+  },
+  "user": {
+    "$oid": "69f0b8c9e85c03079de701e7"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69f0b8e0e85c03079de702de"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-14T18:01:07.044Z"
+  },
+  "__v": 5
+},
+{
+  "_id": {
+    "$oid": "69f273d481af73680465c5a4"
+  },
+  "user": {
+    "$oid": "69f2738381af73680465c4a7"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "69f273d481af73680465c5a6"
+      }
+    },
+    {
+      "day": "Martes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a2b48511021c0c1fbe091ee"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-16T00:57:59.527Z"
+  },
+  "__v": 7
+},
+{
+  "_id": {
+    "$oid": "69f3bdf26e43b612a8d56221"
+  },
+  "user": {
+    "$oid": "69f3bd516e43b612a8d56123"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69f3bdf26e43b612a8d56222"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "69f3bdf26e43b612a8d56223"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-09T20:17:35.771Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "69f3bfab6e43b612a8d5670a"
+  },
+  "user": {
+    "$oid": "69f3be786e43b612a8d5660a"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69f3bfab6e43b612a8d5670b"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-18T20:24:04.104Z"
+  },
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "69f4aca66e43b612a8d56eef"
+  },
+  "user": {
+    "$oid": "69f4abda6e43b612a8d56dee"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69f4aca66e43b612a8d56ef0"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69f5ece96e43b612a8d5757d"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "69f74ee46e43b612a8d5886b"
+  },
+  "user": {
+    "$oid": "69f74def6e43b612a8d58595"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "69f74ee46e43b612a8d5886c"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69f74ee46e43b612a8d5886d"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-19T14:43:55.922Z"
+  },
+  "__v": 5
+},
+{
+  "_id": {
+    "$oid": "69f888c86e43b612a8d5ab6b"
+  },
+  "user": {
+    "$oid": "69f8881d6e43b612a8d5a974"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69f888c86e43b612a8d5ab6c"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "69f888c86e43b612a8d5ab6d"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-18T18:08:08.080Z"
+  },
+  "__v": 5
+},
+{
+  "_id": {
+    "$oid": "69f902766e43b612a8d5df62"
+  },
+  "user": {
+    "$oid": "69f9019b6e43b612a8d5dd5d"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f902766e43b612a8d5df63"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "69f902766e43b612a8d5df64"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-24T11:07:54.188Z"
+  },
+  "__v": 5
+},
+{
+  "_id": {
+    "$oid": "69fe09ae27e24d7c86c462d6"
+  },
+  "user": {
+    "$oid": "69fe08c927e24d7c86c461b6"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "69fe09ae27e24d7c86c462d7"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-23T21:52:36.315Z"
+  },
+  "__v": 7
+},
+{
+  "_id": {
+    "$oid": "6a03aaa82d3685d81683a15f"
+  },
+  "user": {
+    "$oid": "6a03aa962d3685d81683a044"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a03aaa82d3685d81683a160"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-03T22:09:04.473Z"
+  },
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "6a046ba82d3685d81683aeb9"
+  },
+  "user": {
+    "$oid": "6a046b732d3685d81683ad9c"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a046ba82d3685d81683aeba"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "6a046ba82d3685d81683aebb"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-10T21:37:08.585Z"
+  },
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "6a0af5d71021c0c1fbd83eb2"
+  },
+  "user": {
+    "$oid": "6a0af5c01021c0c1fbd83db1"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a0af5d71021c0c1fbd83eb3"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-22T19:24:39.105Z"
+  },
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "6a1039bb1021c0c1fbd999f1"
+  },
+  "user": {
+    "$oid": "6a10395e1021c0c1fbd998d0"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a1039bb1021c0c1fbd999f2"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1838f31021c0c1fbdb7e9d"
+  },
+  "user": {
+    "$oid": "6a18380d1021c0c1fbdb7b1c"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "19:00",
+      "_id": {
+        "$oid": "6a1838f31021c0c1fbdb7e9e"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a184d021021c0c1fbdb950a"
+  },
+  "user": {
+    "$oid": "6a184c9e1021c0c1fbdb9084"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a184d021021c0c1fbdb950b"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a184d021021c0c1fbdb950c"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-18T16:16:33.791Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "6a1852671021c0c1fbdb9df9"
+  },
+  "user": {
+    "$oid": "6a1851e31021c0c1fbdb998d"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a1852671021c0c1fbdb9dfa"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a1852671021c0c1fbdb9dfb"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-25T20:59:24.481Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "6a18723c1021c0c1fbdbbd23"
+  },
+  "user": {
+    "$oid": "6a1872101021c0c1fbdbbbfb"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "6a18723c1021c0c1fbdbbd24"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "6a18723c1021c0c1fbdbbd25"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-16T11:33:24.014Z"
+  },
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "6a197b281021c0c1fbdc3af2"
+  },
+  "user": {
+    "$oid": "6a197af31021c0c1fbdc39c8"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6a197b281021c0c1fbdc3af3"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": null,
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "6a197bdd1021c0c1fbdc40b3"
+  },
+  "user": {
+    "$oid": "6a197bac1021c0c1fbdc3f8a"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a197bdd1021c0c1fbdc40b4"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a199bc41021c0c1fbdc501c"
+  },
+  "user": {
+    "$oid": "6a199ba91021c0c1fbdc4ef4"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a199bc41021c0c1fbdc501d"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a199bc41021c0c1fbdc501e"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-25T19:43:02.148Z"
+  },
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "6a19fe7d1021c0c1fbdc667e"
+  },
+  "user": {
+    "$oid": "6a19fe4b1021c0c1fbdc6556"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "6a19fe7d1021c0c1fbdc667f"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a19fe7d1021c0c1fbdc6680"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-23T21:47:26.128Z"
+  },
+  "__v": 4
+},
+{
+  "_id": {
+    "$oid": "6a1d787e1021c0c1fbdcb8c1"
+  },
+  "user": {
+    "$oid": "6a1d78631021c0c1fbdcb7c7"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6a1d787e1021c0c1fbdcb8c2"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6a1d787e1021c0c1fbdcb8c3"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-01T12:18:06.965Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a1d7ce11021c0c1fbdcc1ae"
+  },
+  "user": {
+    "$oid": "6a1b06f41021c0c1fbdc821c"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a1d7ce11021c0c1fbdcc1af"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-17T19:08:30.616Z"
+  },
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "6a1db7cd1021c0c1fbdcd11d"
+  },
+  "user": {
+    "$oid": "6a1db7b71021c0c1fbdcd01f"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "6a1db7cd1021c0c1fbdcd11e"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "08:00",
+      "_id": {
+        "$oid": "6a1db7cd1021c0c1fbdcd11f"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-23T13:12:54.837Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "6a1dee141021c0c1fbdceed7"
+  },
+  "user": {
+    "$oid": "6a1deddc1021c0c1fbdcedd3"
+  },
+  "originalSelections": [
+    {
+      "day": "Viernes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6a1dee141021c0c1fbdceed8"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-17T22:50:38.602Z"
+  },
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "6a1f439a1021c0c1fbdd541d"
+  },
+  "user": {
+    "$oid": "6a1f436e1021c0c1fbdd530d"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "07:00",
+      "_id": {
+        "$oid": "6a1f439a1021c0c1fbdd541e"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-02T20:56:58.428Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a2070ee1021c0c1fbdda042"
+  },
+  "user": {
+    "$oid": "6a2070d11021c0c1fbdd9f32"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "17:00",
+      "_id": {
+        "$oid": "6a2070ee1021c0c1fbdda043"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-03T18:22:38.990Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a23ff151021c0c1fbde78b9"
+  },
+  "user": {
+    "$oid": "6a23fefd1021c0c1fbde77c9"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6a23ff151021c0c1fbde78ba"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-06T11:05:57.046Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6a26b65f1021c0c1fbdeb18d"
+  },
+  "user": {
+    "$oid": "6a26b6421021c0c1fbdeb08f"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6a26b65f1021c0c1fbdeb18e"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "09:00",
+      "_id": {
+        "$oid": "6a26b65f1021c0c1fbdeb18f"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-23T11:06:57.201Z"
+  },
+  "__v": 4
+},
+{
+  "_id": {
+    "$oid": "6a28024e1021c0c1fbdf3bd1"
+  },
+  "user": {
+    "$oid": "6a28021c1021c0c1fbdf3ac0"
+  },
+  "originalSelections": [
+    {
+      "day": "Jueves",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a28024e1021c0c1fbdf3bd2"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 2,
+  "lastChange": {
+    "$date": "2026-06-25T17:45:09.020Z"
+  },
+  "__v": 2
+},
+{
+  "_id": {
+    "$oid": "6a2874df1021c0c1fbdf62b9"
+  },
+  "user": {
+    "$oid": "6a2874c61021c0c1fbdf5f61"
+  },
+  "originalSelections": [
+    {
+      "day": "Martes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a28a7b61021c0c1fbdf7d41"
+      }
+    },
+    {
+      "day": "Viernes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a3033f11021c0c1fbe1157c"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 4,
+  "lastChange": {
+    "$date": "2026-06-19T16:33:12.987Z"
+  },
+  "__v": 11
+},
+{
+  "_id": {
+    "$oid": "6a29d58b1021c0c1fbdffdcb"
+  },
+  "user": {
+    "$oid": "6a29d5671021c0c1fbdffcab"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a29d58b1021c0c1fbdffdcc"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-11T15:55:35.682Z"
+  },
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "6a2adbd71021c0c1fbe05aa9"
+  },
+  "user": {
+    "$oid": "6a2adbb41021c0c1fbe05988"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "18:00",
+      "_id": {
+        "$oid": "6a2adbd71021c0c1fbe05aaa"
+      }
+    },
+    {
+      "day": "Jueves",
+      "hour": "10:00",
+      "_id": {
+        "$oid": "6a2adbd71021c0c1fbe05aab"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 3,
+  "lastChange": {
+    "$date": "2026-06-22T17:46:19.144Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "6a35a1361021c0c1fbe2f3be"
+  },
+  "user": {
+    "$oid": "6a35a10e1021c0c1fbe2f29d"
+  },
+  "originalSelections": [
+    {
+      "day": "Lunes",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a35a1361021c0c1fbe2f3bf"
+      }
+    },
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a35a1361021c0c1fbe2f3c0"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 1,
+  "lastChange": {
+    "$date": "2026-06-23T22:40:36.681Z"
+  },
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "6a3bb78f1021c0c1fbe42157"
+  },
+  "user": {
+    "$oid": "6a3bb7741021c0c1fbe42045"
+  },
+  "originalSelections": [
+    {
+      "day": "Miércoles",
+      "hour": "20:00",
+      "_id": {
+        "$oid": "6a3bb78f1021c0c1fbe42158"
+      }
+    }
+  ],
+  "temporarySelections": [],
+  "changesThisMonth": 0,
+  "lastChange": {
+    "$date": "2026-06-24T10:55:11.573Z"
+  },
+  "__v": 0
+}]

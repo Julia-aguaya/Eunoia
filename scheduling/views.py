@@ -1,4 +1,5 @@
 import calendar
+from urllib.parse import urlsplit
 from datetime import date, datetime, timedelta
 from functools import wraps
 
@@ -10,7 +11,7 @@ from django.db.models import Count, Prefetch, Q
 from django.http import Http404
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import Resolver404, resolve, reverse
 from django.utils.http import urlencode, url_has_allowed_host_and_scheme
 from django.utils import timezone
 
@@ -128,10 +129,49 @@ def staff_required(view_func):
     return wrapped
 
 
+def student_portal_required(view_func):
+    @login_required
+    @wraps(view_func)
+    def wrapped(request, *args, **kwargs):
+        if request.user.is_staff:
+            return redirect(_get_default_portal_url(request.user))
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
+
+
 def _get_default_portal_url(user):
     if user.is_staff:
         return reverse('admin-student-list')
     return reverse('dashboard')
+
+
+STUDENT_PORTAL_URL_NAMES = {
+    'dashboard',
+    'agenda',
+    'my-bookings',
+    'account',
+    'create-booking',
+    'use-recovery',
+    'cancel-booking',
+}
+
+
+def _is_student_portal_url(next_url):
+    path = urlsplit(next_url).path
+    if not path:
+        return False
+
+    try:
+        return resolve(path).url_name in STUDENT_PORTAL_URL_NAMES
+    except Resolver404:
+        return False
+
+
+def _get_post_login_redirect_url(*, user, next_url=''):
+    if user.is_staff and next_url and _is_student_portal_url(next_url):
+        return _get_default_portal_url(user)
+    return next_url or _get_default_portal_url(user)
 
 
 def _build_admin_status_badges(access):
@@ -406,6 +446,19 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
 
     sessions = list(sessions_qs)
     session_ids = [session.pk for session in sessions]
+    agenda_bookings = list(
+        Booking.objects.select_related('student', 'used_recovery_credit')
+        .filter(session_id__in=session_ids, status=BookingStatus.BOOKED)
+        .order_by('session__date', 'session__start_time', 'student__last_name', 'student__first_name', 'student__email')
+    )
+    attendee_rows_by_session = {}
+    for booking in agenda_bookings:
+        attendee_rows_by_session.setdefault(booking.session_id, []).append(
+            {
+                'full_name': booking.student.get_full_name() or booking.student.email,
+                'is_makeup': booking.used_recovery_credit_id is not None,
+            }
+        )
     generated_recoveries_by_session = {
         row['origin_session_id']: row['total']
         for row in RecoveryCredit.objects.filter(
@@ -434,6 +487,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
                 'booked_count': session.booked_count,
                 'available_spots': max(session.capacity - session.booked_count, 0),
                 'makeup_bookings_count': session.makeup_bookings_count,
+                'attendees': attendee_rows_by_session.get(session.pk, []),
                 'generated_recoveries_count': generated_recoveries_by_session.get(session.pk, 0),
                 'detail_url': _build_staff_class_session_detail_url(session.pk, date=anchor_date, section=section_id),
             }
@@ -1533,7 +1587,7 @@ def login_view(request):
         login(request, user)
         if user.must_change_password:
             return redirect('change-password-required')
-        return redirect(next_url or _get_default_portal_url(user))
+        return redirect(_get_post_login_redirect_url(user=user, next_url=next_url))
 
     return render(request, 'scheduling/login.html', {'form': form, 'next': next_url})
 
@@ -1585,14 +1639,14 @@ def change_password_required_view(request):
     return render(request, 'scheduling/change_password_required.html', {'form': form})
 
 
-@login_required
+@student_portal_required
 def dashboard_view(request):
     context = _get_student_portal_context(request.user)
     context.update(_build_booking_detail_modal_context(request=request, context=context))
     return render(request, 'scheduling/dashboard.html', context)
 
 
-@login_required
+@student_portal_required
 def agenda_view(request):
     today = timezone.localdate()
     month_start = _parse_agenda_month(request.GET.get('month'), today)
@@ -1606,14 +1660,14 @@ def agenda_view(request):
     return render(request, 'scheduling/agenda.html', context)
 
 
-@login_required
+@student_portal_required
 def my_bookings_view(request):
     context = _get_student_portal_context(request.user)
     context.update(_build_recovery_detail_modal_context(request=request, context=context))
     return render(request, 'scheduling/my_bookings.html', context)
 
 
-@login_required
+@student_portal_required
 def account_view(request):
     context = _get_student_portal_context(request.user)
     is_editing = request.method == 'POST' or request.GET.get('edit') == '1'
@@ -1634,7 +1688,7 @@ def account_view(request):
     return render(request, 'scheduling/account.html', context)
 
 
-@login_required
+@student_portal_required
 def create_booking_view(request, session_id):
     if request.method != 'POST':
         return redirect('agenda')
@@ -1671,7 +1725,7 @@ def create_booking_view(request, session_id):
     return redirect(redirect_url)
 
 
-@login_required
+@student_portal_required
 def use_recovery_view(request, recovery_credit_id):
     context = _get_student_portal_context(request.user)
     credit = get_object_or_404(
@@ -1802,7 +1856,7 @@ def use_recovery_view(request, recovery_credit_id):
     return render(request, 'scheduling/use_recovery.html', context)
 
 
-@login_required
+@student_portal_required
 def cancel_booking_view(request, booking_id):
     if request.method != 'POST':
         return redirect('my-bookings')

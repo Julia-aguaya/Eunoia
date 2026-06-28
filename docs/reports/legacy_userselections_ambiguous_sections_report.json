@@ -1,0 +1,4731 @@
+{
+  "report_name": "legacy_userselections_ambiguous_sections_report",
+  "source_file": "eunoia.userselections.json",
+  "cutoff_month": "2026-06-01",
+  "case_count": 81,
+  "student_count": 72,
+  "status_counts": {
+    "ambiguous": 81
+  },
+  "possible_section_conflicts": {
+    "reformer_abajo | reformer_arriba": 41,
+    "cadillac | reformer_abajo": 40
+  },
+  "students": [
+    {
+      "student_email": "bidrera.abril@gmail.com",
+      "student_name": "abril bidrera",
+      "student_id": 95,
+      "legacy_user_id": "69f0b8c9e85c03079de701e7",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "bidrera.abril@gmail.com",
+          "student_name": "abril bidrera",
+          "student_id": 95,
+          "legacy_user_id": "69f0b8c9e85c03079de701e7",
+          "legacy_userselection_id": "69f0b8e0e85c03079de702dd",
+          "source_index": 94,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-14T18:01:07.044000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "carluccifranco9@gmail.com",
+      "student_name": "agustina comelli",
+      "student_id": 57,
+      "legacy_user_id": "6984a90ff61c580ccf7e7c03",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "carluccifranco9@gmail.com",
+          "student_name": "agustina comelli",
+          "student_id": 57,
+          "legacy_user_id": "6984a90ff61c580ccf7e7c03",
+          "legacy_userselection_id": "6984a944f61c580ccf7e84a7",
+          "source_index": 56,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 09:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-22T14:03:34.264000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "agusjurjo@gmail.com",
+      "student_name": "agustina jurjo",
+      "student_id": 18,
+      "legacy_user_id": "6839e89a24d4d1b7adb0b551",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "agusjurjo@gmail.com",
+          "student_name": "agustina jurjo",
+          "student_id": 18,
+          "legacy_user_id": "6839e89a24d4d1b7adb0b551",
+          "legacy_userselection_id": "683e410d54c3c5d82dd86933",
+          "source_index": 17,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 17:00",
+            "Wednesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 17:00",
+            "Miércoles 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 17:00",
+            "Miércoles 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-10T21:16:50.583000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "aguspoggiani96@gmail.com",
+      "student_name": "agustina poggiani",
+      "student_id": 115,
+      "legacy_user_id": "6a197bac1021c0c1fbdc3f8a",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "aguspoggiani96@gmail.com",
+          "student_name": "agustina poggiani",
+          "student_id": 115,
+          "legacy_user_id": "6a197bac1021c0c1fbdc3f8a",
+          "legacy_userselection_id": "6a197bdd1021c0c1fbdc40b3",
+          "source_index": 114,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "quirogaagustina109@gmail.com",
+      "student_name": "agustina quiroga",
+      "student_id": 91,
+      "legacy_user_id": "69ea8f6be85c03079de611fd",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "quirogaagustina109@gmail.com",
+          "student_name": "agustina quiroga",
+          "student_id": 91,
+          "legacy_user_id": "69ea8f6be85c03079de611fd",
+          "legacy_userselection_id": "69ea9008e85c03079de61522",
+          "source_index": 90,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 19:00",
+            "Miércoles 19:00"
+          ],
+          "raw_temporary_labels": [
+            "Lunes 19:00"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-22T15:01:24.206000+00:00"
+        },
+        {
+          "student_email": "quirogaagustina109@gmail.com",
+          "student_name": "agustina quiroga",
+          "student_id": 91,
+          "legacy_user_id": "69ea8f6be85c03079de611fd",
+          "legacy_userselection_id": "69ea9008e85c03079de61522",
+          "source_index": 90,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00",
+            "Wednesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00",
+            "Miércoles 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 19:00",
+            "Miércoles 19:00"
+          ],
+          "raw_temporary_labels": [
+            "Lunes 19:00"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-22T15:01:24.206000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "amarquardt20@gmail.com",
+      "student_name": "agustín marquardt",
+      "student_id": 85,
+      "legacy_user_id": "69d64345e85c03079de25b00",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "amarquardt20@gmail.com",
+          "student_name": "agustín marquardt",
+          "student_id": 85,
+          "legacy_user_id": "69d64345e85c03079de25b00",
+          "legacy_userselection_id": "69d64369e85c03079de25bff",
+          "source_index": 84,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 07:00",
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "braconealejandra@gmail.com",
+      "student_name": "alejandra bracone",
+      "student_id": 109,
+      "legacy_user_id": "6a10395e1021c0c1fbd998d0",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "braconealejandra@gmail.com",
+          "student_name": "alejandra bracone",
+          "student_id": 109,
+          "legacy_user_id": "6a10395e1021c0c1fbd998d0",
+          "legacy_userselection_id": "6a1039bb1021c0c1fbd999f1",
+          "source_index": 108,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Friday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Viernes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Viernes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "alinaguagliano26@gmail.com",
+      "student_name": "alina guagliano",
+      "student_id": 44,
+      "legacy_user_id": "695314e5f61c580ccf81f83f",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "alinaguagliano26@gmail.com",
+          "student_name": "alina guagliano",
+          "student_id": 44,
+          "legacy_user_id": "695314e5f61c580ccf81f83f",
+          "legacy_userselection_id": "6953154bf61c580ccf820c86",
+          "source_index": 43,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 17:00",
+            "Tuesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 17:00",
+            "Martes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 17:00",
+            "Martes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "aloruiz88@gmail.com",
+      "student_name": "alondra ruiz",
+      "student_id": 72,
+      "legacy_user_id": "69a9bd9da777fa9be0039146",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "aloruiz88@gmail.com",
+          "student_name": "alondra ruiz",
+          "student_id": 72,
+          "legacy_user_id": "69a9bd9da777fa9be0039146",
+          "legacy_userselection_id": "69a9c074a777fa9be0045aa6",
+          "source_index": 71,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-18T14:29:38.196000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "anaclarapalombo@hotmail.com",
+      "student_name": "ana clara palombo",
+      "student_id": 76,
+      "legacy_user_id": "69cabd8bb4cdddc241b1a709",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "anaclarapalombo@hotmail.com",
+          "student_name": "ana clara palombo",
+          "student_id": 76,
+          "legacy_user_id": "69cabd8bb4cdddc241b1a709",
+          "legacy_userselection_id": "69cac2c5b4cdddc241b1cf88",
+          "source_index": 75,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-18T21:08:02.156000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "vignoloantonela@gmail.com",
+      "student_name": "antonela vignolo",
+      "student_id": 41,
+      "legacy_user_id": "6912331618c10abc35d45c18",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "vignoloantonela@gmail.com",
+          "student_name": "antonela vignolo",
+          "student_id": 41,
+          "legacy_user_id": "6912331618c10abc35d45c18",
+          "legacy_userselection_id": "691233bf18c10abc35d4ac43",
+          "source_index": 40,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Miércoles 08:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-24T10:36:18.310000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "arianaseghezzo1@gmail.com",
+      "student_name": "ariana seghezzo",
+      "student_id": 48,
+      "legacy_user_id": "69654495f61c580ccfc25259",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "arianaseghezzo1@gmail.com",
+          "student_name": "ariana seghezzo",
+          "student_id": 48,
+          "legacy_user_id": "69654495f61c580ccfc25259",
+          "legacy_userselection_id": "69654544f61c580ccfc261cb",
+          "source_index": 47,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00",
+            "Wednesday 19:00",
+            "Friday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00",
+            "Miércoles 19:00",
+            "Viernes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 19:00",
+            "Miércoles 19:00",
+            "Viernes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-09T23:59:49.715000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "ferreropagetaylen@gmail.com",
+      "student_name": "aylén ferrero paget",
+      "student_id": 93,
+      "legacy_user_id": "69efa045e85c03079de6c548",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "ferreropagetaylen@gmail.com",
+          "student_name": "aylén ferrero paget",
+          "student_id": 93,
+          "legacy_user_id": "69efa045e85c03079de6c548",
+          "legacy_userselection_id": "69efa078e85c03079de6c646",
+          "source_index": 92,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 08:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "berediste@gmail.com",
+      "student_name": "berenice di stefano",
+      "student_id": 14,
+      "legacy_user_id": "6839abe324d4d1b7adb09059",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "berediste@gmail.com",
+          "student_name": "berenice di stefano",
+          "student_id": 14,
+          "legacy_user_id": "6839abe324d4d1b7adb09059",
+          "legacy_userselection_id": "683e2bdc54c3c5d82dd83993",
+          "source_index": 8,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 18:00",
+            "Wednesday 18:00",
+            "Friday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 18:00",
+            "Miércoles 18:00",
+            "Viernes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 18:00",
+            "Miércoles 18:00",
+            "Viernes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "bmdelbaldo@gmail.com",
+      "student_name": "betina delbaldo",
+      "student_id": 6,
+      "legacy_user_id": "6838c77124d4d1b7adb01ffa",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "bmdelbaldo@gmail.com",
+          "student_name": "betina delbaldo",
+          "student_id": 6,
+          "legacy_user_id": "6838c77124d4d1b7adb01ffa",
+          "legacy_userselection_id": "683e2ece54c3c5d82dd844a9",
+          "source_index": 10,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Jueves 19:00",
+            "Martes 19:00"
+          ],
+          "raw_temporary_labels": [
+            "Jueves 19:00"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-23T20:22:17.399000+00:00"
+        },
+        {
+          "student_email": "bmdelbaldo@gmail.com",
+          "student_name": "betina delbaldo",
+          "student_id": 6,
+          "legacy_user_id": "6838c77124d4d1b7adb01ffa",
+          "legacy_userselection_id": "683e2ece54c3c5d82dd844a9",
+          "source_index": 10,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 19:00",
+            "Tuesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 19:00",
+            "Martes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Jueves 19:00",
+            "Martes 19:00"
+          ],
+          "raw_temporary_labels": [
+            "Jueves 19:00"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-23T20:22:17.399000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "c.lobais@gmail.com",
+      "student_name": "celina lobais",
+      "student_id": 21,
+      "legacy_user_id": "683afe2124d4d1b7adb0fbd1",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "c.lobais@gmail.com",
+          "student_name": "celina lobais",
+          "student_id": 21,
+          "legacy_user_id": "683afe2124d4d1b7adb0fbd1",
+          "legacy_userselection_id": "683e4c1554c3c5d82dd87c7c",
+          "source_index": 18,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "claudiatonarelli@gmail.com",
+      "student_name": "claudia tonarelli",
+      "student_id": 36,
+      "legacy_user_id": "68b3352e470911da156799cc",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "claudiatonarelli@gmail.com",
+          "student_name": "claudia tonarelli",
+          "student_id": 36,
+          "legacy_user_id": "68b3352e470911da156799cc",
+          "legacy_userselection_id": "68b33557470911da1567aa58",
+          "source_index": 34,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "danascarafia@hotmail.com",
+      "student_name": "dana scarafia",
+      "student_id": 105,
+      "legacy_user_id": "69fe08c927e24d7c86c461b6",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "danascarafia@hotmail.com",
+          "student_name": "dana scarafia",
+          "student_id": 105,
+          "legacy_user_id": "69fe08c927e24d7c86c461b6",
+          "legacy_userselection_id": "69fe09ae27e24d7c86c462d6",
+          "source_index": 104,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 08:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-23T21:52:36.315000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "danisahadad@hotmail.com",
+      "student_name": "danisa hadad",
+      "student_id": 29,
+      "legacy_user_id": "686a98dc437e48d8681d4a17",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "danisahadad@hotmail.com",
+          "student_name": "danisa hadad",
+          "student_id": 29,
+          "legacy_user_id": "686a98dc437e48d8681d4a17",
+          "legacy_userselection_id": "686a9915437e48d8681d63fb",
+          "source_index": 27,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 19:00",
+            "Thursday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 19:00",
+            "Jueves 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 19:00",
+            "Jueves 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "delfinagomezbonci@gmail.com",
+      "student_name": "delfina bonci",
+      "student_id": 116,
+      "legacy_user_id": "6a199ba91021c0c1fbdc4ef4",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "delfinagomezbonci@gmail.com",
+          "student_name": "delfina bonci",
+          "student_id": 116,
+          "legacy_user_id": "6a199ba91021c0c1fbdc4ef4",
+          "legacy_userselection_id": "6a199bc41021c0c1fbdc501c",
+          "source_index": 115,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 17:00",
+            "Thursday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-16T19:01:29.942000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "delfinafantino@gmail.com",
+      "student_name": "delfina fantino",
+      "student_id": 55,
+      "legacy_user_id": "69809730f61c580ccf5b2f45",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "delfinafantino@gmail.com",
+          "student_name": "delfina fantino",
+          "student_id": 55,
+          "legacy_user_id": "69809730f61c580ccf5b2f45",
+          "legacy_userselection_id": "698097c5f61c580ccf5b93bc",
+          "source_index": 54,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 09:00",
+            "Thursday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-09T00:32:40.584000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "delfigriguelo@gmail.com",
+      "student_name": "delfina griguelo",
+      "student_id": 51,
+      "legacy_user_id": "697a96e4f61c580ccf353190",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "delfigriguelo@gmail.com",
+          "student_name": "delfina griguelo",
+          "student_id": 51,
+          "legacy_user_id": "697a96e4f61c580ccf353190",
+          "legacy_userselection_id": "697a9786f61c580ccf35ab98",
+          "source_index": 50,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 18:00",
+            "Thursday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 18:00",
+            "Jueves 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 18:00",
+            "Jueves 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-09T19:42:34.120000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "diegogfernandez99@gmail.com",
+      "student_name": "diego gabriel fernandez",
+      "student_id": 34,
+      "legacy_user_id": "689d0832a7bc02c2bf317d3a",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "diegogfernandez99@gmail.com",
+          "student_name": "diego gabriel fernandez",
+          "student_id": 34,
+          "legacy_user_id": "689d0832a7bc02c2bf317d3a",
+          "legacy_userselection_id": "689d0887a7bc02c2bf31f5fa",
+          "source_index": 32,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 17:00",
+            "Thursday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-03T21:32:25.604000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "es.emmasabbag@gmail.com",
+      "student_name": "emma sabbag",
+      "student_id": 77,
+      "legacy_user_id": "69cac8dfb4cdddc241b1f310",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "es.emmasabbag@gmail.com",
+          "student_name": "emma sabbag",
+          "student_id": 77,
+          "legacy_user_id": "69cac8dfb4cdddc241b1f310",
+          "legacy_userselection_id": "69cac983b4cdddc241b1f3f0",
+          "source_index": 76,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 08:00",
+            "Wednesday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 08:00",
+            "Miércoles 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 08:00",
+            "Miércoles 08:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-15T12:16:24.264000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "estefybellomo@hotmail.com",
+      "student_name": "estefania bellomo",
+      "student_id": 7,
+      "legacy_user_id": "6838c78a24d4d1b7adb02044",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "estefybellomo@hotmail.com",
+          "student_name": "estefania bellomo",
+          "student_id": 7,
+          "legacy_user_id": "6838c78a24d4d1b7adb02044",
+          "legacy_userselection_id": "683e3aa354c3c5d82dd85f5c",
+          "source_index": 15,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Friday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Viernes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Viernes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "estefania.ronconic@gmail.com",
+      "student_name": "estefanía ronconi",
+      "student_id": 49,
+      "legacy_user_id": "69681da5f61c580ccfdf03f4",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "estefania.ronconic@gmail.com",
+          "student_name": "estefanía ronconi",
+          "student_id": 49,
+          "legacy_user_id": "69681da5f61c580ccfdf03f4",
+          "legacy_userselection_id": "69681eb8f61c580ccfdf646e",
+          "source_index": 48,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-07T18:32:55.028000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "eugeblanc.94@gmail.com",
+      "student_name": "eugenia blanc",
+      "student_id": 122,
+      "legacy_user_id": "6a1f436e1021c0c1fbdd530d",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "eugeblanc.94@gmail.com",
+          "student_name": "eugenia blanc",
+          "student_id": 122,
+          "legacy_user_id": "6a1f436e1021c0c1fbdd530d",
+          "legacy_userselection_id": "6a1f439a1021c0c1fbdd541d",
+          "source_index": 121,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": "2026-06-02T20:56:58.428000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "fiorella.camilletti.grijalba@gmail.com",
+      "student_name": "fiorella camilletti grijalba",
+      "student_id": 75,
+      "legacy_user_id": "69b9a2acfbd57cfb0e289ad4",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "fiorella.camilletti.grijalba@gmail.com",
+          "student_name": "fiorella camilletti grijalba",
+          "student_id": 75,
+          "legacy_user_id": "69b9a2acfbd57cfb0e289ad4",
+          "legacy_userselection_id": "69b9a32efbd57cfb0e28e223",
+          "source_index": 74,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 08:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-15T00:33:14.016000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "franciscopons2001@gmail.com",
+      "student_name": "francisco pons",
+      "student_id": 120,
+      "legacy_user_id": "6a1db7b71021c0c1fbdcd01f",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "franciscopons2001@gmail.com",
+          "student_name": "francisco pons",
+          "student_id": 120,
+          "legacy_user_id": "6a1db7b71021c0c1fbdcd01f",
+          "legacy_userselection_id": "6a1db7cd1021c0c1fbdcd11d",
+          "source_index": 119,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 08:00",
+            "Jueves 08:00"
+          ],
+          "raw_temporary_labels": [
+            "Martes 08:00"
+          ],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-23T13:12:54.837000+00:00"
+        },
+        {
+          "student_email": "franciscopons2001@gmail.com",
+          "student_name": "francisco pons",
+          "student_id": 120,
+          "legacy_user_id": "6a1db7b71021c0c1fbdcd01f",
+          "legacy_userselection_id": "6a1db7cd1021c0c1fbdcd11d",
+          "source_index": 119,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 08:00",
+            "Thursday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 08:00",
+            "Jueves 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 08:00",
+            "Jueves 08:00"
+          ],
+          "raw_temporary_labels": [
+            "Martes 08:00"
+          ],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-23T13:12:54.837000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "gianemattioli@gmail.com",
+      "student_name": "gianella mattioli",
+      "student_id": 113,
+      "legacy_user_id": "6a1872101021c0c1fbdbbbfb",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "gianemattioli@gmail.com",
+          "student_name": "gianella mattioli",
+          "student_id": 113,
+          "legacy_user_id": "6a1872101021c0c1fbdbbbfb",
+          "legacy_userselection_id": "6a18723c1021c0c1fbdbbd23",
+          "source_index": 112,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 07:00",
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-16T11:33:24.014000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "guadaluperibba@hotmail.com",
+      "student_name": "guadalupe ribba guridi",
+      "student_id": 123,
+      "legacy_user_id": "6a2070d11021c0c1fbdd9f32",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "guadaluperibba@hotmail.com",
+          "student_name": "guadalupe ribba guridi",
+          "student_id": 123,
+          "legacy_user_id": "6a2070d11021c0c1fbdd9f32",
+          "legacy_userselection_id": "6a2070ee1021c0c1fbdda042",
+          "source_index": 122,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": "2026-06-03T18:22:38.990000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "guillequiroga3116@gmail.com",
+      "student_name": "guillermina quiroga",
+      "student_id": 37,
+      "legacy_user_id": "68f280013d5cf39df1406a67",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "guillequiroga3116@gmail.com",
+          "student_name": "guillermina quiroga",
+          "student_id": 37,
+          "legacy_user_id": "68f280013d5cf39df1406a67",
+          "legacy_userselection_id": "68f280a83d5cf39df1408bad",
+          "source_index": 36,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "horyvalent@gmail.com",
+      "student_name": "horiany gonzalez",
+      "student_id": 65,
+      "legacy_user_id": "69a1e451a777fa9be0bdb76d",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "horyvalent@gmail.com",
+          "student_name": "horiany gonzalez",
+          "student_id": 65,
+          "legacy_user_id": "69a1e451a777fa9be0bdb76d",
+          "legacy_userselection_id": "69a273aaa777fa9be0c155e6",
+          "source_index": 66,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "jessica.baez.1977@gmail.com",
+      "student_name": "jessica baez",
+      "student_id": 11,
+      "legacy_user_id": "6839123424d4d1b7adb073f2",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "jessica.baez.1977@gmail.com",
+          "student_name": "jessica baez",
+          "student_id": 11,
+          "legacy_user_id": "6839123424d4d1b7adb073f2",
+          "legacy_userselection_id": "683e1db254c3c5d82dd82726",
+          "source_index": 2,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 09:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-08T22:05:05.602000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "jimena_2598@hotmail.com",
+      "student_name": "jimena alesandrelli",
+      "student_id": 124,
+      "legacy_user_id": "6a23fefd1021c0c1fbde77c9",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "jimena_2598@hotmail.com",
+          "student_name": "jimena alesandrelli",
+          "student_id": 124,
+          "legacy_user_id": "6a23fefd1021c0c1fbde77c9",
+          "legacy_userselection_id": "6a23ff151021c0c1fbde78b9",
+          "source_index": 123,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": "2026-06-06T11:05:57.046000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "juliag2020@outlook.com",
+      "student_name": "julia aguaya",
+      "student_id": 80,
+      "legacy_user_id": "69d3cc4be85c03079de0d2cf",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "juliag2020@outlook.com",
+          "student_name": "julia aguaya",
+          "student_id": 80,
+          "legacy_user_id": "69d3cc4be85c03079de0d2cf",
+          "legacy_userselection_id": "69d3ce55e85c03079de0d3bd",
+          "source_index": 79,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 09:00",
+            "Wednesday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 09:00",
+            "Miércoles 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 09:00",
+            "Miércoles 09:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-10T11:57:24.349000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "julietab17@hotmail.com",
+      "student_name": "julieta bailaque",
+      "student_id": 118,
+      "legacy_user_id": "6a1b06f41021c0c1fbdc821c",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "julietab17@hotmail.com",
+          "student_name": "julieta bailaque",
+          "student_id": 118,
+          "legacy_user_id": "6a1b06f41021c0c1fbdc821c",
+          "legacy_userselection_id": "6a1d7ce11021c0c1fbdcc1ae",
+          "source_index": 118,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-17T19:08:30.616000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "julioldani53@gmail.com",
+      "student_name": "julieta oldani",
+      "student_id": 63,
+      "legacy_user_id": "69a1bfc7a777fa9be0bbb1e4",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "julioldani53@gmail.com",
+          "student_name": "julieta oldani",
+          "student_id": 63,
+          "legacy_user_id": "69a1bfc7a777fa9be0bbb1e4",
+          "legacy_userselection_id": "69a1c062a777fa9be0bbba5f",
+          "source_index": 61,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00",
+            "Friday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00",
+            "Viernes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 18:00",
+            "Miércoles 18:00"
+          ],
+          "raw_temporary_labels": [
+            "Lunes 19:00",
+            "Viernes 18:00"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-23T22:31:09.677000+00:00"
+        },
+        {
+          "student_email": "julioldani53@gmail.com",
+          "student_name": "julieta oldani",
+          "student_id": 63,
+          "legacy_user_id": "69a1bfc7a777fa9be0bbb1e4",
+          "legacy_userselection_id": "69a1c062a777fa9be0bbba5f",
+          "source_index": 61,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 18:00",
+            "Wednesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 18:00",
+            "Miércoles 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 18:00",
+            "Miércoles 18:00"
+          ],
+          "raw_temporary_labels": [
+            "Lunes 19:00",
+            "Viernes 18:00"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-23T22:31:09.677000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "karinefreitasdefaria.kf@gmail.com",
+      "student_name": "karine freitas",
+      "student_id": 69,
+      "legacy_user_id": "69a35ebba777fa9be0c8d307",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "karinefreitasdefaria.kf@gmail.com",
+          "student_name": "karine freitas",
+          "student_id": 69,
+          "legacy_user_id": "69a35ebba777fa9be0c8d307",
+          "legacy_userselection_id": "69a36098a777fa9be0c996b4",
+          "source_index": 68,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 08:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-11T14:39:53.836000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "laraeevs@gmail.com",
+      "student_name": "lara blunda",
+      "student_id": 100,
+      "legacy_user_id": "69f74def6e43b612a8d58595",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "laraeevs@gmail.com",
+          "student_name": "lara blunda",
+          "student_id": 100,
+          "legacy_user_id": "69f74def6e43b612a8d58595",
+          "legacy_userselection_id": "69f74ee46e43b612a8d5886b",
+          "source_index": 99,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 18:00",
+            "Friday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 18:00",
+            "Viernes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 18:00",
+            "Viernes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-19T14:43:55.922000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "lara.olivera@hotmail.com",
+      "student_name": "lara olivera",
+      "student_id": 28,
+      "legacy_user_id": "6862f6d267c2c7e758ba9b85",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "lara.olivera@hotmail.com",
+          "student_name": "lara olivera",
+          "student_id": 28,
+          "legacy_user_id": "6862f6d267c2c7e758ba9b85",
+          "legacy_userselection_id": "6862fdd62e6b6e0973a429a8",
+          "source_index": 26,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-03T19:50:04.612000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "griguelolila@gmail.com",
+      "student_name": "lila grigüelo",
+      "student_id": 35,
+      "legacy_user_id": "68af80aa65a2e69a26a84afd",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "griguelolila@gmail.com",
+          "student_name": "lila grigüelo",
+          "student_id": 35,
+          "legacy_user_id": "68af80aa65a2e69a26a84afd",
+          "legacy_userselection_id": "68af80cf65a2e69a26a85c03",
+          "source_index": 33,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "luciav.ingaramo@gmail.com",
+      "student_name": "lucia ingaramo",
+      "student_id": 20,
+      "legacy_user_id": "683af38a24d4d1b7adb0eeb6",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "luciav.ingaramo@gmail.com",
+          "student_name": "lucia ingaramo",
+          "student_id": 20,
+          "legacy_user_id": "683af38a24d4d1b7adb0eeb6",
+          "legacy_userselection_id": "683edd5654c3c5d82dd8a8f4",
+          "source_index": 19,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 18:00",
+            "Wednesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 18:00",
+            "Miércoles 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "18:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 18:00",
+            "Miércoles 19:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-24T01:29:37.291000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "rolleluciana@gmail.com",
+      "student_name": "luciana rolle",
+      "student_id": 15,
+      "legacy_user_id": "6839ac8c24d4d1b7adb0943c",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "rolleluciana@gmail.com",
+          "student_name": "luciana rolle",
+          "student_id": 15,
+          "legacy_user_id": "6839ac8c24d4d1b7adb0943c",
+          "legacy_userselection_id": "683e2d8e54c3c5d82dd8403b",
+          "source_index": 9,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Friday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Viernes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Viernes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-11T23:20:38.340000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "luciabrochiero@gmail.com",
+      "student_name": "lucía primo brochiero",
+      "student_id": 94,
+      "legacy_user_id": "69f09489e85c03079de6ef06",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "luciabrochiero@gmail.com",
+          "student_name": "lucía primo brochiero",
+          "student_id": 94,
+          "legacy_user_id": "69f09489e85c03079de6ef06",
+          "legacy_userselection_id": "69f094afe85c03079de6effb",
+          "source_index": 93,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [
+            "Jueves 09:00"
+          ],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-23T02:04:29.195000+00:00"
+        },
+        {
+          "student_email": "luciabrochiero@gmail.com",
+          "student_name": "lucía primo brochiero",
+          "student_id": 94,
+          "legacy_user_id": "69f09489e85c03079de6ef06",
+          "legacy_userselection_id": "69f094afe85c03079de6effb",
+          "source_index": 93,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 09:00",
+            "Thursday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [
+            "Jueves 09:00"
+          ],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-23T02:04:29.195000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "maca_allende20@hotmail.com",
+      "student_name": "macarena allende",
+      "student_id": 25,
+      "legacy_user_id": "683e1dbd54c3c5d82dd82747",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "maca_allende20@hotmail.com",
+          "student_name": "macarena allende",
+          "student_id": 25,
+          "legacy_user_id": "683e1dbd54c3c5d82dd82747",
+          "legacy_userselection_id": "683e1ddc54c3c5d82dd82774",
+          "source_index": 3,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 09:00",
+            "Thursday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "maddyyb4@gmail.com",
+      "student_name": "maddalena badas",
+      "student_id": 90,
+      "legacy_user_id": "69ded466e85c03079de3dc86",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "maddyyb4@gmail.com",
+          "student_name": "maddalena badas",
+          "student_id": 90,
+          "legacy_user_id": "69ded466e85c03079de3dc86",
+          "legacy_userselection_id": "69dede37e85c03079de3e498",
+          "source_index": 89,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 08:00",
+            "Wednesday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 08:00",
+            "Miércoles 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 08:00",
+            "Miércoles 08:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-14T02:09:53.568000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "madelainefregenal@gmail.com",
+      "student_name": "madelaine fregenal",
+      "student_id": 39,
+      "legacy_user_id": "6908c4b1123d0671aede04d2",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "madelainefregenal@gmail.com",
+          "student_name": "madelaine fregenal",
+          "student_id": 39,
+          "legacy_user_id": "6908c4b1123d0671aede04d2",
+          "legacy_userselection_id": "6908c526123d0671aede5bd3",
+          "source_index": 38,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "malenacollel7@gmail.com",
+      "student_name": "malena collel",
+      "student_id": 111,
+      "legacy_user_id": "6a184c9e1021c0c1fbdb9084",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "malenacollel7@gmail.com",
+          "student_name": "malena collel",
+          "student_id": 111,
+          "legacy_user_id": "6a184c9e1021c0c1fbdb9084",
+          "legacy_userselection_id": "6a184d021021c0c1fbdb950a",
+          "source_index": 110,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 17:00",
+            "Thursday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": "2026-06-18T16:16:33.791000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "malenanavarro12@gmail.com",
+      "student_name": "malena navarro",
+      "student_id": 97,
+      "legacy_user_id": "69f3bd516e43b612a8d56123",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "malenanavarro12@gmail.com",
+          "student_name": "malena navarro",
+          "student_id": 97,
+          "legacy_user_id": "69f3bd516e43b612a8d56123",
+          "legacy_userselection_id": "69f3bdf26e43b612a8d56221",
+          "source_index": 96,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 19:00",
+            "Thursday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 19:00",
+            "Jueves 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 19:00",
+            "Jueves 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-09T20:17:35.771000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "florplaniscig5@gmail.com",
+      "student_name": "maria florencia planiscig",
+      "student_id": 10,
+      "legacy_user_id": "6838dc2824d4d1b7adb046e8",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "florplaniscig5@gmail.com",
+          "student_name": "maria florencia planiscig",
+          "student_id": 10,
+          "legacy_user_id": "6838dc2824d4d1b7adb046e8",
+          "legacy_userselection_id": "683e31ce54c3c5d82dd84fa2",
+          "source_index": 12,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Miércoles 19:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-24T20:16:06.884000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "maripalopez@live.com",
+      "student_name": "maria paola lopez",
+      "student_id": 64,
+      "legacy_user_id": "69a1da29a777fa9be0bcf081",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "maripalopez@live.com",
+          "student_name": "maria paola lopez",
+          "student_id": 64,
+          "legacy_user_id": "69a1da29a777fa9be0bcf081",
+          "legacy_userselection_id": "69a1dab6a777fa9be0bd49a7",
+          "source_index": 63,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-17T12:08:33.335000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "marielhoms@gmail.com",
+      "student_name": "mariela homs",
+      "student_id": 53,
+      "legacy_user_id": "697ccdc7f61c580ccf4d0a35",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "marielhoms@gmail.com",
+          "student_name": "mariela homs",
+          "student_id": 53,
+          "legacy_user_id": "697ccdc7f61c580ccf4d0a35",
+          "legacy_userselection_id": "697ccf0df61c580ccf4d2d89",
+          "source_index": 52,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 09:00",
+            "Miércoles 09:00"
+          ],
+          "raw_temporary_labels": [
+            "Lunes 09:00"
+          ],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-24T12:01:36.561000+00:00"
+        },
+        {
+          "student_email": "marielhoms@gmail.com",
+          "student_name": "mariela homs",
+          "student_id": 53,
+          "legacy_user_id": "697ccdc7f61c580ccf4d0a35",
+          "legacy_userselection_id": "697ccf0df61c580ccf4d2d89",
+          "source_index": 52,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 09:00",
+            "Wednesday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 09:00",
+            "Miércoles 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Lunes",
+              "hour": "09:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 09:00",
+            "Miércoles 09:00"
+          ],
+          "raw_temporary_labels": [
+            "Lunes 09:00"
+          ],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-24T12:01:36.561000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "martinagurididelbaldo@gmail.com",
+      "student_name": "martina guridi",
+      "student_id": 24,
+      "legacy_user_id": "683e1a9d54c3c5d82dd8267d",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "martinagurididelbaldo@gmail.com",
+          "student_name": "martina guridi",
+          "student_id": 24,
+          "legacy_user_id": "683e1a9d54c3c5d82dd8267d",
+          "legacy_userselection_id": "683e1ab354c3c5d82dd82689",
+          "source_index": 1,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Lunes 17:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 3,
+          "last_change_at": "2026-06-22T19:06:27.519000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "melisamazzei@gmail.com",
+      "student_name": "melisa mazzei",
+      "student_id": 108,
+      "legacy_user_id": "6a0af5c01021c0c1fbd83db1",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "melisamazzei@gmail.com",
+          "student_name": "melisa mazzei",
+          "student_id": 108,
+          "legacy_user_id": "6a0af5c01021c0c1fbd83db1",
+          "legacy_userselection_id": "6a0af5d71021c0c1fbd83eb2",
+          "source_index": 107,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Friday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Viernes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "__placeholder__",
+              "hour": "__none__"
+            }
+          ],
+          "raw_original_labels": [
+            "Viernes 17:00"
+          ],
+          "raw_temporary_labels": [
+            "__placeholder__ __none__"
+          ],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-22T19:24:39.105000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "micaroatta@gmail.com",
+      "student_name": "micaela anabel roatta",
+      "student_id": 46,
+      "legacy_user_id": "695d48aef61c580ccf9271e1",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "micaroatta@gmail.com",
+          "student_name": "micaela anabel roatta",
+          "student_id": 46,
+          "legacy_user_id": "695d48aef61c580ccf9271e1",
+          "legacy_userselection_id": "695d494bf61c580ccf929775",
+          "source_index": 45,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [
+            "Jueves 07:00"
+          ],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-22T21:06:08.985000+00:00"
+        },
+        {
+          "student_email": "micaroatta@gmail.com",
+          "student_name": "micaela anabel roatta",
+          "student_id": 46,
+          "legacy_user_id": "695d48aef61c580ccf9271e1",
+          "legacy_userselection_id": "695d494bf61c580ccf929775",
+          "source_index": 45,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 07:00",
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [
+            "Jueves 07:00"
+          ],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-22T21:06:08.985000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "micaela.rad15@gmail.com",
+      "student_name": "micaela rad",
+      "student_id": 30,
+      "legacy_user_id": "6870f8e0437e48d8686c7a0a",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "micaela.rad15@gmail.com",
+          "student_name": "micaela rad",
+          "student_id": 30,
+          "legacy_user_id": "6870f8e0437e48d8686c7a0a",
+          "legacy_userselection_id": "6870f916437e48d8686c9c02",
+          "source_index": 28,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 07:00",
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-18T09:29:33.839000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "profesoramonicamelgarejo@hotmail.com",
+      "student_name": "monica melgarejo",
+      "student_id": 27,
+      "legacy_user_id": "6851e40d1f26ed9b2d3cd112",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "profesoramonicamelgarejo@hotmail.com",
+          "student_name": "monica melgarejo",
+          "student_id": 27,
+          "legacy_user_id": "6851e40d1f26ed9b2d3cd112",
+          "legacy_userselection_id": "6851e4581f26ed9b2d3cd223",
+          "source_index": 25,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 08:00",
+            "Wednesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 08:00",
+            "Miércoles 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 08:00",
+            "Miércoles 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 4,
+          "last_change_at": "2026-06-10T19:29:30.854000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "nataliamorello@hotmail.com",
+      "student_name": "natalia morello",
+      "student_id": 13,
+      "legacy_user_id": "6839a86624d4d1b7adb07ff0",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "nataliamorello@hotmail.com",
+          "student_name": "natalia morello",
+          "student_id": 13,
+          "legacy_user_id": "6839a86624d4d1b7adb07ff0",
+          "legacy_userselection_id": "683edfc554c3c5d82dd8b508",
+          "source_index": 20,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 18:00",
+            "Friday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 18:00",
+            "Viernes 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            },
+            {
+              "day": "Viernes",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 18:00",
+            "Viernes 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "nico_valls91@hotmail.com",
+      "student_name": "nicolas valls",
+      "student_id": 110,
+      "legacy_user_id": "6a18380d1021c0c1fbdb7b1c",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "nico_valls91@hotmail.com",
+          "student_name": "nicolas valls",
+          "student_id": 110,
+          "legacy_user_id": "6a18380d1021c0c1fbdb7b1c",
+          "legacy_userselection_id": "6a1838f31021c0c1fbdb7e9d",
+          "source_index": 109,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "patribattagl@gmail.com",
+      "student_name": "patricia battaglia",
+      "student_id": 101,
+      "legacy_user_id": "69f8881d6e43b612a8d5a974",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "patribattagl@gmail.com",
+          "student_name": "patricia battaglia",
+          "student_id": 101,
+          "legacy_user_id": "69f8881d6e43b612a8d5a974",
+          "legacy_userselection_id": "69f888c86e43b612a8d5ab6b",
+          "source_index": 100,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 17:00",
+            "Thursday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 17:00",
+            "Jueves 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-18T18:08:08.080000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "rociommiguel02@gmail.com",
+      "student_name": "rocío maría miguel",
+      "student_id": 54,
+      "legacy_user_id": "697e0eaaf61c580ccf520447",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "rociommiguel02@gmail.com",
+          "student_name": "rocío maría miguel",
+          "student_id": 54,
+          "legacy_user_id": "697e0eaaf61c580ccf520447",
+          "legacy_userselection_id": "697e0f23f61c580ccf521d37",
+          "source_index": 53,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 17:00",
+            "Wednesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 17:00",
+            "Miércoles 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 17:00",
+            "Miércoles 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "rominaluna1999@gmail.com",
+      "student_name": "romina luna",
+      "student_id": 58,
+      "legacy_user_id": "699c5b7ba777fa9be075863f",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "rominaluna1999@gmail.com",
+          "student_name": "romina luna",
+          "student_id": 58,
+          "legacy_user_id": "699c5b7ba777fa9be075863f",
+          "legacy_userselection_id": "699c5c2ba777fa9be075cf5e",
+          "source_index": 57,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Monday 17:00",
+            "Wednesday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Lunes 17:00",
+            "Miércoles 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Lunes",
+              "hour": "17:00"
+            },
+            {
+              "day": "Miércoles",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Lunes 17:00",
+            "Miércoles 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-03T18:37:17.963000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "r.g.chani@gmail.com",
+      "student_name": "roxana trobbiani",
+      "student_id": 81,
+      "legacy_user_id": "69d4d933e85c03079de15250",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "r.g.chani@gmail.com",
+          "student_name": "roxana trobbiani",
+          "student_id": 81,
+          "legacy_user_id": "69d4d933e85c03079de15250",
+          "legacy_userselection_id": "69d4d9f6e85c03079de1560d",
+          "source_index": 80,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Jueves 09:00",
+            "Martes 19:00"
+          ],
+          "raw_temporary_labels": [
+            "Martes 19:00"
+          ],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-23T21:54:56.576000+00:00"
+        },
+        {
+          "student_email": "r.g.chani@gmail.com",
+          "student_name": "roxana trobbiani",
+          "student_id": 81,
+          "legacy_user_id": "69d4d933e85c03079de15250",
+          "legacy_userselection_id": "69d4d9f6e85c03079de1560d",
+          "source_index": 80,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 09:00",
+            "Tuesday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 09:00",
+            "Martes 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            },
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Jueves 09:00",
+            "Martes 19:00"
+          ],
+          "raw_temporary_labels": [
+            "Martes 19:00"
+          ],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-23T21:54:56.576000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "silvia_77_13@hotmail.com",
+      "student_name": "silvia andre garcia",
+      "student_id": 12,
+      "legacy_user_id": "683985d224d4d1b7adb07997",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "silvia_77_13@hotmail.com",
+          "student_name": "silvia andre garcia",
+          "student_id": 12,
+          "legacy_user_id": "683985d224d4d1b7adb07997",
+          "legacy_userselection_id": "683e31dd54c3c5d82dd850a4",
+          "source_index": 13,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 19:00",
+            "Thursday 19:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 19:00",
+            "Jueves 19:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "19:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "19:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 19:00",
+            "Jueves 19:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-02T19:10:46.644000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "solarquiel2008@hotmail.es",
+      "student_name": "sol arquiel",
+      "student_id": 102,
+      "legacy_user_id": "69f8ff9f6e43b612a8d5d348",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "solarquiel2008@hotmail.es",
+          "student_name": "sol arquiel",
+          "student_id": 102,
+          "legacy_user_id": "69f8ff9f6e43b612a8d5d348",
+          "legacy_userselection_id": "69f8ffd76e43b612a8d5d44e",
+          "source_index": 101,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Friday 17:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Viernes 17:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Viernes",
+              "hour": "17:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Viernes 17:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-19T18:32:02.501000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "taniap2121@hotmail.com",
+      "student_name": "tania perez",
+      "student_id": 128,
+      "legacy_user_id": "6a29d5671021c0c1fbdffcab",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "taniap2121@hotmail.com",
+          "student_name": "tania perez",
+          "student_id": 128,
+          "legacy_user_id": "6a29d5671021c0c1fbdffcab",
+          "legacy_userselection_id": "6a29d58b1021c0c1fbdffdcb",
+          "source_index": 127,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "reformer_abajo",
+            "reformer_arriba"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Wednesday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Miércoles 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Miércoles",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Miércoles 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-11T15:55:35.682000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "ticianacabral23@gmail.com",
+      "student_name": "ticiana cabral",
+      "student_id": 67,
+      "legacy_user_id": "69a1f9d8a777fa9be0bf8cc4",
+      "case_count": 2,
+      "cases": [
+        {
+          "student_email": "ticianacabral23@gmail.com",
+          "student_name": "ticiana cabral",
+          "student_id": 67,
+          "legacy_user_id": "69a1f9d8a777fa9be0bf8cc4",
+          "legacy_userselection_id": "69a1fa50a777fa9be0bfb8eb",
+          "source_index": 65,
+          "month": "2026-06-01",
+          "selection_kind": "temporary",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [
+            "Martes 09:00"
+          ],
+          "changes_this_month": 0,
+          "last_change_at": "2026-06-24T14:25:14.587000+00:00"
+        },
+        {
+          "student_email": "ticianacabral23@gmail.com",
+          "student_name": "ticiana cabral",
+          "student_id": 67,
+          "legacy_user_id": "69a1f9d8a777fa9be0bf8cc4",
+          "legacy_userselection_id": "69a1fa50a777fa9be0bfb8eb",
+          "source_index": 65,
+          "month": "2026-07-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 09:00",
+            "Thursday 09:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "09:00"
+            }
+          ],
+          "raw_temporary_selections": [
+            {
+              "day": "Martes",
+              "hour": "09:00"
+            }
+          ],
+          "raw_original_labels": [
+            "Martes 09:00",
+            "Jueves 09:00"
+          ],
+          "raw_temporary_labels": [
+            "Martes 09:00"
+          ],
+          "changes_this_month": 0,
+          "last_change_at": "2026-06-24T14:25:14.587000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "valechiavassa09@gmail.com",
+      "student_name": "valentina chiavassa",
+      "student_id": 78,
+      "legacy_user_id": "69cad35db4cdddc241b1f81d",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "valechiavassa09@gmail.com",
+          "student_name": "valentina chiavassa",
+          "student_id": 78,
+          "legacy_user_id": "69cad35db4cdddc241b1f81d",
+          "legacy_userselection_id": "69cad424b4cdddc241b1f901",
+          "source_index": 77,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 08:00",
+            "Thursday 08:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 08:00",
+            "Jueves 08:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "08:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "08:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 08:00",
+            "Jueves 08:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 2,
+          "last_change_at": "2026-06-18T16:49:38.716000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "valerymarzzan@hotmail.com",
+      "student_name": "valeria marzzan",
+      "student_id": 70,
+      "legacy_user_id": "69a5d111a777fa9be0d84ff3",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "valerymarzzan@hotmail.com",
+          "student_name": "valeria marzzan",
+          "student_id": 70,
+          "legacy_user_id": "69a5d111a777fa9be0d84ff3",
+          "legacy_userselection_id": "69a5d1b1a777fa9be0d866f0",
+          "source_index": 69,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Tuesday 07:00",
+            "Thursday 07:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Martes",
+              "hour": "07:00"
+            },
+            {
+              "day": "Jueves",
+              "hour": "07:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Martes 07:00",
+            "Jueves 07:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 0,
+          "last_change_at": null
+        }
+      ]
+    },
+    {
+      "student_email": "fernandez.a.victoria2023@gmail.com",
+      "student_name": "victoria fernandez",
+      "student_id": 92,
+      "legacy_user_id": "69ea923fe85c03079de61e7c",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "fernandez.a.victoria2023@gmail.com",
+          "student_name": "victoria fernandez",
+          "student_id": 92,
+          "legacy_user_id": "69ea923fe85c03079de61e7c",
+          "legacy_userselection_id": "69ea925ee85c03079de61f91",
+          "source_index": 91,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-11T22:48:17.637000+00:00"
+        }
+      ]
+    },
+    {
+      "student_email": "viquimainetti@hotmail.com.ar",
+      "student_name": "victoria mainetti",
+      "student_id": 98,
+      "legacy_user_id": "69f3be786e43b612a8d5660a",
+      "case_count": 1,
+      "cases": [
+        {
+          "student_email": "viquimainetti@hotmail.com.ar",
+          "student_name": "victoria mainetti",
+          "student_id": 98,
+          "legacy_user_id": "69f3be786e43b612a8d5660a",
+          "legacy_userselection_id": "69f3bfab6e43b612a8d5670a",
+          "source_index": 97,
+          "month": "2026-06-01",
+          "selection_kind": "original",
+          "status": "ambiguous",
+          "possible_sections": [
+            "cadillac",
+            "reformer_abajo"
+          ],
+          "primary_section": "",
+          "inferred_section": "",
+          "slot_labels": [
+            "Thursday 18:00"
+          ],
+          "planned_legacy_day_hour_pairs": [
+            {
+              "day": "Jueves",
+              "hour": "18:00"
+            }
+          ],
+          "planned_legacy_labels": [
+            "Jueves 18:00"
+          ],
+          "raw_original_selections": [
+            {
+              "day": "Jueves",
+              "hour": "18:00"
+            }
+          ],
+          "raw_temporary_selections": [],
+          "raw_original_labels": [
+            "Jueves 18:00"
+          ],
+          "raw_temporary_labels": [],
+          "changes_this_month": 1,
+          "last_change_at": "2026-06-18T20:24:04.104000+00:00"
+        }
+      ]
+    }
+  ]
+}

@@ -408,6 +408,48 @@ class AuthenticationFlowTests(TestCase):
 
         self.assertRedirects(response, reverse('agenda'))
 
+    def test_staff_login_ignores_student_portal_next_url(self):
+        staff_user = User.objects.create_user(
+            email='staff-next-student@example.com',
+            password='StaffNext2026!',
+            first_name='Linus',
+            last_name='Torvalds',
+            role='admin',
+            is_staff=True,
+            must_change_password=False,
+        )
+        staff_user.temporary_password_set_at = None
+        staff_user.save(update_fields=['temporary_password_set_at', 'updated_at'])
+
+        response = self.client.post(
+            reverse('login'),
+            {'email': staff_user.email, 'password': 'StaffNext2026!', 'next': reverse('dashboard')},
+        )
+
+        self.assertRedirects(response, reverse('admin-student-list'))
+
+    def test_staff_is_redirected_away_from_student_portal_views(self):
+        staff_user = User.objects.create_user(
+            email='staff-student-portal@example.com',
+            password='StaffDirect2026!',
+            first_name='Margaret',
+            last_name='Hamilton',
+            role='admin',
+            is_staff=True,
+            must_change_password=False,
+        )
+        self.client.force_login(staff_user)
+
+        for url in (
+            reverse('dashboard'),
+            reverse('agenda'),
+            reverse('my-bookings'),
+            reverse('account'),
+        ):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertRedirects(response, reverse('admin-student-list'))
+
     def test_login_ignores_unsafe_next_url(self):
         user = self.create_student(
             email='login-unsafe-next@example.com',

@@ -138,6 +138,28 @@
             justify-content: flex-start;
         }
 
+        .session-attendees {
+            display: grid;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .session-attendees-label,
+        .session-attendees-list,
+        .session-attendees-list li {
+            margin: 0;
+        }
+
+        .session-attendees-list {
+            padding-left: 18px;
+            color: var(--text);
+        }
+
+        .session-attendee-makeup {
+            color: var(--warning);
+            font-weight: 700;
+        }
+
         .tone-note {
             padding: 14px 16px;
             border-radius: 18px;
@@ -267,6 +289,19 @@
                                                     {% endif %}
                                                 </div>
                                             </div>
+
+                                            {% if row.attendees %}
+                                                <div class="session-attendees">
+                                                    <p class="tiny-copy session-attendees-label">Alumnas anotadas</p>
+                                                    <ul class="session-attendees-list">
+                                                        {% for attendee in row.attendees %}
+                                                            <li>
+                                                                <span{% if attendee.is_makeup %} class="session-attendee-makeup"{% endif %}>{{ attendee.full_name }}</span>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
 
                                             <div class="session-actions">
                                                 <a href="{{ row.detail_url }}" class="button-secondary">Ver detalle</a>
