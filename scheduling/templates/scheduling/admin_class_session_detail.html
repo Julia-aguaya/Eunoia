@@ -264,6 +264,11 @@
             gap: 10px;
         }
 
+        .booking-row-makeup {
+            border-color: rgba(201, 130, 8, 0.2);
+            background: linear-gradient(180deg, rgba(255, 252, 245, 0.98), rgba(244, 235, 218, 0.72));
+        }
+
         .booking-top {
             align-items: center;
         }
@@ -274,10 +279,36 @@
             min-width: 0;
         }
 
+        .booking-student-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .booking-copy strong,
         .panel h3,
         .info-block h3 {
             margin: 0;
+        }
+
+        .booking-student-makeup {
+            color: #9a6300;
+        }
+
+        .booking-recovery-flag {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(201, 130, 8, 0.2);
+            background: rgba(244, 235, 218, 0.96);
+            color: #9a6300;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
 
         .booking-meta {
@@ -559,10 +590,13 @@
         {% if staff_session_active_bookings %}
             <div class="booking-list">
                 {% for booking in staff_session_active_bookings %}
-                    <article class="booking-row">
+                    <article class="booking-row{% if booking.used_recovery_credit %} booking-row-makeup{% endif %}">
                         <div class="booking-top">
                             <div class="booking-copy">
-                                <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                <div class="booking-student-line">
+                                    <strong{% if booking.used_recovery_credit %} class="booking-student-makeup"{% endif %}>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                    {% if booking.used_recovery_credit %}<span class="booking-recovery-flag">Recuperación</span>{% endif %}
+                                </div>
                                 <p>{{ booking.student.email }}</p>
                                 {% if booking.used_recovery_credit %}
                                     <p>Reserva por recuperación {% if booking.used_recovery_credit.source == 'manual' %}manual{% else %}{{ booking.used_recovery_credit.source|staff_recovery_source_label }}{% endif %}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>

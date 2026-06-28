@@ -336,6 +336,14 @@ class AdminPortalViewTests(TestCase):
             expires_at=self.today - timedelta(days=3),
         )
 
+    def _first_weekday_in_month(self, month_start, weekday):
+        day_cursor = month_start
+        while day_cursor.month == month_start.month:
+            if day_cursor.isoweekday() == weekday:
+                return day_cursor
+            day_cursor += timedelta(days=1)
+        raise AssertionError(f'No se encontro el dia {weekday} en {month_start:%Y-%m}.')
+
     def test_staff_labels_tag_library_loads_for_staff_templates(self):
         template = engines['django'].from_string('{% load staff_labels %}{{ value|staff_session_status_label }}')
 
@@ -565,6 +573,195 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')), [slot_one.pk, slot_two.pk])
         self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
         self.assertContains(response, 'Plan mensual fijo')
+
+    def test_staff_monthly_plan_update_reconciles_missing_future_fixed_bookings(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        session_date = self._first_weekday_in_month(next_month, Weekday.MONDAY)
+        session = ClassSession.objects.create(
+            slot=slot,
+            section=self.section,
+            date=session_date,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [slot.pk],
+                'notes': 'Alta inmediata',
+            },
+            follow=True,
+        )
+
+        booking = Booking.objects.get(session=session, student=self.active_student)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(booking.source, BookingSource.FIXED_SLOT)
+
+    def test_staff_monthly_plan_update_cancels_obsolete_fixed_booking_and_creates_new_one(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        old_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        new_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        old_session = ClassSession.objects.create(
+            slot=old_slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.MONDAY),
+            start_time=old_slot.start_time,
+            end_time=old_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        new_session = ClassSession.objects.create(
+            slot=new_slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.WEDNESDAY),
+            start_time=new_slot.start_time,
+            end_time=new_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        old_plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=self.section,
+            notes='Plan viejo',
+        )
+        old_plan.assign_weekly_slots([old_slot])
+        old_booking = Booking.objects.create_booking(session=old_session, student=self.active_student)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [new_slot.pk],
+                'notes': 'Cambio de horario',
+            },
+            follow=True,
+        )
+
+        old_booking.refresh_from_db()
+        new_booking = Booking.objects.get(session=new_session, student=self.active_student)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(old_booking.status, BookingStatus.CANCELLED)
+        self.assertFalse(old_booking.cancellation_generates_recovery)
+        self.assertEqual(new_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(Booking.objects.filter(session=old_session, status=BookingStatus.BOOKED).count(), 0)
+
+    def test_staff_monthly_plan_update_does_not_touch_non_fixed_or_inactive_bookings(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        old_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        new_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        manual_session = ClassSession.objects.create(
+            slot=old_slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.MONDAY),
+            start_time=old_slot.start_time,
+            end_time=old_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        cancelled_session = ClassSession.objects.create(
+            slot=new_slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.WEDNESDAY),
+            start_time=new_slot.start_time,
+            end_time=new_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=self.section,
+        ).assign_weekly_slots([old_slot])
+        manual_booking = Booking.objects.create(
+            session=manual_session,
+            student=self.active_student,
+            status=BookingStatus.BOOKED,
+            source=BookingSource.MANUAL,
+        )
+        cancelled_fixed_booking = Booking.objects.create(
+            session=cancelled_session,
+            student=self.active_student,
+            status=BookingStatus.CANCELLED,
+            source=BookingSource.FIXED_SLOT,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [new_slot.pk],
+                'notes': 'No tocar manuales',
+            },
+            follow=True,
+        )
+
+        manual_booking.refresh_from_db()
+        cancelled_fixed_booking.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(manual_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(manual_booking.source, BookingSource.MANUAL)
+        self.assertEqual(cancelled_fixed_booking.status, BookingStatus.CANCELLED)
 
     def test_staff_detail_hides_legacy_monthly_plan_metadata_from_slots_and_notes(self):
         legacy_block = (
@@ -1386,6 +1583,9 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Katherine Johnson')
         self.assertContains(response, 'Reserva por recuperación manual')
         self.assertContains(response, 'Con recuperación')
+        self.assertContains(response, 'class="booking-row booking-row-makeup"', count=1)
+        self.assertContains(response, 'class="booking-student-makeup"', count=1)
+        self.assertContains(response, 'class="booking-recovery-flag"', count=1)
         self.assertContains(response, 'Reservas recientes')
         self.assertLess(response.content.decode().find('Alumnas anotadas'), response.content.decode().find('Reservas recientes'))
         self.assertContains(response, 'Grace Hopper')
@@ -1638,7 +1838,8 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Alumnas anotadas')
         self.assertContains(response, 'Ada Lovelace')
         self.assertContains(response, 'Dorothy Vaughan')
-        self.assertContains(response, 'class="session-attendee-makeup"', count=1)
+        self.assertContains(response, 'class="session-attendee session-attendee-makeup"', count=1)
+        self.assertContains(response, 'class="session-attendee-flag"', count=1)
         self.assertNotContains(response, 'Grace Hopper</span></li>')
 
     def test_staff_agenda_keeps_same_time_sessions_split_by_section_in_context(self):

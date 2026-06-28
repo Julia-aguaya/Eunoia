@@ -30,6 +30,7 @@ from .forms import (
 from .models import (
     AuditLog,
     Booking,
+    BookingSource,
     BookingStatus,
     ClassSession,
     HolidayClosure,
@@ -775,6 +776,10 @@ def _ensure_student_portal_sessions(user, *, start_date, end_date):
 
 
 def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
+    _reconcile_fixed_plan_bookings(user, start_date=start_date, end_date=end_date)
+
+
+def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolete=False):
     if end_date < start_date:
         return
 
@@ -786,12 +791,24 @@ def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
     if not candidate_sessions:
         return
 
+    candidate_session_ids = [session.id for session in candidate_sessions]
     sessions_by_key = {
         (session.date, session.start_time, session.end_time, session.section_id): session for session in candidate_sessions
     }
-    existing_bookings_by_session_id = set(
-        Booking.objects.filter(student=user, session_id__in=[session.id for session in candidate_sessions]).values_list('session_id', flat=True)
+    active_bookings = list(
+        Booking.objects.filter(
+            student=user,
+            session_id__in=candidate_session_ids,
+            status=BookingStatus.BOOKED,
+        )
     )
+    existing_bookings_by_session_id = {booking.session_id for booking in active_bookings}
+    existing_fixed_bookings = [
+        booking
+        for booking in active_bookings
+        if booking.source == BookingSource.FIXED_SLOT and booking.moved_from_booking_id is None
+    ]
+    expected_session_ids = set()
     plan_cache = {}
     day_cursor = start_date
 
@@ -814,7 +831,12 @@ def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
                 continue
 
             session = sessions_by_key.get((day_cursor, slot.start_time, slot.end_time, monthly_plan.section_id))
-            if session is None or session.id in existing_bookings_by_session_id:
+            if session is None:
+                continue
+
+            expected_session_ids.add(session.id)
+
+            if session.id in existing_bookings_by_session_id:
                 continue
 
             try:
@@ -825,6 +847,28 @@ def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
             existing_bookings_by_session_id.add(session.id)
 
         day_cursor += timedelta(days=1)
+
+    if not cancel_obsolete:
+        return
+
+    cancellation_time = timezone.now()
+    for booking in existing_fixed_bookings:
+        if booking.session_id in expected_session_ids:
+            continue
+
+        booking.status = BookingStatus.CANCELLED
+        booking.cancelled_at = cancellation_time
+        booking.cancelled_by = None
+        booking.cancellation_generates_recovery = False
+        booking.save(
+            update_fields=[
+                'status',
+                'cancelled_at',
+                'cancelled_by',
+                'cancellation_generates_recovery',
+                'updated_at',
+            ]
+        )
 
 
 def _get_student_portal_context(user):
@@ -2061,6 +2105,14 @@ def admin_update_student_monthly_plan_view(request, student_id):
     form = StaffStudentMonthlyPlanForm(student=student, month=selected_month, section=_resolve_staff_plan_section(selected_section), data=request.POST)
     if form.is_valid():
         plan = form.save()
+        reconcile_start = max(timezone.localdate(), plan.month)
+        reconcile_end = _shift_month(plan.month, 1) - timedelta(days=1)
+        _reconcile_fixed_plan_bookings(
+            student,
+            start_date=reconcile_start,
+            end_date=reconcile_end,
+            cancel_obsolete=True,
+        )
         messages.success(
             request,
             (
