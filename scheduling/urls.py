@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     admin_class_agenda_view,
+    admin_cancel_class_session_view,
     admin_create_class_session_view,
     admin_class_session_detail_view,
     admin_delete_class_session_view,
@@ -33,6 +34,7 @@ urlpatterns = [
     path('staff/', admin_student_list_view, name='admin-student-list'),
     path('staff/clases/', admin_class_agenda_view, name='admin-class-agenda'),
     path('staff/clases/crear/', admin_create_class_session_view, name='admin-create-class-session'),
+    path('staff/clases/<int:session_id>/cancelar/', admin_cancel_class_session_view, name='admin-cancel-class-session'),
     path('staff/clases/<int:session_id>/editar/', admin_update_class_session_view, name='admin-update-class-session'),
     path('staff/clases/<int:session_id>/eliminar/', admin_delete_class_session_view, name='admin-delete-class-session'),
     path('staff/clases/<int:session_id>/', admin_class_session_detail_view, name='admin-class-session-detail'),

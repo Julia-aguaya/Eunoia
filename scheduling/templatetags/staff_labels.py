@@ -59,6 +59,7 @@ BOOKING_STATUS_LABELS = {
 RECOVERY_SOURCE_LABELS = {
     'timely_cancellation': 'cancelacion a tiempo',
     'holiday_closure': 'cierre por feriado',
+    'session_cancellation': 'cancelacion de clase',
     'manual': 'carga manual',
 }
 

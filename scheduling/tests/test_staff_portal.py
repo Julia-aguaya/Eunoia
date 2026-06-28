@@ -1498,6 +1498,61 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(ClassSession.objects.filter(pk=manual_session.pk).exists())
         self.assertContains(response, 'Se eliminó la clase de')
 
+    def test_staff_can_cancel_class_session_with_active_bookings(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-cancel-class-session', args=[self.upcoming_session.pk]),
+            follow=True,
+        )
+
+        self.upcoming_session.refresh_from_db()
+        booking = Booking.objects.get(session=self.upcoming_session, student=self.active_student)
+        credit = RecoveryCredit.objects.get(
+            student=self.active_student,
+            origin_session=self.upcoming_session,
+            source=RecoveryCreditSource.SESSION_CANCELLATION,
+        )
+        audit_log = AuditLog.objects.get(
+            entity_type='ClassSession',
+            entity_id=self.upcoming_session.pk,
+            action=AuditAction.STATUS_CHANGE,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.upcoming_session.status, SessionStatus.CANCELLED)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(credit.status, RecoveryCreditStatus.AVAILABLE)
+        self.assertEqual(credit.granted_by, self.staff_user)
+        self.assertEqual(audit_log.actor, self.staff_user)
+        self.assertEqual(audit_log.payload['created_credits'], 1)
+        self.assertContains(response, 'Se canceló la clase de')
+        self.assertContains(response, 'Reservas preservadas: 1')
+        self.assertContains(response, 'Impacto de la cancelación')
+
+    def test_cancelled_class_session_rejects_new_bookings(self):
+        self.client.force_login(self.staff_user)
+        self.client.post(reverse('admin-cancel-class-session', args=[self.upcoming_session.pk]))
+
+        other_student = User.objects.create_user(
+            email='cancelled-session-other@example.com',
+            password='StudentPass2026!',
+            first_name='Katherine',
+            last_name='Johnson',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=other_student,
+            month=normalize_month_start(self.upcoming_session.date),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+
+        self.upcoming_session.refresh_from_db()
+        with self.assertRaisesMessage(ValidationError, 'cannot be booked'):
+            Booking.objects.create_booking(session=self.upcoming_session, student=other_student)
+
     def test_staff_agenda_links_to_class_session_detail(self):
         self.client.force_login(self.staff_user)
 

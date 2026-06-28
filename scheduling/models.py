@@ -70,6 +70,7 @@ class RecoveryCreditStatus(models.TextChoices):
 class RecoveryCreditSource(models.TextChoices):
     TIMELY_CANCELLATION = 'timely_cancellation', 'Timely Cancellation'
     HOLIDAY_CLOSURE = 'holiday_closure', 'Holiday Closure'
+    SESSION_CANCELLATION = 'session_cancellation', 'Session Cancellation'
     MANUAL = 'manual', 'Manual'
 
 
@@ -581,6 +582,20 @@ class RecoveryCreditManager(models.Manager):
             student=booking.student,
             section=booking.session.section,
             source=RecoveryCreditSource.HOLIDAY_CLOSURE,
+            origin_session=booking.session,
+            defaults={
+                'status': RecoveryCreditStatus.AVAILABLE,
+                'granted_by': granted_by,
+                'expires_at': add_months(booking.session.date, 3),
+                'notes': notes,
+            },
+        )
+
+    def grant_session_cancellation_credit(self, *, booking, granted_by=None, notes=''):
+        return self.get_or_create(
+            student=booking.student,
+            section=booking.session.section,
+            source=RecoveryCreditSource.SESSION_CANCELLATION,
             origin_session=booking.session,
             defaults={
                 'status': RecoveryCreditStatus.AVAILABLE,

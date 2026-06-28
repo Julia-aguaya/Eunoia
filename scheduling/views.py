@@ -52,6 +52,7 @@ from .models import (
 from .use_cases import (
     activate_student_monthly_access,
     apply_holiday_closure,
+    cancel_class_session,
     cancel_booking,
     create_booking,
     generate_class_sessions,
@@ -564,7 +565,7 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
     occupancy_percent = int((booked_count / session.capacity) * 100) if session.capacity else 0
     generated_recovery_credits_count = RecoveryCredit.objects.filter(
         origin_session=session,
-        source=RecoveryCreditSource.HOLIDAY_CLOSURE,
+        source__in=[RecoveryCreditSource.HOLIDAY_CLOSURE, RecoveryCreditSource.SESSION_CANCELLATION],
     ).count()
     holiday_closure_affected_bookings_count = 0
     if session.holiday_closure_id:
@@ -1605,6 +1606,18 @@ def _get_recovery_management_error_message(exc):
     return 'No se pudo actualizar la recuperacion. Intenta nuevamente o revisalo desde admin si el problema sigue.'
 
 
+def _get_class_session_management_error_message(exc):
+    if hasattr(exc, 'message_dict') and exc.message_dict:
+        for messages_list in exc.message_dict.values():
+            if messages_list:
+                return messages_list[0]
+
+    if hasattr(exc, 'messages') and exc.messages:
+        return exc.messages[0]
+
+    return 'No se pudo actualizar la clase desde admin. Intenta nuevamente.'
+
+
 def _get_safe_redirect_url(request, default_name='agenda'):
     next_url = request.POST.get('next') or request.GET.get('next')
     if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
@@ -2007,6 +2020,31 @@ def admin_delete_class_session_view(request, session_id):
         f'Se eliminó la clase de {section_name} del {session_date:%d/%m/%Y} a las {start_time:%H:%M}.',
     )
     return redirect(_build_staff_class_agenda_url(date=session_date, section=''))
+
+
+@staff_required
+def admin_cancel_class_session_view(request, session_id):
+    session = get_object_or_404(ClassSession.objects.select_related('section', 'holiday_closure'), pk=session_id)
+    if request.method != 'POST':
+        return redirect('admin-class-session-detail', session_id=session.pk)
+
+    try:
+        result = cancel_class_session(session_id=session.pk, actor=request.user, record_audit=True)
+    except ValidationError as exc:
+        messages.error(request, _get_class_session_management_error_message(exc))
+    else:
+        messages.success(
+            request,
+            (
+                f'Se canceló la clase de {result.session.section.name} del {result.session.date:%d/%m/%Y} '
+                f'a las {result.session.start_time:%H:%M}. '
+                f'Reservas preservadas: {result.active_bookings}. '
+                f'Recuperaciones nuevas: {result.created_credits}. '
+                f'Recuperaciones ya existentes: {result.existing_credits}.'
+            ),
+        )
+
+    return redirect('admin-class-session-detail', session_id=session.pk)
 
 
 @staff_required

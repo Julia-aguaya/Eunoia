@@ -13,6 +13,7 @@ from .application.recovery_credits import (
     expire_recovery_credit,
 )
 from .audit import (
+    log_staff_class_session_cancelled,
     log_staff_holiday_closure_applied,
     log_staff_manual_recovery_granted,
     log_staff_monthly_access_change,
@@ -74,6 +75,14 @@ class GenerateClassSessionsResult:
     created_count: int
     skipped_duplicates: int
     inspected_matches: int
+
+
+@dataclass(frozen=True)
+class CancelClassSessionResult:
+    session: ClassSession
+    active_bookings: int
+    created_credits: int
+    existing_credits: int
 
 
 def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, section_code=None):
@@ -205,6 +214,72 @@ def cancel_booking(*, booking_id, student, actor=None, when=None):
     recovery_credit = booking.cancel_by_student(actor=actor or student, when=when)
     updated_booking = Booking.objects.select_related('session', 'session__section').get(pk=booking.pk)
     return CancelBookingResult(booking=updated_booking, recovery_credit=recovery_credit)
+
+
+def cancel_class_session(*, session_id, actor=None, when=None, record_audit=False):
+    cancellation_time = when or timezone.now()
+
+    with transaction.atomic():
+        session = (
+            ClassSession.objects.select_for_update()
+            .select_related('section', 'holiday_closure')
+            .get(pk=session_id)
+        )
+
+        if session.status == SessionStatus.CANCELLED:
+            raise ValidationError('La clase ya estaba cancelada.')
+
+        if session.status == SessionStatus.HOLIDAY_CLOSED:
+            raise ValidationError('La clase ya esta cerrada por feriado. No hace falta cancelarla aparte.')
+
+        if session.ends_at() <= cancellation_time:
+            raise ValidationError('Solo podés cancelar clases que todavia no terminaron.')
+
+        session.status = SessionStatus.CANCELLED
+        session.save(update_fields=['status', 'updated_at'])
+
+        active_bookings = list(
+            Booking.objects.select_related('student', 'session', 'session__section')
+            .filter(session=session, status__in=Booking.active_statuses())
+            .order_by('pk')
+        )
+
+        created_credits = 0
+        existing_credits = 0
+        for booking in active_bookings:
+            _, created = RecoveryCredit.objects.grant_session_cancellation_credit(
+                booking=booking,
+                granted_by=actor,
+                notes=(
+                    f'Session cancelled by staff for {booking.session.date:%Y-%m-%d} '
+                    f'at {booking.session.start_time:%H:%M}'
+                ),
+            )
+            if created:
+                created_credits += 1
+            else:
+                existing_credits += 1
+
+    refreshed_session = ClassSession.objects.select_related('section', 'holiday_closure').get(pk=session.pk)
+    result = CancelClassSessionResult(
+        session=refreshed_session,
+        active_bookings=len(active_bookings),
+        created_credits=created_credits,
+        existing_credits=existing_credits,
+    )
+
+    if record_audit:
+        log_staff_class_session_cancelled(
+            actor=actor,
+            session=refreshed_session,
+            result={
+                'active_bookings': result.active_bookings,
+                'created_credits': result.created_credits,
+                'existing_credits': result.existing_credits,
+            },
+        )
+
+    return result
 
 
 def _mark_booking_attendance(*, booking_id, marker, when=None):

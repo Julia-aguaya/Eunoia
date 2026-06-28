@@ -516,6 +516,17 @@
             </div>
 
             <div class="tone-note">{{ staff_session_summary_text }}</div>
+
+            {% if staff_session.status == 'scheduled' %}
+                <form method="post" action="{% url 'admin-cancel-class-session' staff_session.pk %}" class="manual-actions" onsubmit="return confirm('Esto va a cancelar solo esta clase puntual, preservar el historial de reservas y generar recuperaciones para las reservas activas. ¿Querés continuar?');">
+                    {% csrf_token %}
+                    <div>
+                        <strong>Cancelar clase puntual</strong>
+                        <p class="tiny-copy">Cierra esta sesión sin borrarla. Preserva reservas e historial.</p>
+                    </div>
+                    <button type="submit" class="button-danger">Cancelar clase</button>
+                </form>
+            {% endif %}
         </div>
     </section>
 
@@ -674,13 +685,20 @@
                     <article class="info-block">
                         <span class="eyebrow-copy">Recuperaciones visibles</span>
                         <strong>{{ staff_session_makeup_bookings_count }}</strong>
-                        <p>{{ staff_session_generated_recovery_credits_count }} crédito{{ staff_session_generated_recovery_credits_count|pluralize }} generado{{ staff_session_generated_recovery_credits_count|pluralize }} por cierres asociados.</p>
+                        <p>{{ staff_session_generated_recovery_credits_count }} crédito{{ staff_session_generated_recovery_credits_count|pluralize }} generado{{ staff_session_generated_recovery_credits_count|pluralize }} desde esta sesión.</p>
                     </article>
                     {% if staff_session.holiday_closure %}
                         <article class="info-block">
                             <span class="eyebrow-copy">Impacto del cierre</span>
                             <strong>{{ staff_session_holiday_closure_affected_bookings_count }} reserva{{ staff_session_holiday_closure_affected_bookings_count|pluralize }} activa{{ staff_session_holiday_closure_affected_bookings_count|pluralize }}</strong>
                             <p>Sesión cerrada por feriado con {{ staff_session_generated_recovery_credits_count }} recuperaciones asociadas.</p>
+                        </article>
+                    {% endif %}
+                    {% if staff_session.status == 'cancelled' %}
+                        <article class="info-block">
+                            <span class="eyebrow-copy">Impacto de la cancelación</span>
+                            <strong>{{ staff_session_booked_count }} reserva{{ staff_session_booked_count|pluralize }} activa{{ staff_session_booked_count|pluralize }}</strong>
+                            <p>La clase quedó cancelada sin borrar reservas previas y ya no acepta nuevas anotaciones.</p>
                         </article>
                     {% endif %}
                     <article class="info-block">

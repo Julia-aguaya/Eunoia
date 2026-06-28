@@ -101,3 +101,26 @@ def log_staff_holiday_closure_applied(*, actor, closure, result, created):
             'existing_credits': result['existing_credits'],
         },
     )
+
+
+def log_staff_class_session_cancelled(*, actor, session, result):
+    return AuditLog.objects.create(
+        actor=actor,
+        action=AuditAction.STATUS_CHANGE,
+        entity_type='ClassSession',
+        entity_id=session.pk,
+        description=f'Staff cancelo la clase #{session.pk} del {session.date:%d/%m/%Y} a las {session.start_time:%H:%M}',
+        payload={
+            'scope': 'staff_portal',
+            'session_id': session.pk,
+            'section_id': session.section_id,
+            'section_name': session.section.name,
+            'date': session.date.isoformat(),
+            'start_time': session.start_time.isoformat(),
+            'end_time': session.end_time.isoformat(),
+            'status': session.status,
+            'active_bookings': result['active_bookings'],
+            'created_credits': result['created_credits'],
+            'existing_credits': result['existing_credits'],
+        },
+    )
