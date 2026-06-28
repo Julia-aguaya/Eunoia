@@ -1098,6 +1098,116 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, self.upcoming_session.start_time.strftime('%H:%M'))
         self.assertNotContains(response, self.other_upcoming_session.start_time.strftime('%H:%M'))
 
+    def test_staff_agenda_generates_missing_sessions_for_all_active_sections(self):
+        target_date = self.today + timedelta(days=1)
+        shared_start = time(6, 30)
+        shared_end = time(7, 30)
+        third_section = Section.objects.get(code='reformer_abajo')
+        WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=target_date.isoweekday(),
+            start_time=shared_start,
+            end_time=shared_end,
+            capacity=4,
+            is_active=True,
+        )
+        WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=target_date.isoweekday(),
+            start_time=shared_start,
+            end_time=shared_end,
+            capacity=5,
+            is_active=True,
+        )
+        WeeklyClassSlot.objects.create(
+            section=third_section,
+            weekday=target_date.isoweekday(),
+            start_time=shared_start,
+            end_time=shared_end,
+            capacity=6,
+            is_active=True,
+        )
+        ClassSession.objects.filter(
+            section__in=[self.section, self.other_section, third_section],
+            date=target_date,
+            start_time=shared_start,
+        ).delete()
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': self.today.isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            ClassSession.objects.filter(section=self.section, date=target_date, start_time=shared_start).exists()
+        )
+        self.assertTrue(
+            ClassSession.objects.filter(section=self.other_section, date=target_date, start_time=shared_start).exists()
+        )
+        self.assertTrue(
+            ClassSession.objects.filter(section=third_section, date=target_date, start_time=shared_start).exists()
+        )
+        self.assertContains(response, self.section.name)
+        self.assertContains(response, self.other_section.name)
+        self.assertContains(response, third_section.name)
+        self.assertContains(response, '06:30 - 07:30', count=3)
+
+    def test_staff_agenda_generates_missing_sessions_for_selected_section_only(self):
+        target_date = self.today + timedelta(days=1)
+        shared_start = time(6, 30)
+        shared_end = time(7, 30)
+        WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=target_date.isoweekday(),
+            start_time=shared_start,
+            end_time=shared_end,
+            capacity=4,
+            is_active=True,
+        )
+        WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=target_date.isoweekday(),
+            start_time=shared_start,
+            end_time=shared_end,
+            capacity=5,
+            is_active=True,
+        )
+        ClassSession.objects.filter(
+            section__in=[self.section, self.other_section],
+            date=target_date,
+            start_time=shared_start,
+        ).delete()
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': self.today.isoformat(),
+                'section': self.other_section.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            ClassSession.objects.filter(section=self.section, date=target_date, start_time=shared_start).exists()
+        )
+        self.assertTrue(
+            ClassSession.objects.filter(section=self.other_section, date=target_date, start_time=shared_start).exists()
+        )
+        self.assertContains(response, self.other_section.name)
+        self.assertContains(response, '06:30 - 07:30')
+        self.assertTrue(
+            all(
+                row['session'].section_id == self.other_section.pk
+                for group in response.context['staff_agenda_groups']
+                for row in group['sessions']
+            )
+        )
+
     def test_staff_can_create_manual_class_session_from_agenda(self):
         self.client.force_login(self.staff_user)
 

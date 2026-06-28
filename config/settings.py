@@ -32,6 +32,39 @@ def env_list(name, default=None):
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
+def csrf_origin_candidates(host):
+    normalized_host = host.strip()
+    if not normalized_host or normalized_host == '*':
+        return []
+
+    if normalized_host.startswith('.'):
+        normalized_host = f'*{normalized_host}'
+
+    schemes = ['https']
+    if normalized_host in {'localhost', '127.0.0.1', '[::1]'}:
+        schemes = ['http', 'https']
+
+    return [f'{scheme}://{normalized_host}' for scheme in schemes]
+
+
+def build_csrf_trusted_origins(allowed_hosts, configured_origins=None):
+    trusted_origins = []
+    seen = set()
+
+    for origin in configured_origins or []:
+        if origin not in seen:
+            trusted_origins.append(origin)
+            seen.add(origin)
+
+    for host in allowed_hosts or []:
+        for origin in csrf_origin_candidates(host):
+            if origin not in seen:
+                trusted_origins.append(origin)
+                seen.add(origin)
+
+    return trusted_origins
+
+
 def env_int(name, default=0):
     value = os.getenv(name)
     if value is None or not value.strip():
@@ -184,15 +217,12 @@ load_env_file(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-dev-only-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', default=True)
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
-CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
+configured_csrf_trusted_origins = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
 
 render_external_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
 if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_external_hostname)
-if render_external_hostname:
-    render_origin = f'https://{render_external_hostname}'
-    if render_origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(render_origin)
+CSRF_TRUSTED_ORIGINS = build_csrf_trusted_origins(ALLOWED_HOSTS, configured_csrf_trusted_origins)
 
 
 # Application definition
@@ -298,6 +328,7 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = not DEBUG
 SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', default=False)
+SECURE_REFERRER_POLICY = os.getenv('DJANGO_SECURE_REFERRER_POLICY', 'strict-origin-when-cross-origin')
 
 AUTH_USER_MODEL = 'scheduling.User'
 EUNOIA_DEFAULT_TEMPORARY_PASSWORD = os.getenv('EUNOIA_DEFAULT_TEMPORARY_PASSWORD', 'EunoiaTemp2026!')

@@ -366,6 +366,19 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
     anchor_date = _parse_staff_agenda_date(data.get('date'))
     window_end = anchor_date + timedelta(days=STAFF_AGENDA_WINDOW_DAYS - 1)
     section_id = str(data.get('section', '')).strip()
+    available_sections = list(Section.objects.filter(is_active=True).order_by('name'))
+
+    active_section = None
+    if section_id:
+        active_section = next((section for section in available_sections if str(section.pk) == section_id), None)
+
+    visible_sections = [active_section] if active_section is not None else available_sections
+
+    _ensure_generated_sessions_for_sections(
+        start_date=anchor_date,
+        end_date=window_end,
+        sections=visible_sections,
+    )
 
     sessions_qs = (
         ClassSession.objects.select_related('section', 'holiday_closure')
@@ -388,11 +401,8 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
         .order_by('date', 'start_time', 'section__name')
     )
 
-    active_section = None
-    if section_id:
-        active_section = Section.objects.filter(pk=section_id).first()
-        if active_section is not None:
-            sessions_qs = sessions_qs.filter(section=active_section)
+    if active_section is not None:
+        sessions_qs = sessions_qs.filter(section=active_section)
 
     sessions = list(sessions_qs)
     session_ids = [session.pk for session in sessions]
@@ -462,7 +472,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
         'staff_agenda_window_days': STAFF_AGENDA_WINDOW_DAYS,
         'staff_agenda_section_id': section_id,
         'staff_agenda_active_section': active_section,
-        'staff_agenda_sections': Section.objects.filter(is_active=True).order_by('name'),
+        'staff_agenda_sections': available_sections,
         'staff_agenda_groups': grouped_sessions,
         'staff_agenda_sessions_count': len(sessions),
         'staff_agenda_closed_sessions_count': sum(1 for session in sessions if session.status == SessionStatus.HOLIDAY_CLOSED),

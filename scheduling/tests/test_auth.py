@@ -1,8 +1,42 @@
+import re
+
+from django.test import Client, SimpleTestCase
+
+from config.settings import build_csrf_trusted_origins, csrf_origin_candidates
+
 from ._shared import *
+
+
+class CsrfSettingsTests(SimpleTestCase):
+    def test_build_csrf_trusted_origins_adds_https_origins_for_allowed_hosts(self):
+        trusted_origins = build_csrf_trusted_origins(
+            ['pilateseunoia.com', '.pilateseunoia.com', 'localhost', '*'],
+            configured_origins=['https://already-configured.example.com'],
+        )
+
+        self.assertEqual(
+            trusted_origins,
+            [
+                'https://already-configured.example.com',
+                'https://pilateseunoia.com',
+                'https://*.pilateseunoia.com',
+                'http://localhost',
+                'https://localhost',
+            ],
+        )
+
+    def test_csrf_origin_candidates_skips_empty_and_wildcard_hosts(self):
+        self.assertEqual(csrf_origin_candidates(''), [])
+        self.assertEqual(csrf_origin_candidates('*'), [])
 
 class UserOnboardingTests(TestCase):
     def setUp(self):
         self.section = Section.objects.get(code='cadillac')
+
+    def test_login_sets_referrer_policy_header_for_https_form_posts(self):
+        response = self.client.get(reverse('login'))
+
+        self.assertEqual(response.headers['Referrer-Policy'], 'strict-origin-when-cross-origin')
 
     def test_set_temporary_password_hashes_value_and_flags_first_login_reset(self):
         user = User.objects.create_user(
@@ -154,6 +188,38 @@ class AuthenticationFlowTests(TestCase):
         self.assertRedirects(response, reverse('dashboard'))
         follow_response = self.client.get(reverse('dashboard'))
         self.assertContains(follow_response, 'Portal Eunoia')
+
+    @override_settings(
+        ALLOWED_HOSTS=['pilateseunoia.com'],
+        CSRF_TRUSTED_ORIGINS=build_csrf_trusted_origins(['pilateseunoia.com']),
+    )
+    def test_login_accepts_https_origin_for_allowed_host_when_proxy_reports_http(self):
+        user = self.create_student(
+            email='csrf-origin-ok@example.com',
+            password='TempLogin2026!',
+            must_change_password=False,
+        )
+
+        client = Client(enforce_csrf_checks=True)
+        response = client.get(reverse('login'), HTTP_HOST='pilateseunoia.com')
+        csrf_token = re.search(
+            'name="csrfmiddlewaretoken" value="([^"]+)"',
+            response.content.decode(),
+        ).group(1)
+
+        post_response = client.post(
+            reverse('login'),
+            {
+                'email': user.email,
+                'password': 'TempLogin2026!',
+                'csrfmiddlewaretoken': csrf_token,
+            },
+            HTTP_HOST='pilateseunoia.com',
+            HTTP_ORIGIN='https://pilateseunoia.com',
+        )
+
+        self.assertEqual(post_response.status_code, 302)
+        self.assertEqual(post_response.url, reverse('dashboard'))
 
     def test_student_can_create_own_account_with_activity_and_pending_access(self):
         response = self.client.post(
