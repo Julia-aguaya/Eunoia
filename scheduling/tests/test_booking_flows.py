@@ -115,7 +115,7 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.other_section.name)
-        self.assertTrue(Booking.objects.filter(session=self.other_session, student=self.student, status=BookingStatus.BOOKED).exists())
+        self.assertFalse(Booking.objects.filter(session=self.other_session, student=self.student, status=BookingStatus.BOOKED).exists())
 
     def test_my_bookings_shows_active_booking_and_recovery_credit(self):
         response = self.get_portal_page(reverse('my-bookings'))
@@ -195,15 +195,19 @@ class StudentPortalViewTests(TestCase):
             section=reformer_abajo,
         )
         plan.assign_weekly_slots([friday_slot])
+        generated_session = ClassSession.objects.create(
+            slot=friday_slot,
+            section=reformer_abajo,
+            date=date(2026, 6, 12),
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
 
         self.get_portal_page(reverse('agenda'))
         dashboard_response = self.get_portal_page(reverse('dashboard'))
         account_response = self.get_portal_page(reverse('account'))
-        generated_session = ClassSession.objects.get(
-            section=reformer_abajo,
-            date=date(2026, 6, 12),
-            start_time=time(19, 0),
-        )
 
         self.assertEqual(dashboard_response.status_code, 200)
         self.assertEqual(dashboard_response.context['primary_section'].code, 'reformer_abajo')
@@ -245,6 +249,43 @@ class StudentPortalViewTests(TestCase):
             ).exists()
         )
         self.assertContains(response, 'Plan mensual')
+        self.assertContains(response, '18:00')
+
+    def test_agenda_does_not_generate_or_reconcile_missing_plan_sessions_on_get(self):
+        Booking.objects.filter(student=self.student).delete()
+        future_date = date(2026, 6, 10)
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=future_date.isoweekday(),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        ).assign_weekly_slots([planned_slot])
+
+        response = self.get_portal_page(reverse('agenda'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            ClassSession.objects.filter(
+                section=self.section,
+                date=future_date,
+                start_time=time(18, 0),
+            ).exists()
+        )
+        self.assertFalse(
+            Booking.objects.filter(
+                student=self.student,
+                session__section=self.section,
+                session__date=future_date,
+                session__start_time=time(18, 0),
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
         self.assertContains(response, '18:00')
 
     def test_account_page_updates_profile_data(self):

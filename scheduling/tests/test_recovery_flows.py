@@ -162,11 +162,11 @@ class WebRecoveryFlowTests(TestCase):
             response = self.client.get(reverse('use-recovery', args=[credit.pk]), {'date': wednesday.isoformat()})
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '18:00 - no disponible')
         self.assertContains(response, f'Miércoles {wednesday.strftime("%d/%m")}')
+        self.assertNotContains(response, '18:00 - no disponible')
         self.assertNotContains(response, 'Confirmar recuperación')
         self.assertEqual(response.context['recovery_selected_date'], wednesday)
-        self.assertEqual(len(response.context['recovery_selected_day_cards']), 1)
+        self.assertEqual(len(response.context['recovery_selected_day_cards']), 0)
         self.assertEqual(
             [card['session'].pk for card in response.context['recovery_session_cards']],
             [available_session.pk],
@@ -283,6 +283,35 @@ class WebRecoveryFlowTests(TestCase):
             if day['date'] == wednesday
         }
         self.assertTrue(calendar_days[wednesday]['has_habitual_plan'])
+
+    def test_recovery_page_does_not_generate_missing_sessions_on_get(self):
+        monday = self.today - timedelta(days=self.today.weekday())
+        thursday = monday + timedelta(days=3)
+        origin_session = self.create_session_on(monday, start_hour=8)
+        WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=thursday.isoweekday(),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        credit = self.create_available_credit(origin_session=origin_session)
+
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            response = self.client.get(reverse('use-recovery', args=[credit.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            ClassSession.objects.filter(
+                section=self.section,
+                date=thursday,
+                start_time=time(18, 0),
+            ).exists()
+        )
+        self.assertEqual(response.context['eligible_sessions_count'], 0)
+        self.assertNotContains(response, '18:00')
 
     def test_recovery_page_empty_state_mentions_current_week(self):
         monday = self.today - timedelta(days=self.today.weekday())

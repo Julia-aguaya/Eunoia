@@ -950,7 +950,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(reformer_row['attendees'], [])
         self.assertEqual(reformer_row['booked_count'], 0)
 
-    def test_staff_agenda_reconciles_missing_booking_for_student_with_valid_plan(self):
+    def test_staff_agenda_keeps_missing_fixed_plan_booking_read_only_on_get(self):
         Booking.objects.filter(session=self.upcoming_session, student=self.active_student).delete()
         slot = WeeklyClassSlot.objects.create(
             section=self.section,
@@ -978,16 +978,15 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        booking = Booking.objects.get(session=self.upcoming_session, student=self.active_student)
-        self.assertEqual(booking.status, BookingStatus.BOOKED)
         upcoming_row = next(
             row
             for group in response.context['staff_agenda_groups']
             for row in group['sessions']
             if row['session'].pk == self.upcoming_session.pk
         )
-        self.assertEqual(upcoming_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
-        self.assertContains(response, 'Ada Lovelace')
+        self.assertFalse(Booking.objects.filter(session=self.upcoming_session, student=self.active_student).exists())
+        self.assertEqual(upcoming_row['attendees'], [])
+        self.assertNotContains(response, 'Ada Lovelace')
 
     def test_staff_monthly_plan_picker_releases_phantom_full_state_after_plan_cleanup(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
@@ -1718,7 +1717,7 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, self.upcoming_session.start_time.strftime('%H:%M'))
         self.assertNotContains(response, self.other_upcoming_session.start_time.strftime('%H:%M'))
 
-    def test_staff_agenda_generates_missing_sessions_for_all_active_sections(self):
+    def test_staff_agenda_does_not_generate_missing_sessions_for_all_active_sections_on_get(self):
         target_date = self.today + timedelta(days=1)
         shared_start = time(6, 30)
         shared_end = time(7, 30)
@@ -1762,21 +1761,21 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(
+        self.assertFalse(
             ClassSession.objects.filter(section=self.section, date=target_date, start_time=shared_start).exists()
         )
-        self.assertTrue(
+        self.assertFalse(
             ClassSession.objects.filter(section=self.other_section, date=target_date, start_time=shared_start).exists()
         )
-        self.assertTrue(
+        self.assertFalse(
             ClassSession.objects.filter(section=third_section, date=target_date, start_time=shared_start).exists()
         )
         self.assertContains(response, self.section.name)
         self.assertContains(response, self.other_section.name)
         self.assertContains(response, third_section.name)
-        self.assertContains(response, '06:30 - 07:30', count=3)
+        self.assertNotContains(response, '06:30 - 07:30')
 
-    def test_staff_agenda_generates_missing_sessions_for_selected_section_only(self):
+    def test_staff_agenda_does_not_generate_missing_sessions_for_selected_section_on_get(self):
         target_date = self.today + timedelta(days=1)
         shared_start = time(6, 30)
         shared_end = time(7, 30)
@@ -1815,11 +1814,11 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(
             ClassSession.objects.filter(section=self.section, date=target_date, start_time=shared_start).exists()
         )
-        self.assertTrue(
+        self.assertFalse(
             ClassSession.objects.filter(section=self.other_section, date=target_date, start_time=shared_start).exists()
         )
         self.assertContains(response, self.other_section.name)
-        self.assertContains(response, '06:30 - 07:30')
+        self.assertNotContains(response, '06:30 - 07:30')
         self.assertTrue(
             all(
                 row['session'].section_id == self.other_section.pk
@@ -2359,6 +2358,20 @@ class AdminPortalViewTests(TestCase):
             section=self.section,
         )
         june_plan.assign_weekly_slots([monday_slot, wednesday_slot])
+        monday_session = ClassSession.objects.create(
+            slot=monday_slot,
+            section=self.section,
+            date=date(2026, 6, 29),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        wednesday_session = self.upcoming_session
+        wednesday_session.slot = wednesday_slot
+        wednesday_session.save(update_fields=['slot', 'updated_at'])
+        Booking.objects.create_booking(session=monday_session, student=cross_month_student)
+        Booking.objects.create_booking(session=wednesday_session, student=cross_month_student)
         self.client.force_login(self.staff_user)
 
         response = self.client.get(
