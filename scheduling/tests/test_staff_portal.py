@@ -407,6 +407,16 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Al día')
         self.assertNotContains(response, 'Grace Hopper')
 
+    def test_staff_list_hides_inactive_students(self):
+        self.active_student.is_active = False
+        self.active_student.save(update_fields=['is_active', 'updated_at'])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-list'), {'q': 'ada'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Ada Lovelace')
+
     def test_staff_list_uses_state_specific_monthly_access_ctas(self):
         suspended_student = User.objects.create_user(
             email='hedy@example.com',
@@ -1612,9 +1622,11 @@ class AdminPortalViewTests(TestCase):
         )
 
         access = self.active_student.get_monthly_access_for(self.current_month)
+        self.active_student.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
+        self.assertFalse(self.active_student.is_active)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk, action=AuditAction.STATUS_CHANGE)
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['student_id'], self.active_student.pk)
@@ -1634,11 +1646,13 @@ class AdminPortalViewTests(TestCase):
         )
 
         access = self.active_student.get_monthly_access_for(self.current_month)
+        self.active_student.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
+        self.assertFalse(self.active_student.is_active)
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
-        self.assertContains(response, 'Bloqueado')
+        self.assertEqual(response.context['admin_students'], [])
 
     def test_staff_can_activate_student_without_current_month_access(self):
         student_without_status = User.objects.create_user(
@@ -1657,10 +1671,12 @@ class AdminPortalViewTests(TestCase):
         )
 
         access = student_without_status.get_monthly_access_for(self.current_month)
+        student_without_status.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(access)
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
+        self.assertTrue(student_without_status.is_active)
         self.assertEqual(access.activated_by, self.staff_user)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk, action=AuditAction.STATUS_CHANGE)
         self.assertEqual(audit_log.actor, self.staff_user)
@@ -1668,6 +1684,27 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(audit_log.payload['status'], MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(audit_log.payload['booking_enabled'])
         self.assertContains(response, 'Se activo el acceso operativo de Katherine Johnson')
+
+    def test_staff_can_reactivate_suspended_inactive_student_from_detail(self):
+        access = self.active_student.get_monthly_access_for(self.current_month)
+        access.suspend_operational_access()
+        self.active_student.is_active = False
+        self.active_student.save(update_fields=['is_active', 'updated_at'])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-toggle-student-access', args=[self.active_student.pk]),
+            {'next': reverse('admin-student-detail', args=[self.active_student.pk])},
+            follow=True,
+        )
+
+        access.refresh_from_db()
+        self.active_student.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(access.booking_enabled)
+        self.assertTrue(self.active_student.is_active)
+        self.assertContains(response, 'Se activo el acceso operativo de Ada Lovelace')
 
     def test_staff_can_mark_student_paid_and_activate_access(self):
         self.client.force_login(self.staff_user)
@@ -2363,6 +2400,7 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Alumnas anotadas')
         self.assertContains(response, 'Ada Lovelace')
         self.assertContains(response, 'Dorothy Vaughan')
+        self.assertContains(response, '<ol class="session-attendees-list">', html=False)
         self.assertContains(response, 'class="session-attendee session-attendee-makeup"', count=1)
         self.assertContains(response, 'class="session-attendee-flag"', count=1)
         self.assertNotContains(response, 'Grace Hopper</span></li>')

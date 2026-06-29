@@ -270,12 +270,17 @@ class SchedulingUseCaseTests(TestCase):
         )
 
     def test_activate_student_monthly_access_creates_and_activates_missing_status(self):
+        self.student.is_active = False
+        self.student.save(update_fields=['is_active', 'updated_at'])
+
         result = activate_student_monthly_access(student=self.student, actor=self.staff_user, record_audit=True)
 
+        self.student.refresh_from_db()
         self.assertTrue(result.created)
         self.assertTrue(result.changed)
         self.assertEqual(result.access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(result.access.booking_enabled)
+        self.assertTrue(self.student.is_active)
         self.assertEqual(result.access.activated_by, self.staff_user)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=result.access.pk)
         self.assertEqual(audit_log.actor, self.staff_user)
@@ -291,11 +296,13 @@ class SchedulingUseCaseTests(TestCase):
         result = suspend_student_monthly_access(student=self.student, actor=self.staff_user, month=self.today, record_audit=True)
 
         access.refresh_from_db()
+        self.student.refresh_from_db()
         self.assertFalse(result.created)
         self.assertTrue(result.changed)
         self.assertEqual(result.access.pk, access.pk)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
+        self.assertFalse(self.student.is_active)
         self.assertIsNotNone(access.deactivated_at)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk)
         self.assertEqual(audit_log.actor, self.staff_user)

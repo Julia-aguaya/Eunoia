@@ -329,7 +329,7 @@ def _build_admin_student_row(student, access, *, query='', target_date=None):
 def _get_admin_students_context(*, query='', status_filter='all'):
     current_month = normalize_month_start(timezone.localdate())
     students_qs = (
-        User.objects.filter(role=UserRole.STUDENT)
+        User.objects.filter(role=UserRole.STUDENT, is_active=True)
         .select_related('primary_section')
         .prefetch_related(
             Prefetch(

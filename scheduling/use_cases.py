@@ -435,26 +435,37 @@ def _get_or_create_monthly_access(*, student, month=None):
     return MonthlyAccessStatus.objects.get_or_create(student=student, month=current_month)
 
 
+def _set_student_auth_active(*, student, is_active):
+    if student.is_active == is_active:
+        return False
+
+    student.is_active = is_active
+    student.save(update_fields=['is_active', 'updated_at'])
+    return True
+
+
 def activate_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
     access, created = _get_or_create_monthly_access(student=student, month=month)
     changed = not access.grants_operational_booking_access()
     access.activate_by_payment(actor=actor)
+    auth_changed = _set_student_auth_active(student=student, is_active=True)
 
-    if record_audit and changed:
+    if record_audit and (changed or auth_changed):
         log_staff_monthly_access_change(actor=actor, access=access)
 
-    return MonthlyAccessChange(access=access, created=created, changed=changed)
+    return MonthlyAccessChange(access=access, created=created, changed=changed or auth_changed)
 
 
 def suspend_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
     access, created = _get_or_create_monthly_access(student=student, month=month)
     changed = access.status != MonthlyAccessStatusType.SUSPENDED or access.booking_enabled
     access.suspend_operational_access()
+    auth_changed = _set_student_auth_active(student=student, is_active=False)
 
-    if record_audit and changed:
+    if record_audit and (changed or auth_changed):
         log_staff_monthly_access_change(actor=actor, access=access)
 
-    return MonthlyAccessChange(access=access, created=created, changed=changed)
+    return MonthlyAccessChange(access=access, created=created, changed=changed or auth_changed)
 
 
 def toggle_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
