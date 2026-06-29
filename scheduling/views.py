@@ -291,6 +291,8 @@ def _get_student_activity_sections(student, *, target_date):
         for plan in prefetched_plans:
             if plan.month > target_month or plan.section_id in seen_section_ids:
                 continue
+            if not plan.has_weekly_slots():
+                continue
             sections.append(plan.section)
             seen_section_ids.add(plan.section_id)
         if sections:
@@ -333,7 +335,12 @@ def _get_admin_students_context(*, query='', status_filter='all'):
             ),
             Prefetch(
                 'monthly_plans',
-                queryset=StudentMonthlyPlan.objects.select_related('section').filter(month__lte=current_month).order_by('-month'),
+                queryset=(
+                    StudentMonthlyPlan.objects.select_related('section')
+                    .prefetch_related('plan_slots')
+                    .filter(month__lte=current_month)
+                    .order_by('-month')
+                ),
                 to_attr='admin_effective_monthly_plans',
             )
         )
@@ -625,7 +632,11 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
     today = timezone.localdate()
     selected_month = _resolve_month_value(month, fallback=today)
     reconcile_start = max(today, selected_month)
-    reconcile_end = _shift_month(selected_month, 1) - timedelta(days=1)
+    reconcile_end = _resolve_fixed_plan_reconcile_end(
+        student,
+        start_date=reconcile_start,
+        end_date=_shift_month(selected_month, 1) - timedelta(days=1),
+    )
     if reconcile_start <= reconcile_end:
         _reconcile_fixed_plan_bookings(
             student,
@@ -809,6 +820,24 @@ def _ensure_student_portal_sessions(user, *, start_date, end_date):
 
 def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
     _reconcile_fixed_plan_bookings(user, start_date=start_date, end_date=end_date)
+
+
+def _resolve_fixed_plan_reconcile_end(user, *, start_date, end_date):
+    latest_fixed_booking_date = (
+        Booking.objects.filter(
+            student=user,
+            status=BookingStatus.BOOKED,
+            source=BookingSource.FIXED_SLOT,
+            moved_from_booking__isnull=True,
+            session__date__gte=start_date,
+        )
+        .order_by('-session__date')
+        .values_list('session__date', flat=True)
+        .first()
+    )
+    if latest_fixed_booking_date is not None and latest_fixed_booking_date > end_date:
+        return latest_fixed_booking_date
+    return end_date
 
 
 def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolete=False):
@@ -2205,7 +2234,11 @@ def admin_update_student_monthly_plan_view(request, student_id):
     if form.is_valid():
         plan = form.save()
         reconcile_start = max(timezone.localdate(), plan.month)
-        reconcile_end = _shift_month(plan.month, 1) - timedelta(days=1)
+        reconcile_end = _resolve_fixed_plan_reconcile_end(
+            student,
+            start_date=reconcile_start,
+            end_date=_shift_month(plan.month, 1) - timedelta(days=1),
+        )
         _reconcile_fixed_plan_bookings(
             student,
             start_date=reconcile_start,

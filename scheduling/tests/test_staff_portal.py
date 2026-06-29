@@ -466,12 +466,19 @@ class AdminPortalViewTests(TestCase):
     def test_staff_list_uses_effective_plan_activity_when_primary_section_is_missing(self):
         self.active_student.primary_section = None
         self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.MONDAY,
+            start_time=time(16, 0),
+            end_time=time(17, 0),
+            is_active=True,
+        )
         StudentMonthlyPlan.objects.create(
             student=self.active_student,
             month=self.current_month,
             section=self.other_section,
             notes='Plan efectivo para mostrar actividad',
-        )
+        ).assign_weekly_slots([slot])
         self.client.force_login(self.staff_user)
 
         response = self.client.get(reverse('admin-student-list'), {'q': 'ada'})
@@ -483,12 +490,19 @@ class AdminPortalViewTests(TestCase):
     def test_staff_detail_uses_effective_plan_activity_when_primary_section_is_missing(self):
         self.active_student.primary_section = None
         self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.MONDAY,
+            start_time=time(16, 0),
+            end_time=time(17, 0),
+            is_active=True,
+        )
         StudentMonthlyPlan.objects.create(
             student=self.active_student,
             month=self.current_month,
             section=self.other_section,
             notes='Plan efectivo para el detalle',
-        )
+        ).assign_weekly_slots([slot])
         self.client.force_login(self.staff_user)
 
         response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
@@ -501,12 +515,19 @@ class AdminPortalViewTests(TestCase):
         legacy_primary_section = Section.objects.get(code='reformer_abajo')
         self.active_student.primary_section = legacy_primary_section
         self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.MONDAY,
+            start_time=time(16, 0),
+            end_time=time(17, 0),
+            is_active=True,
+        )
         StudentMonthlyPlan.objects.create(
             student=self.active_student,
             month=self.current_month,
             section=self.other_section,
             notes='Plan efectivo para corregir actividad legacy',
-        )
+        ).assign_weekly_slots([slot])
         self.client.force_login(self.staff_user)
 
         response = self.client.get(reverse('admin-student-list'), {'q': 'ada'})
@@ -519,12 +540,19 @@ class AdminPortalViewTests(TestCase):
         legacy_primary_section = Section.objects.get(code='reformer_abajo')
         self.active_student.primary_section = legacy_primary_section
         self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.MONDAY,
+            start_time=time(16, 0),
+            end_time=time(17, 0),
+            is_active=True,
+        )
         StudentMonthlyPlan.objects.create(
             student=self.active_student,
             month=self.current_month,
             section=self.other_section,
             notes='Plan efectivo para el detalle legacy',
-        )
+        ).assign_weekly_slots([slot])
         self.client.force_login(self.staff_user)
 
         response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
@@ -853,6 +881,74 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(session_row['attendees'], [])
         self.assertEqual(session_row['booked_count'], 0)
         self.assertEqual(session_row['available_spots'], 1)
+
+    def test_staff_clearing_one_of_two_activities_removes_it_from_admin_list_and_class_agenda(self):
+        cadillac_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=self.upcoming_session.date.isoweekday(),
+            start_time=self.upcoming_session.start_time,
+            end_time=self.upcoming_session.end_time,
+            is_active=True,
+        )
+        reformer_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=self.other_upcoming_session.date.isoweekday(),
+            start_time=self.other_upcoming_session.start_time,
+            end_time=self.other_upcoming_session.end_time,
+            is_active=True,
+        )
+        cadillac_plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.section,
+            notes='Cadillac fijo',
+        )
+        reformer_plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.other_section,
+            notes='Reformer fijo',
+        )
+        cadillac_plan.assign_weekly_slots([cadillac_slot])
+        reformer_plan.assign_weekly_slots([reformer_slot])
+        Booking.objects.create_booking(session=self.other_upcoming_session, student=self.active_student)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': self.current_month.strftime('%Y-%m'),
+                'section': self.other_section.pk,
+                'notes': 'Reformer pausado',
+            },
+            follow=True,
+        )
+
+        admin_list_response = self.client.get(reverse('admin-student-list'), {'q': 'ada'})
+        admin_row = next(row for row in admin_list_response.context['admin_students'] if row['student'].pk == self.active_student.pk)
+        reformer_booking = Booking.objects.get(session=self.other_upcoming_session, student=self.active_student)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(admin_row['section_name'], self.section.name)
+        self.assertEqual(reformer_booking.status, BookingStatus.CANCELLED)
+
+        agenda_response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': self.other_upcoming_session.date.isoformat(),
+                'section': self.other_section.pk,
+            },
+        )
+
+        reformer_row = next(
+            row
+            for group in agenda_response.context['staff_agenda_groups']
+            if group['date'] == self.other_upcoming_session.date
+            for row in group['sessions']
+            if row['session'].pk == self.other_upcoming_session.pk
+        )
+        self.assertEqual(reformer_row['attendees'], [])
+        self.assertEqual(reformer_row['booked_count'], 0)
 
     def test_staff_agenda_reconciles_missing_booking_for_student_with_valid_plan(self):
         Booking.objects.filter(session=self.upcoming_session, student=self.active_student).delete()

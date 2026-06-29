@@ -284,6 +284,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
             seen_section_ids.add(self.primary_section_id)
 
         for plan in self.get_effective_monthly_plans_for(target_date):
+            if not plan.has_weekly_slots():
+                continue
             if plan.section_id in seen_section_ids:
                 continue
             sections.append(plan.section)
@@ -483,6 +485,12 @@ class StudentMonthlyPlan(TimeStampedModel):
 
     def get_weekly_slots(self):
         return [plan_slot.weekly_class_slot for plan_slot in self.plan_slots.select_related('weekly_class_slot').order_by('position')]
+
+    def has_weekly_slots(self):
+        prefetched_objects = getattr(self, '_prefetched_objects_cache', {})
+        if 'plan_slots' in prefetched_objects:
+            return bool(prefetched_objects['plan_slots'])
+        return self.plan_slots.exists()
 
 
 class StudentMonthlyPlanSlot(TimeStampedModel):
