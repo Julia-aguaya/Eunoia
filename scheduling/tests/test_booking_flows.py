@@ -85,6 +85,8 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, self.section.name)
         self.assertNotContains(response, '<strong>Inicio</strong>', html=False)
         self.assertNotContains(response, '<strong>Mis turnos</strong>', html=False)
+        self.assertNotContains(response, 'Reservar clase')
+        self.assertNotContains(response, 'Ver agenda')
 
     def test_agenda_only_shows_primary_section_sessions(self):
         response = self.get_portal_page(reverse('agenda'))
@@ -958,7 +960,7 @@ class StudentPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Suspendida')
         self.assertContains(response, 'Sin reservas por ahora')
-        self.assertContains(response, 'Ver agenda')
+        self.assertContains(response, 'Agenda')
 
     def test_my_bookings_explains_operational_blocking(self):
         access = self.student.get_monthly_access_for(self.today)

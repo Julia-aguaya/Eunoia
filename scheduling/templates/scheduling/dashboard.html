@@ -1,8 +1,8 @@
 {% extends "scheduling/student_base.html" %}
 
 {% block title %}Inicio | Eunoia{% endblock %}
-{% block hero_title %}Tus clases{% endblock %}
-{% block hero_copy %}Acá podés ver tu próxima clase y reservar turnos.{% endblock %}
+{% block hero_title %}Tu semana, clara y a mano{% endblock %}
+{% block hero_copy %}Ves tu actividad principal, recuperaciones y el estado del portal sin ruido ni vueltas.{% endblock %}
 
 {% block status_banner %}{% endblock %}
 
@@ -34,25 +34,21 @@
     </button>
 {% endblock %}
 
-{% block hero_actions %}
-    <div class="hero-actions-row">
-        <a href="{% url 'my-bookings' %}" class="button">Reservar clase</a>
-        <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-    </div>
-{% endblock %}
+{% block hero_actions %}{% endblock %}
 
 {% block hero_stats %}
-    <div class="metric compact">
+    <div class="metric compact metric-compact-summary">
         <span class="metric-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <path d="M16 2v4M8 2v4M3 10h18"></path>
+                <path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path>
+                <path d="M2 18h20"></path>
+                <path d="M6 14h12"></path>
             </svg>
         </span>
-        <strong class="metric-value">{{ upcoming_turns_count }}</strong>
-        <span class="metric-label">turno{% if upcoming_turns_count != 1 %}s{% endif %}<br>próximo{% if upcoming_turns_count != 1 %}s{% endif %}</span>
+        <strong class="metric-value metric-value--activity">{% if primary_section %}{{ primary_section.name }}{% else %}Sin actividad{% endif %}</strong>
+        <span class="metric-label">actividad principal</span>
     </div>
-    <div class="metric compact">
+    <div class="metric compact metric-compact-summary">
         <span class="metric-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12a9 9 0 0 1-15.5 6.36L3 21"></path>
@@ -62,25 +58,14 @@
             </svg>
         </span>
         <strong class="metric-value">{{ available_recovery_credits|length }}</strong>
-        <span class="metric-label">recuperaciones<br>disponibles</span>
-    </div>
-    <div class="metric compact">
-        <span class="metric-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path>
-                <path d="M2 18h20"></path>
-                <path d="M6 14h12"></path>
-            </svg>
-        </span>
-        <strong class="metric-value metric-value--activity">{% if primary_section %}{{ primary_section.name }}{% else %}Sin actividad{% endif %}</strong>
-        <span class="metric-label">actividad</span>
+        <span class="metric-label">recuperaciones activas</span>
     </div>
 {% endblock %}
 
 {% block extra_head %}
 <style>
     .shell {
-        width: min(860px, calc(100% - (var(--shell-padding) * 2)));
+        width: min(780px, calc(100% - (var(--shell-padding) * 2)));
         padding-bottom: 110px;
     }
 
@@ -89,16 +74,16 @@
     }
 
     .dashboard-hero {
-        grid-template-columns: minmax(0, 1.15fr) minmax(250px, 0.9fr);
-        gap: 18px;
-        padding: 22px;
-        margin-bottom: 16px;
+        grid-template-columns: minmax(0, 1.16fr) minmax(240px, 0.84fr);
+        gap: 12px;
+        padding: 16px;
+        margin-bottom: 10px;
     }
 
     .hero-icon {
-        width: 88px;
-        height: 88px;
-        border-radius: 28px;
+        width: 64px;
+        height: 64px;
+        border-radius: 20px;
         display: grid;
         place-items: center;
         background: linear-gradient(145deg, #f4f2e8, #edf3ea);
@@ -110,53 +95,52 @@
     .section-icon svg,
     .hint-icon svg,
     .week-date-badge svg {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
     }
 
     .dashboard-hero h2 {
-        font-size: clamp(2rem, 5vw, 2.8rem);
+        font-size: clamp(1.8rem, 4vw, 2.35rem);
         line-height: 0.98;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
 
     .dashboard-hero p {
-        max-width: 26ch;
-        font-size: 1rem;
-    }
-
-    .hero-actions-row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-    }
-
-    .hero-actions-row .button,
-    .hero-actions-row .button-secondary {
-        min-height: 56px;
-        font-weight: 700;
-        font-size: 1rem;
+        max-width: 30ch;
+        font-size: 0.92rem;
     }
 
     .hero-stats {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
     }
 
     .metric.compact {
-        place-items: center;
-        text-align: center;
-        gap: 10px;
-        min-height: 176px;
-        padding: 18px 16px;
+        display: grid;
+        align-content: start;
+        gap: 5px;
+        min-height: 0;
+        padding: 13px;
+    }
+
+    .metric-compact-summary {
+        place-items: start;
+        text-align: left;
+    }
+
+    .metric-eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.72rem;
+        color: var(--muted);
     }
 
     .metric-icon,
     .section-icon,
     .hint-icon {
-        width: 56px;
-        height: 56px;
+        width: 44px;
+        height: 44px;
         border-radius: 999px;
         display: grid;
         place-items: center;
@@ -165,30 +149,30 @@
     }
 
     .metric .metric-value {
-        font-size: clamp(2rem, 5vw, 2.8rem);
+        font-size: clamp(1.45rem, 3.4vw, 1.85rem);
     }
 
     .metric-value--activity {
-        font-size: clamp(1.4rem, 3.2vw, 2rem) !important;
-        line-height: 1.02 !important;
+        font-size: clamp(1.02rem, 2.25vw, 1.28rem) !important;
+        line-height: 1.15 !important;
     }
 
     .metric .metric-label {
-        font-size: 0.92rem;
+        font-size: 0.82rem;
         line-height: 1.35;
     }
 
     .dashboard-layout {
         display: grid;
-        gap: 16px;
+        gap: 12px;
     }
 
     .portal-inline-status {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 12px;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 14px 18px;
+        padding: 14px 16px;
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.82);
         border: 1px solid rgba(105, 132, 119, 0.12);
@@ -198,49 +182,29 @@
         color: var(--text);
     }
 
+    .portal-inline-status .meta {
+        grid-column: 1;
+    }
+
     .portal-card {
-        padding: 22px;
+        padding: 16px;
     }
 
     .section-head {
         display: flex;
         align-items: flex-start;
-        gap: 14px;
-        margin-bottom: 16px;
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
     .section-head h3 {
         margin: 0;
-        font-size: clamp(1.75rem, 4vw, 2.3rem);
+        font-size: clamp(1.55rem, 3.6vw, 2rem);
         line-height: 1;
     }
 
     .section-head p {
         margin: 4px 0 0;
-    }
-
-    .next-class-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 160px;
-        gap: 18px;
-        align-items: start;
-    }
-
-    .next-class-main {
-        display: grid;
-        gap: 12px;
-    }
-
-    .next-class-main .date-line {
-        font-family: "Cormorant Garamond", Georgia, serif;
-        font-size: clamp(2rem, 5vw, 2.8rem);
-        line-height: 0.98;
-        color: var(--text);
-    }
-
-    .next-class-main .section-line {
-        font-size: 1rem;
-        color: var(--muted);
     }
 
     .status-pill {
@@ -260,47 +224,11 @@
         color: var(--warning);
     }
 
-    .next-class-note {
-        display: grid;
-        grid-template-columns: 28px minmax(0, 1fr);
-        gap: 10px;
-        padding-top: 14px;
-        border-top: 1px solid rgba(105, 132, 119, 0.14);
-        color: var(--muted);
-        line-height: 1.5;
-    }
-
-    .hint-icon {
-        width: 28px;
-        height: 28px;
-        background: transparent;
-        border-radius: 0;
-    }
-
-    .hint-icon svg {
-        width: 24px;
-        height: 24px;
-    }
-
-    .next-class-visual {
-        min-height: 180px;
-        border-radius: 30px;
-        background: radial-gradient(circle at center, rgba(240, 244, 237, 0.96), rgba(240, 244, 237, 0.44) 70%, rgba(240, 244, 237, 0) 71%);
-        color: rgba(69, 101, 86, 0.62);
-        display: grid;
-        place-items: center;
-    }
-
-    .next-class-visual svg {
-        width: 118px;
-        height: 118px;
-    }
-
     .action-row {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
-        margin-top: 16px;
+        margin-top: 14px;
     }
 
     .action-row.single-action {
@@ -313,20 +241,20 @@
     .action-row .button-disabled,
     .action-row form button {
         width: 100%;
-        min-height: 54px;
+        min-height: 48px;
         font-weight: 700;
     }
 
     .weekly-card {
         display: grid;
-        gap: 12px;
+        gap: 10px;
     }
 
     .week-session {
         display: grid;
-        grid-template-columns: 110px minmax(0, 1fr);
+        grid-template-columns: 92px minmax(0, 1fr);
         border: 1px solid rgba(105, 132, 119, 0.12);
-        border-radius: 22px;
+        border-radius: 20px;
         overflow: hidden;
         background: rgba(255,255,255,0.78);
     }
@@ -336,25 +264,25 @@
         display: grid;
         place-items: center;
         text-align: center;
-        padding: 18px 14px;
+        padding: 14px 10px;
         font-weight: 700;
         color: var(--text);
     }
 
     .week-date-badge strong {
-        font-size: 1.1rem;
+        font-size: 1rem;
         line-height: 1.05;
         white-space: pre-line;
     }
 
     .week-session-main {
         display: grid;
-        gap: 10px;
-        padding: 18px;
+        gap: 8px;
+        padding: 14px;
     }
 
     .week-session-main .time-line {
-        font-size: 1rem;
+        font-size: 0.98rem;
         font-weight: 700;
         color: var(--text);
     }
@@ -368,6 +296,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
+        flex-wrap: wrap;
     }
 
     .week-header-subtitle {
@@ -382,9 +311,9 @@
     .mini-summary {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         flex-wrap: wrap;
-        margin-bottom: 14px;
+        margin-bottom: 10px;
     }
 
     .mini-summary .pill {
@@ -396,7 +325,7 @@
         left: 50%;
         bottom: 14px;
         transform: translateX(-50%);
-        width: min(860px, calc(100% - 20px));
+        width: min(780px, calc(100% - 20px));
         padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -444,7 +373,7 @@
         left: 50%;
         bottom: 0;
         transform: translateX(-50%);
-        width: min(860px, 100%);
+        width: min(780px, 100%);
         padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0px));
         z-index: 41;
     }
@@ -549,24 +478,12 @@
             grid-template-columns: 1fr;
         }
 
-        .hero-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 22px;
-        }
-
-        .next-class-layout,
         .action-row {
             grid-template-columns: 1fr;
         }
 
         .portal-inline-status {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .next-class-visual {
-            min-height: 130px;
+            grid-template-columns: 1fr;
         }
 
         .week-session {
@@ -576,7 +493,7 @@
 
     @media (max-width: 560px) {
         .shell {
-            width: min(100% - 14px, 860px);
+            width: min(100% - 14px, 780px);
             padding-bottom: 104px;
         }
 
@@ -591,44 +508,30 @@
 
         .hero,
         .portal-card {
-            padding: 18px;
-            border-radius: 24px;
-        }
-
-        .hero-actions-row,
-        .action-row {
-            grid-template-columns: 1fr;
-        }
-
-        .hero-stats {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            padding: 16px;
+            border-radius: 22px;
         }
 
         .metric.compact {
-            min-height: 148px;
-            padding: 16px 10px;
+            padding: 12px;
         }
 
         .metric .metric-value {
-            font-size: clamp(1.6rem, 7vw, 2.1rem);
+            font-size: clamp(1.2rem, 5.2vw, 1.6rem);
         }
 
         .metric-value--activity {
-            font-size: clamp(1.05rem, 4.8vw, 1.45rem) !important;
+            font-size: clamp(0.94rem, 4vw, 1.12rem) !important;
         }
 
         .metric .metric-label {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             line-height: 1.25;
         }
 
         .metric-icon {
-            width: 48px;
-            height: 48px;
-        }
-
-        .next-class-main .date-line {
-            font-size: 2.1rem;
+            width: 40px;
+            height: 40px;
         }
 
         .bottom-nav {
@@ -661,110 +564,6 @@
 
 {% block content %}
 <section class="dashboard-layout">
-    <div class="portal-inline-status">
-        <strong>{{ operational_status.title }}</strong>
-        <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
-            {% if operational_status.can_operate %}Portal habilitado{% else %}Sin reservas por ahora{% endif %}
-        </span>
-    </div>
-
-    {% with next_card=next_portal_turn_card %}
-    <article class="card portal-card">
-        <div class="section-head">
-            <span class="section-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <path d="M12 7v6l4 2"></path>
-                </svg>
-            </span>
-            <div>
-                <h3>Próxima clase</h3>
-            </div>
-        </div>
-
-        {% if next_card %}
-            <div class="next-class-layout">
-                <div class="next-class-main">
-                    <div class="date-line">{{ next_card.date|date:"l d/m"|capfirst }} · {% if next_card.session %}{{ next_card.session.start_time|time:"H:i" }}{% else %}{{ next_card.slot.start_time|time:"H:i" }}{% endif %}</div>
-                    <div class="section-line">{% if next_card.session %}{{ next_card.session.section.name }}{% else %}{{ next_card.slot.section.name }}{% endif %}</div>
-                    {% if next_card.booking and next_card.status_tone == 'warning' %}
-                        <span class="status-pill warning">{{ next_card.status_label }}</span>
-                    {% elif next_card.booking %}
-                        <span class="status-pill">{{ next_card.status_label }}</span>
-                    {% elif next_card.action and next_card.action.state == 'managed' %}
-                        <span class="status-pill warning">{{ next_card.action.label }}</span>
-                    {% elif next_card.session %}
-                        <span class="status-pill">Plan mensual</span>
-                    {% else %}
-                        <span class="status-pill warning">Horario pendiente</span>
-                    {% endif %}
-                    <div class="next-class-note">
-                        <span class="hint-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"></circle>
-                                <path d="M12 8h.01"></path>
-                                <path d="M11 12h1v4h1"></path>
-                            </svg>
-                        </span>
-                        {% if next_card.booking %}
-                            <span>Si cancelás a tiempo, se genera una recuperación automáticamente.</span>
-                        {% elif next_card.action and next_card.action.state == 'managed' %}
-                            <span>{{ next_card.action.message }}</span>
-                        {% elif next_card.session %}
-                            <span>Este horario viene de tu plan mensual y ya tiene una clase publicada para reservar.</span>
-                        {% else %}
-                            <span>Este horario viene de tu plan mensual, pero todavía no hay una clase publicada para esa fecha.</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="next-class-visual" aria-hidden="true">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 37h32l7 9"></path>
-                        <path d="M17 37V25l9-6h18l6 18"></path>
-                        <path d="M22 53V37"></path>
-                        <path d="M46 53V37"></path>
-                        <path d="M28 23v10l8 4V20"></path>
-                        <path d="M11 53h42"></path>
-                    </svg>
-                </div>
-            </div>
-
-            <div class="action-row">
-                {% if next_card.booking %}
-                    <a href="{% url 'dashboard' %}?detail={{ next_card.booking.id }}" class="button-secondary">Ver detalle</a>
-                    {% if next_card.cancel_action.can_cancel %}
-                        <form method="post" action="{% url 'cancel-booking' next_card.booking.id %}" style="margin: 0;">
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.path }}">
-                            <button type="submit" class="button-danger">Cancelar turno</button>
-                        </form>
-                    {% else %}
-                        <span class="button-disabled" aria-disabled="true">{{ next_card.cancel_action.label }}</span>
-                    {% endif %}
-                {% elif next_card.session and next_card.action and next_card.action.can_book %}
-                    <a href="{% url 'agenda' %}" class="button">Reservar clase</a>
-                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                {% elif next_card.session %}
-                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                    <span class="button-disabled" aria-disabled="true">{{ next_card.action.label|default:"Agenda no disponible" }}</span>
-                {% else %}
-                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                    <span class="button-disabled" aria-disabled="true">Clase todavia no publicada</span>
-                {% endif %}
-            </div>
-        {% else %}
-            <div class="empty">
-                <p class="empty-copy"><strong>No tenés una próxima clase agendada.</strong></p>
-                <p class="meta" style="margin-top: 8px;">Reservá una clase y organizá tu semana.</p>
-                <div class="action-row">
-                    <a href="{% url 'agenda' %}" class="button">Reservar clase</a>
-                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                </div>
-            </div>
-        {% endif %}
-    </article>
-    {% endwith %}
-
     <article class="card portal-card">
         <div class="section-head">
             <span class="section-icon" aria-hidden="true">
@@ -831,15 +630,19 @@
                 {% if portal_workweek_is_next %}
                     <p class="meta" style="margin-top: 8px;">Todavía no tenés turnos para la próxima semana.</p>
                 {% else %}
-                <p class="meta" style="margin-top: 8px;">Reservá una clase para verla acá.</p>
+                <p class="meta" style="margin-top: 8px;">Cuando reserves desde Agenda, tu semana se va a ordenar acá.</p>
                 {% endif %}
-                <div class="action-row">
-                    <a href="{% url 'agenda' %}" class="button">Reservar clase</a>
-                    <a href="{% url 'agenda' %}" class="button-secondary">Ver agenda</a>
-                </div>
             </div>
         {% endif %}
     </article>
+
+    <div class="portal-inline-status">
+        <strong>{{ operational_status.title }}</strong>
+        <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
+            {% if operational_status.can_operate %}Portal habilitado{% else %}Sin reservas por ahora{% endif %}
+        </span>
+        <p class="meta">{{ operational_status.message }}</p>
+    </div>
 
     <article class="card portal-card">
         <div class="section-head">

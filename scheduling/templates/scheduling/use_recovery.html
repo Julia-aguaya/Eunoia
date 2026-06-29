@@ -391,7 +391,7 @@
 
     .confirm-card {
         display: grid;
-        grid-template-columns: 56px minmax(0, 1fr) 120px;
+        grid-template-columns: 56px minmax(0, 1fr);
         gap: 14px;
         align-items: start;
         padding: 18px;
@@ -551,11 +551,6 @@
                 <p>Vence el {{ recovery_focus_credit.expires_at|date:"d/m" }}</p>
             </div>
             <div class="activity-chip">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M4 18V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"></path>
-                    <path d="M2 18h20"></path>
-                    <path d="M6 14h12"></path>
-                </svg>
                 <span>{{ recovery_focus_credit.section.name }}</span>
             </div>
         </div>
@@ -673,14 +668,6 @@
                         </span>
                         <span>Se descontará 1 recuperación.</span>
                     </div>
-                </div>
-                <div class="confirm-icon-wrap" aria-hidden="true">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 37h32l7 9"></path>
-                        <path d="M17 37V25l9-6h18l6 18"></path>
-                        <path d="M22 53V37"></path>
-                        <path d="M46 53V37"></path>
-                    </svg>
                 </div>
             </div>
 

@@ -103,26 +103,6 @@
         gap: 16px;
     }
 
-    .agenda-status {
-        display: grid;
-        gap: 10px;
-        padding: 18px 20px;
-        border-radius: 22px;
-        background: rgba(255, 255, 255, 0.84);
-        border: 1px solid rgba(105, 132, 119, 0.14);
-    }
-
-    .agenda-status-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-    }
-
-    .agenda-status strong {
-        color: var(--text);
-    }
-
     .agenda-card {
         padding: 22px;
     }
@@ -526,7 +506,6 @@
             border-radius: 24px;
         }
 
-        .agenda-status-head,
         .confirmed-header {
             flex-direction: column;
             align-items: flex-start;
@@ -576,16 +555,6 @@
 
 {% block content %}
 <section class="agenda-layout">
-    <div class="agenda-status">
-        <div class="agenda-status-head">
-            <strong>{{ operational_status.title }}</strong>
-            <span class="pill {% if operational_status.can_operate %}soft-success{% else %}soft-danger{% endif %}">
-                {% if operational_status.can_operate %}Todo disponible{% else %}Sin reservas por ahora{% endif %}
-            </span>
-        </div>
-        <p class="meta">{{ operational_status.message }}</p>
-    </div>
-
     <article class="card agenda-card">
         <div class="calendar-header">
             <a href="{{ agenda_prev_url }}" class="calendar-nav-button" aria-label="Ver mes anterior">
