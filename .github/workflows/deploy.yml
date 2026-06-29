@@ -19,4 +19,8 @@ jobs:
           script: |
             set -e
             cd ~/eunoia
+            git restore --staged deploy-eunoia.sh || true
+            rm -f deploy-eunoia.sh
+            git pull --ff-only
+            chmod +x deploy-eunoia.sh
             ./deploy-eunoia.sh
