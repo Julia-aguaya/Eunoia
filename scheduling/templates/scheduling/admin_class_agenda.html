@@ -315,7 +315,7 @@
                                             {% if row.attendees %}
                                                 <div class="session-attendees">
                                                     <p class="tiny-copy session-attendees-label">Alumnas anotadas</p>
-                                                    <ul class="session-attendees-list">
+                                                    <ol class="session-attendees-list">
                                                         {% for attendee in row.attendees %}
                                                             <li>
                                                                 <span class="session-attendee{% if attendee.is_makeup %} session-attendee-makeup{% endif %}">
@@ -324,7 +324,7 @@
                                                                 </span>
                                                             </li>
                                                         {% endfor %}
-                                                    </ul>
+                                                    </ol>
                                                 </div>
                                             {% endif %}
 
