@@ -64,6 +64,10 @@ from .use_cases import (
 STUDENT_PORTAL_PREVIEW_LIMIT = 6
 ADMIN_DETAIL_PREVIEW_LIMIT = 5
 STAFF_AGENDA_WINDOW_DAYS = 7
+STAFF_AGENDA_HIDDEN_SESSION_STATUSES = {
+    SessionStatus.CANCELLED,
+    SessionStatus.HOLIDAY_CLOSED,
+}
 SPANISH_MONTH_NAMES = {
     1: 'Enero',
     2: 'Febrero',
@@ -441,6 +445,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
     sessions_qs = (
         ClassSession.objects.select_related('section', 'holiday_closure')
         .filter(date__range=(anchor_date, window_end))
+        .exclude(status__in=STAFF_AGENDA_HIDDEN_SESSION_STATUSES)
         .annotate(
             booked_count=Count(
                 'bookings',
@@ -944,6 +949,7 @@ def _get_student_portal_context(user, *, reconcile_fixed_bookings=True):
     upcoming_booking_cards = []
     for booking in upcoming_bookings:
         booking_status = _build_student_booking_status(user=user, booking=booking)
+        session_started = booking.session.starts_at() <= now
         can_cancel = booking.remaining_time_until_start(when=now) > Booking.SELF_SERVICE_CANCELLATION_WINDOW
         if can_cancel:
             cancel_action = {
@@ -951,6 +957,13 @@ def _get_student_portal_context(user, *, reconcile_fixed_bookings=True):
                 'label': 'Cancelar turno',
                 'message': 'Si cambiás de plan, podés cancelarlo desde acá. Si corresponde, la recuperación se genera automáticamente.',
                 'tone': 'ready',
+            }
+        elif session_started:
+            cancel_action = {
+                'can_cancel': False,
+                'label': 'Clase usada',
+                'message': 'Esta clase ya empezó o ya pasó, así que no se puede cancelar desde el portal.',
+                'tone': 'blocked',
             }
         else:
             cancel_action = {

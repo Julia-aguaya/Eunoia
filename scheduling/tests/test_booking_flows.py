@@ -443,6 +443,47 @@ class StudentPortalViewTests(TestCase):
         self.assertTrue(any(card['booking'] and card['booking'].pk == auto_booking.pk for card in weekly_plan_cards))
         self.assertContains(response, 'Cancelar turno')
 
+    def test_dashboard_labels_started_booking_as_clase_usada_instead_of_closed_window(self):
+        past_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        past_booking = Booking.objects.create_booking(session=past_session, student=self.student)
+
+        response = self.get_portal_page(reverse('dashboard'))
+
+        next_card = response.context['next_portal_turn_card']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(next_card['booking'].pk, past_booking.pk)
+        self.assertEqual(next_card['cancel_action']['label'], 'Clase usada')
+        self.assertContains(response, 'Clase usada')
+        self.assertNotContains(response, 'Ventana cerrada')
+
+    def test_dashboard_keeps_closed_window_label_for_upcoming_booking_inside_two_hours(self):
+        Booking.objects.filter(student=self.student).delete()
+        near_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today,
+            start_time=time(13, 30),
+            end_time=time(14, 30),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        near_booking = Booking.objects.create_booking(session=near_session, student=self.student)
+
+        response = self.get_portal_page(reverse('dashboard'))
+
+        next_card = response.context['next_portal_turn_card']
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(next_card['booking'].pk, near_booking.pk)
+        self.assertEqual(next_card['cancel_action']['label'], 'Ventana cerrada')
+        self.assertContains(response, 'Ventana cerrada')
+        self.assertNotContains(response, 'Clase usada')
+
     def test_dashboard_auto_booking_is_idempotent_for_fixed_plan_sessions(self):
         Booking.objects.filter(student=self.student).delete()
         planned_slot = WeeklyClassSlot.objects.create(

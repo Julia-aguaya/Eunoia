@@ -1717,6 +1717,54 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, self.upcoming_session.start_time.strftime('%H:%M'))
         self.assertNotContains(response, self.other_upcoming_session.start_time.strftime('%H:%M'))
 
+    def test_staff_agenda_hides_cancelled_and_holiday_closed_sessions(self):
+        hidden_date = self.today + timedelta(days=1)
+        cancelled_session = ClassSession.objects.create(
+            section=self.section,
+            date=hidden_date,
+            start_time=time(7, 0),
+            end_time=time(8, 0),
+            capacity=6,
+            status=SessionStatus.CANCELLED,
+        )
+        holiday_closed_session = ClassSession.objects.create(
+            section=self.section,
+            date=hidden_date,
+            start_time=time(8, 0),
+            end_time=time(9, 0),
+            capacity=6,
+            status=SessionStatus.HOLIDAY_CLOSED,
+        )
+        visible_session = ClassSession.objects.create(
+            section=self.section,
+            date=hidden_date,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': self.today.isoformat(),
+                'section': self.section.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        visible_session_ids = [
+            row['session'].pk
+            for group in response.context['staff_agenda_groups']
+            for row in group['sessions']
+        ]
+        self.assertIn(visible_session.pk, visible_session_ids)
+        self.assertNotIn(cancelled_session.pk, visible_session_ids)
+        self.assertNotIn(holiday_closed_session.pk, visible_session_ids)
+        self.assertNotContains(response, '07:00 - 08:00')
+        self.assertNotContains(response, '08:00 - 09:00')
+
     def test_staff_agenda_does_not_generate_missing_sessions_for_all_active_sections_on_get(self):
         target_date = self.today + timedelta(days=1)
         shared_start = time(6, 30)
