@@ -196,6 +196,7 @@ class StudentPortalViewTests(TestCase):
         )
         plan.assign_weekly_slots([friday_slot])
 
+        self.get_portal_page(reverse('agenda'))
         dashboard_response = self.get_portal_page(reverse('dashboard'))
         account_response = self.get_portal_page(reverse('account'))
         generated_session = ClassSession.objects.get(
@@ -215,6 +216,36 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(account_response.status_code, 200)
         self.assertContains(account_response, 'Reformer Abajo')
+
+    def test_dashboard_does_not_generate_missing_plan_sessions_on_get(self):
+        Booking.objects.filter(student=self.student).delete()
+        future_date = date(2026, 6, 10)
+        planned_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=future_date.isoweekday(),
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([planned_slot])
+
+        response = self.get_portal_page(reverse('dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            ClassSession.objects.filter(
+                section=self.section,
+                date=future_date,
+                start_time=time(18, 0),
+            ).exists()
+        )
+        self.assertContains(response, 'Plan mensual')
+        self.assertContains(response, '18:00')
 
     def test_account_page_updates_profile_data(self):
         response = self.client.post(
@@ -1026,6 +1057,10 @@ class WebBookingFlowTests(TestCase):
         self.ensure_operational_access_for(target_date)
 
         fixed_now = timezone.make_aware(datetime.combine(self.today, time(9, 0)))
+        with patch('scheduling.views.timezone.now', return_value=fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            self.client.get(reverse('agenda'), {'month': target_date.strftime('%Y-%m')})
         with patch('scheduling.views.timezone.now', return_value=fixed_now), patch(
             'scheduling.views.timezone.localdate', return_value=self.today
         ):

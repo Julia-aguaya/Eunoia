@@ -937,9 +937,7 @@ def _get_student_portal_context(user):
     now = timezone.now()
     today = timezone.localdate()
     current_week_start, current_week_end, current_week_is_next = _get_current_workweek_window(today)
-    _ensure_student_portal_sessions(user, start_date=current_week_start, end_date=current_week_end)
     portal_range_end = _shift_month(normalize_month_start(current_week_end), 1) - timedelta(days=1)
-    _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
     _ensure_fixed_plan_bookings(user, start_date=today, end_date=portal_range_end)
     portal_sections = user.get_effective_portal_sections_for(today) or user.get_effective_portal_sections_for(current_week_start)
     section = portal_sections[0] if portal_sections else None
