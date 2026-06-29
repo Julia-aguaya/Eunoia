@@ -287,14 +287,13 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         super().__init__(**kwargs)
         self.student = student
         self.month = normalize_month_start(month)
-        self.plan = StudentMonthlyPlan.objects.filter(student=student, month=self.month).first()
-        self.effective_plan = self.plan or student.get_effective_monthly_plan_for(self.month)
         self.selected_section = None
         self.fields['month'].initial = self.month
         available_sections = Section.objects.filter(is_active=True).order_by('name')
         self.fields['section'].queryset = available_sections
 
-        default_section = section or (self.effective_plan.section if self.effective_plan is not None else student.primary_section)
+        effective_plans = student.get_effective_monthly_plans_for(self.month)
+        default_section = section or (effective_plans[0].section if effective_plans else student.primary_section)
         if default_section is not None:
             self.fields['section'].initial = default_section.pk
 
@@ -303,6 +302,12 @@ class StaffStudentMonthlyPlanForm(forms.Form):
             self.selected_section = available_sections.filter(pk=raw_section_id).first()
         elif default_section is not None:
             self.selected_section = available_sections.filter(pk=default_section.pk).first() or default_section
+
+        self.plan = None
+        self.effective_plan = None
+        if self.selected_section is not None:
+            self.plan = student.get_monthly_plan_for_section(self.month, section=self.selected_section)
+            self.effective_plan = self.plan or student.get_effective_monthly_plan_for_section(self.month, section=self.selected_section)
 
         queryset = WeeklyClassSlot.objects.none()
         help_text = 'Elegí una actividad para ver y guardar los horarios del plan mensual.'
@@ -330,10 +335,7 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         return normalize_month_start(self.cleaned_data['month'])
 
     def clean_slot_ids(self):
-        slots = list(self.cleaned_data.get('slot_ids') or [])
-        if not slots:
-            raise forms.ValidationError('Elegí al menos 1 horario para guardar el plan mensual.')
-        return slots
+        return list(self.cleaned_data.get('slot_ids') or [])
 
     def clean(self):
         cleaned_data = super().clean()
@@ -362,7 +364,7 @@ class StaffStudentMonthlyPlanForm(forms.Form):
             self.cleaned_data.get('notes', '').strip(),
             existing_notes=plan.notes,
         )
-        plan.assign_weekly_slots(self.cleaned_data['slot_ids'])
+        plan.replace_weekly_slots(self.cleaned_data['slot_ids'])
         return plan
 
 

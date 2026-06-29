@@ -638,12 +638,14 @@
             <span class="month-count-chip">{{ agenda_visible_bookings_count }} clase{{ agenda_visible_bookings_count|pluralize:"s" }} visible{{ agenda_visible_bookings_count|pluralize:"s" }}</span>
         </div>
 
-        {% if agenda_monthly_plan_summary %}
+        {% if agenda_monthly_plan_summaries %}
             <div class="plan-summary">
                 <strong>Tu plan mensual queda marcado en verde para que ubiques rápido tus días fijos.</strong>
                 <div class="plan-slot-list">
-                    {% for item in agenda_monthly_plan_summary.slots %}
-                        <span class="plan-slot-pill">{{ item.label }}</span>
+                    {% for summary in agenda_monthly_plan_summaries %}
+                        {% for item in summary.slots %}
+                            <span class="plan-slot-pill">{{ summary.section.name }} · {{ item.label }}</span>
+                        {% endfor %}
                     {% endfor %}
                 </div>
             </div>
@@ -683,7 +685,7 @@
             </div>
         {% else %}
             <div class="empty">
-                {% if agenda_monthly_plan_summary %}
+                {% if agenda_monthly_plan_summaries %}
                     <p class="empty-copy"><strong>Todavía no hay clases publicadas para tus horarios fijos de este mes.</strong></p>
                     <p class="meta" style="margin-top: 8px;">Cuando publiquemos cada clase, la vas a ver confirmada acá automáticamente.</p>
                     <div class="empty-actions">

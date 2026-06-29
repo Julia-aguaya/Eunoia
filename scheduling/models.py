@@ -212,38 +212,96 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         return self.monthly_access_statuses.filter(month=normalize_month_start(target_date)).first()
 
     def get_monthly_plan_for(self, target_date):
-        return (
+        return self.get_monthly_plan_for_section(target_date)
+
+    def get_monthly_plan_for_section(self, target_date, section=None):
+        queryset = (
             self.monthly_plans.select_related('section')
             .prefetch_related('plan_slots__weekly_class_slot')
             .filter(month=normalize_month_start(target_date))
-            .first()
+        )
+
+        if section is not None:
+            section_id = section.pk if isinstance(section, Section) else section
+            queryset = queryset.filter(section_id=section_id)
+        elif self.primary_section_id is not None:
+            preferred_plan = queryset.filter(section_id=self.primary_section_id).first()
+            if preferred_plan is not None:
+                return preferred_plan
+
+        return queryset.order_by('section__name', 'pk').first()
+
+    def get_monthly_plans_for(self, target_date):
+        target_month = normalize_month_start(target_date)
+        return list(
+            self.monthly_plans.select_related('section')
+            .prefetch_related('plan_slots__weekly_class_slot')
+            .filter(month=target_month)
+            .order_by('section__name', 'pk')
         )
 
     def get_effective_monthly_plan_for(self, target_date):
+        return self.get_effective_monthly_plan_for_section(target_date)
+
+    def get_effective_monthly_plan_for_section(self, target_date, section=None):
         target_month = normalize_month_start(target_date)
-        return (
+        queryset = (
             self.monthly_plans.select_related('section')
             .prefetch_related('plan_slots__weekly_class_slot')
             .filter(month__lte=target_month)
-            .order_by('-month')
-            .first()
         )
 
-    def get_effective_portal_section_for(self, target_date):
-        if self.primary_section_id is not None:
-            return self.primary_section
+        if section is not None:
+            section_id = section.pk if isinstance(section, Section) else section
+            queryset = queryset.filter(section_id=section_id)
+        elif self.primary_section_id is not None:
+            preferred_plan = queryset.filter(section_id=self.primary_section_id).order_by('-month', '-pk').first()
+            if preferred_plan is not None:
+                return preferred_plan
 
-        effective_plan = self.get_effective_monthly_plan_for(target_date)
-        if effective_plan is None:
+        return queryset.order_by('-month', 'section__name', '-pk').first()
+
+    def get_effective_monthly_plans_for(self, target_date):
+        target_month = normalize_month_start(target_date)
+        plans = list(
+            self.monthly_plans.select_related('section')
+            .prefetch_related('plan_slots__weekly_class_slot')
+            .filter(month__lte=target_month)
+            .order_by('-month', 'section__name', '-pk')
+        )
+        effective_by_section = {}
+        for plan in plans:
+            if plan.section_id in effective_by_section:
+                continue
+            effective_by_section[plan.section_id] = plan
+        return sorted(effective_by_section.values(), key=lambda plan: (plan.section.name, plan.pk))
+
+    def get_effective_portal_sections_for(self, target_date):
+        sections = []
+        seen_section_ids = set()
+        if self.primary_section_id is not None:
+            sections.append(self.primary_section)
+            seen_section_ids.add(self.primary_section_id)
+
+        for plan in self.get_effective_monthly_plans_for(target_date):
+            if plan.section_id in seen_section_ids:
+                continue
+            sections.append(plan.section)
+            seen_section_ids.add(plan.section_id)
+        return sections
+
+    def get_effective_portal_section_for(self, target_date):
+        sections = self.get_effective_portal_sections_for(target_date)
+        if not sections:
             return None
-        return effective_plan.section
+        return sections[0]
 
     def get_effective_monthly_plan_slot_for_session(self, session):
         if session is None or session.date is None or session.section_id is None:
             return None
 
-        effective_plan = self.get_effective_monthly_plan_for(session.date)
-        if effective_plan is None or effective_plan.section_id != session.section_id:
+        effective_plan = self.get_effective_monthly_plan_for_section(session.date, section=session.section_id)
+        if effective_plan is None:
             return None
 
         for slot in effective_plan.get_weekly_slots():
@@ -376,8 +434,8 @@ class StudentMonthlyPlan(TimeStampedModel):
         ordering = ['-month', 'student__last_name', 'student__first_name']
         constraints = [
             models.UniqueConstraint(
-                fields=['student', 'month'],
-                name='unique_student_monthly_plan_per_month',
+                fields=['student', 'month', 'section'],
+                name='unique_student_monthly_plan_per_month_section',
             ),
         ]
 
@@ -390,13 +448,11 @@ class StudentMonthlyPlan(TimeStampedModel):
         if normalized_month is not None:
             self.month = normalized_month
 
-    def assign_weekly_slots(self, weekly_slots):
+    def replace_weekly_slots(self, weekly_slots):
         slot_list = list(weekly_slots)
         errors = {}
         slot_ids = [slot.pk for slot in slot_list]
 
-        if len(slot_list) == 0:
-            errors.setdefault('weekly_slots', []).append('Monthly plan must include at least 1 weekly slot.')
         if len(set(slot_ids)) != len(slot_ids):
             errors.setdefault('weekly_slots', []).append('Monthly plan cannot include duplicate weekly slots.')
 
@@ -418,6 +474,12 @@ class StudentMonthlyPlan(TimeStampedModel):
                     for index, slot in enumerate(slot_list)
                 ]
             )
+
+    def assign_weekly_slots(self, weekly_slots):
+        slot_list = list(weekly_slots)
+        if len(slot_list) == 0:
+            raise ValidationError({'weekly_slots': ['Monthly plan must include at least 1 weekly slot.']})
+        self.replace_weekly_slots(slot_list)
 
     def get_weekly_slots(self):
         return [plan_slot.weekly_class_slot for plan_slot in self.plan_slots.select_related('weekly_class_slot').order_by('position')]
@@ -1066,12 +1128,12 @@ class Booking(TimeStampedModel):
         student = self.student
         session = self.session
 
-        effective_section = student.get_effective_portal_section_for(session.date)
+        effective_sections = student.get_effective_portal_sections_for(session.date)
 
-        if effective_section is None:
-            add_error('student', 'Student must have a primary section before reserving.')
-        elif effective_section.id != session.section_id:
-            add_error('student', 'Student can only reserve sessions in their primary section.')
+        if not effective_sections:
+            add_error('student', 'Student must have an assigned activity before reserving.')
+        elif session.section_id not in {section.id for section in effective_sections}:
+            add_error('student', 'Student can only reserve sessions in their assigned activities.')
 
         if not student.has_operational_booking_access_for(session.date):
             add_error('student', 'Student must have active monthly operational access for this session month.')

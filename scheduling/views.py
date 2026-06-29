@@ -96,6 +96,8 @@ STAFF_PLAN_WEEKDAY_LABELS = {
 BOOKING_ERROR_MESSAGES = {
     'Student must have a primary section before reserving.': 'Todavía no tenés una actividad principal configurada. Escribinos para habilitar tu agenda.',
     'Student can only reserve sessions in their primary section.': 'Esta clase corresponde a otra actividad. Solo podés reservar dentro de tu actividad principal.',
+    'Student must have an assigned activity before reserving.': 'Todavía no tenés una actividad configurada. Escribinos para habilitar tu agenda.',
+    'Student can only reserve sessions in their assigned activities.': 'Esta clase corresponde a otra actividad. Solo podés reservar dentro de tus actividades asignadas.',
     'Student must have active monthly operational access for this session month.': 'Este mes no podés reservar esta clase desde el portal.',
     'This session is closed and cannot be booked.': 'Esta clase ya esta cerrada y no acepta nuevas reservas.',
     'This session has reached its capacity.': 'No quedan cupos disponibles para esta clase.',
@@ -271,24 +273,37 @@ def _resolve_staff_plan_section(raw_value, fallback=None):
 
 
 def _get_student_activity_section(student, *, target_date):
-    target_month = normalize_month_start(target_date)
-    prefetched_plans = getattr(student, 'admin_effective_monthly_plans', None)
-    if prefetched_plans is not None:
-        for plan in prefetched_plans:
-            if plan.month <= target_month and plan.section_id is not None:
-                return plan.section
-
-    effective_plan = student.get_effective_monthly_plan_for(target_date)
-    if effective_plan is not None and effective_plan.section_id is not None:
-        return effective_plan.section
+    sections = _get_student_activity_sections(student, target_date=target_date)
+    if sections:
+        return sections[0]
     return student.primary_section
 
 
+def _get_student_activity_sections(student, *, target_date):
+    target_month = normalize_month_start(target_date)
+    prefetched_plans = getattr(student, 'admin_effective_monthly_plans', None)
+    if prefetched_plans is not None:
+        sections = []
+        seen_section_ids = set()
+        if student.primary_section_id is not None:
+            sections.append(student.primary_section)
+            seen_section_ids.add(student.primary_section_id)
+        for plan in prefetched_plans:
+            if plan.month > target_month or plan.section_id in seen_section_ids:
+                continue
+            sections.append(plan.section)
+            seen_section_ids.add(plan.section_id)
+        if sections:
+            return sections
+
+    return student.get_effective_portal_sections_for(target_date)
+
+
 def _get_student_activity_label(student, *, target_date):
-    section = _get_student_activity_section(student, target_date=target_date)
-    if section is None:
+    sections = _get_student_activity_sections(student, target_date=target_date)
+    if not sections:
         return 'Sin sección principal'
-    return section.name
+    return ' + '.join(section.name for section in sections)
 
 
 def _build_admin_student_row(student, access, *, query='', target_date=None):
@@ -609,9 +624,19 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
 def _get_admin_student_detail_context(student, *, query='', month=None, section=None, manual_recovery_form=None, monthly_plan_form=None):
     today = timezone.localdate()
     selected_month = _resolve_month_value(month, fallback=today)
+    reconcile_start = max(today, selected_month)
+    reconcile_end = _shift_month(selected_month, 1) - timedelta(days=1)
+    if reconcile_start <= reconcile_end:
+        _reconcile_fixed_plan_bookings(
+            student,
+            start_date=reconcile_start,
+            end_date=reconcile_end,
+            cancel_obsolete=True,
+        )
     current_access = student.get_monthly_access_for(today)
-    current_monthly_plan = student.get_effective_monthly_plan_for(selected_month)
+    current_monthly_plans = student.get_effective_monthly_plans_for(selected_month)
     activity_section = _get_student_activity_section(student, target_date=selected_month)
+    activity_label = _get_student_activity_label(student, target_date=selected_month)
     status_badges = _build_admin_status_badges(current_access)
     relevant_credits = list(
         student.recovery_credits.select_related('section', 'origin_session')
@@ -650,9 +675,13 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         .order_by('-created_at')[:ADMIN_DETAIL_PREVIEW_LIMIT]
     )
     recent_window_start = today - timedelta(days=30)
-    selected_section = _resolve_staff_plan_section(section, fallback=activity_section)
+    default_plan_section = current_monthly_plans[0].section if current_monthly_plans else activity_section
+    selected_section = _resolve_staff_plan_section(section, fallback=default_plan_section)
     resolved_monthly_plan_form = monthly_plan_form or StaffStudentMonthlyPlanForm(student=student, month=selected_month, section=selected_section)
     selected_plan_section = resolved_monthly_plan_form.selected_section
+    selected_monthly_plan = None
+    if selected_plan_section is not None:
+        selected_monthly_plan = student.get_effective_monthly_plan_for_section(selected_month, section=selected_plan_section)
 
     return {
         'admin_detail_student': student,
@@ -662,7 +691,7 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         'admin_detail_current_month_label': selected_month.strftime('%m/%Y'),
         'admin_detail_current_month_input': selected_month.strftime('%Y-%m'),
         'admin_detail_current_access': current_access,
-        'admin_detail_section_name': activity_section.name if activity_section is not None else 'Sin sección principal',
+        'admin_detail_section_name': activity_label,
         'admin_detail_selected_plan_section_id': selected_plan_section.pk if selected_plan_section is not None else '',
         'admin_detail_selected_plan_section_name': selected_plan_section.name if selected_plan_section is not None else 'Sin actividad seleccionada',
         'admin_detail_upcoming_bookings': upcoming_bookings,
@@ -671,8 +700,9 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         'admin_detail_recent_bookings': recent_bookings,
         'admin_detail_recent_access_history': recent_access_history,
         'admin_detail_recent_audit_logs': recent_audit_logs,
-        'admin_detail_monthly_plan': current_monthly_plan,
-        'admin_detail_monthly_plan_summary': _build_monthly_plan_summary(current_monthly_plan),
+        'admin_detail_monthly_plan': selected_monthly_plan,
+        'admin_detail_monthly_plan_summary': _build_monthly_plan_summary(selected_monthly_plan),
+        'admin_detail_monthly_plan_summaries': _build_monthly_plan_summaries(current_monthly_plans),
         'admin_detail_monthly_plan_picker': _build_staff_monthly_plan_picker(resolved_monthly_plan_form, month=selected_month),
         'admin_detail_summary': {
             'upcoming_bookings_count': len(upcoming_bookings),
@@ -746,8 +776,9 @@ def _collect_effective_portal_sections(user, *, start_date, end_date):
     seen_section_ids = set()
     day_cursor = start_date
     while day_cursor <= end_date:
-        section = user.get_effective_portal_section_for(day_cursor)
-        if section is not None and section.pk not in seen_section_ids:
+        for section in user.get_effective_portal_sections_for(day_cursor):
+            if section.pk in seen_section_ids:
+                continue
             seen_section_ids.add(section.pk)
             sections.append(section)
         day_cursor += timedelta(days=1)
@@ -820,32 +851,33 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
 
         month_start = normalize_month_start(day_cursor)
         if month_start not in plan_cache:
-            plan_cache[month_start] = user.get_effective_monthly_plan_for(day_cursor)
+            plan_cache[month_start] = user.get_effective_monthly_plans_for(day_cursor)
 
-        monthly_plan = plan_cache[month_start]
-        if monthly_plan is None:
+        monthly_plans = plan_cache[month_start]
+        if not monthly_plans:
             day_cursor += timedelta(days=1)
             continue
 
-        for slot in monthly_plan.get_weekly_slots():
-            if not slot.is_effective_on(day_cursor):
-                continue
+        for monthly_plan in monthly_plans:
+            for slot in monthly_plan.get_weekly_slots():
+                if not slot.is_effective_on(day_cursor):
+                    continue
 
-            session = sessions_by_key.get((day_cursor, slot.start_time, slot.end_time, monthly_plan.section_id))
-            if session is None:
-                continue
+                session = sessions_by_key.get((day_cursor, slot.start_time, slot.end_time, monthly_plan.section_id))
+                if session is None:
+                    continue
 
-            expected_session_ids.add(session.id)
+                expected_session_ids.add(session.id)
 
-            if session.id in existing_bookings_by_session_id:
-                continue
+                if session.id in existing_bookings_by_session_id:
+                    continue
 
-            try:
-                Booking.objects.create_booking(session=session, student=user)
-            except ValidationError:
-                continue
+                try:
+                    Booking.objects.create_booking(session=session, student=user)
+                except ValidationError:
+                    continue
 
-            existing_bookings_by_session_id.add(session.id)
+                existing_bookings_by_session_id.add(session.id)
 
         day_cursor += timedelta(days=1)
 
@@ -880,7 +912,8 @@ def _get_student_portal_context(user):
     portal_range_end = _shift_month(normalize_month_start(current_week_end), 1) - timedelta(days=1)
     _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
     _ensure_fixed_plan_bookings(user, start_date=today, end_date=portal_range_end)
-    section = user.get_effective_portal_section_for(today) or user.get_effective_portal_section_for(current_week_start)
+    portal_sections = user.get_effective_portal_sections_for(today) or user.get_effective_portal_sections_for(current_week_start)
+    section = portal_sections[0] if portal_sections else None
     upcoming_bookings = list(
         Booking.objects.select_related('session', 'session__section', 'used_recovery_credit')
         .filter(student=user, status=BookingStatus.BOOKED, session__date__gte=today)
@@ -948,10 +981,10 @@ def _get_student_portal_context(user):
     booked_session_ids = {booking.session_id for booking in upcoming_bookings}
     upcoming_sessions = []
 
-    if section is not None:
+    if portal_sections:
         upcoming_sessions = list(
             ClassSession.objects.select_related('section')
-            .filter(section=section, date__gte=today, status=SessionStatus.SCHEDULED)
+            .filter(section_id__in=[portal_section.pk for portal_section in portal_sections], date__gte=today, status=SessionStatus.SCHEDULED)
             .annotate(
                 booked_count=Count(
                     'bookings',
@@ -1020,6 +1053,7 @@ def _get_student_portal_context(user):
         'current_week_end': current_week_end,
         'portal_workweek_is_next': current_week_is_next,
         'primary_section': section,
+        'portal_sections': portal_sections,
         'operational_status': operational_status,
         'upcoming_bookings': upcoming_bookings,
         'upcoming_turns_count': len(upcoming_bookings) if upcoming_bookings else (1 if next_portal_turn_card is not None else 0),
@@ -1081,8 +1115,11 @@ def _build_monthly_plan_summary(plan):
         return None
 
     slots = list(plan.plan_slots.select_related('weekly_class_slot').order_by('position', 'weekly_class_slot__weekday', 'weekly_class_slot__start_time'))
+    if not slots:
+        return None
     return {
         'plan': plan,
+        'section': plan.section,
         'slots': [
             {
                 'slot': plan_slot.weekly_class_slot,
@@ -1098,6 +1135,15 @@ def _build_monthly_plan_summary(plan):
             for plan_slot in slots
         ],
     }
+
+
+def _build_monthly_plan_summaries(plans):
+    summaries = []
+    for plan in plans:
+        summary = _build_monthly_plan_summary(plan)
+        if summary is not None:
+            summaries.append(summary)
+    return summaries
 
 
 def _build_student_booking_status(*, user, booking):
@@ -1197,9 +1243,9 @@ def _build_weekly_plan_cards(*, user, week_start, week_end, upcoming_booking_car
 
     effective_plans = {}
     for month_start in month_starts:
-        effective_plan = user.get_effective_monthly_plan_for(month_start)
-        if effective_plan is not None:
-            effective_plans[month_start] = effective_plan
+        plans = user.get_effective_monthly_plans_for(month_start)
+        if plans:
+            effective_plans[month_start] = plans
     if not effective_plans:
         return []
 
@@ -1216,8 +1262,8 @@ def _build_weekly_plan_cards(*, user, week_start, week_end, upcoming_booking_car
 
     day_cursor = week_start
     while day_cursor <= week_end:
-        monthly_plan = effective_plans.get(normalize_month_start(day_cursor))
-        if monthly_plan is not None:
+        monthly_plans = effective_plans.get(normalize_month_start(day_cursor), [])
+        for monthly_plan in monthly_plans:
             for slot in monthly_plan.get_weekly_slots():
                 if not slot.is_effective_on(day_cursor):
                     continue
@@ -1310,16 +1356,19 @@ def _build_agenda_calendar_context(*, user, context, month_start):
             regular_booking_dates.add(booking_date)
             regular_booking_counts_by_date[booking_date] = regular_booking_counts_by_date.get(booking_date, 0) + 1
     booked_dates = regular_booking_dates | makeup_booking_dates
-    monthly_plan = user.get_effective_monthly_plan_for(month_start)
+    monthly_plans = user.get_effective_monthly_plans_for(month_start)
     planned_dates = set()
     day_cursor = month_start
     month_end = _shift_month(month_start, 1) - timedelta(days=1)
     while day_cursor <= month_end:
-        effective_plan = user.get_effective_monthly_plan_for(day_cursor)
-        if effective_plan is not None:
-            for slot in effective_plan.get_weekly_slots():
-                if slot.is_effective_on(day_cursor):
-                    planned_dates.add(day_cursor)
+        effective_plans = user.get_effective_monthly_plans_for(day_cursor)
+        if effective_plans:
+            for effective_plan in effective_plans:
+                for slot in effective_plan.get_weekly_slots():
+                    if slot.is_effective_on(day_cursor):
+                        planned_dates.add(day_cursor)
+                        break
+                if day_cursor in planned_dates:
                     break
         day_cursor += timedelta(days=1)
 
@@ -1358,7 +1407,7 @@ def _build_agenda_calendar_context(*, user, context, month_start):
         'agenda_month_label': f"{SPANISH_MONTH_NAMES[month_start.month]} {month_start.year}",
         'agenda_weekday_labels': SPANISH_WEEKDAY_FULL,
         'agenda_calendar_weeks': weeks,
-        'agenda_monthly_plan_summary': _build_monthly_plan_summary(monthly_plan),
+        'agenda_monthly_plan_summaries': _build_monthly_plan_summaries(monthly_plans),
         'agenda_visible_booking_cards': visible_booking_cards,
         'agenda_visible_bookings_count': len(visible_booking_cards),
         'agenda_prev_url': f"{reverse('agenda')}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m')})}",
@@ -1819,13 +1868,16 @@ def use_recovery_view(request, recovery_credit_id):
     fixed_schedule_dates = set()
     day_cursor = month_start
     while day_cursor <= month_end:
-        effective_plan = request.user.get_effective_monthly_plan_for(day_cursor)
-        if effective_plan is None:
+        effective_plans = request.user.get_effective_monthly_plans_for(day_cursor)
+        if not effective_plans:
             day_cursor += timedelta(days=1)
             continue
-        for slot in effective_plan.get_weekly_slots():
-            if slot.is_effective_on(day_cursor):
-                fixed_schedule_dates.add(day_cursor)
+        for effective_plan in effective_plans:
+            for slot in effective_plan.get_weekly_slots():
+                if slot.is_effective_on(day_cursor):
+                    fixed_schedule_dates.add(day_cursor)
+                    break
+            if day_cursor in fixed_schedule_dates:
                 break
         day_cursor += timedelta(days=1)
 

@@ -483,8 +483,8 @@ def _upsert_monthly_plan(
     plan, created = StudentMonthlyPlan.objects.get_or_create(
         student=student,
         month=planned_selection.month,
+        section=section,
         defaults={
-            'section': section,
             'notes': _build_plan_note(
                 existing_notes='',
                 planned_selection=planned_selection,

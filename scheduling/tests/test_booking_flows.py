@@ -94,6 +94,29 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, 'Tus clases confirmadas')
         self.assertNotContains(response, self.other_section.name)
 
+    def test_agenda_shows_secondary_section_when_monthly_plan_exists_for_it(self):
+        other_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=self.other_session.date.isoweekday(),
+            start_time=self.other_session.start_time,
+            end_time=self.other_session.end_time,
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.other_section,
+        )
+        plan.assign_weekly_slots([other_slot])
+        self.other_session.slot = other_slot
+        self.other_session.save(update_fields=['slot', 'updated_at'])
+
+        response = self.get_portal_page(reverse('agenda'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.other_section.name)
+        self.assertTrue(Booking.objects.filter(session=self.other_session, student=self.student, status=BookingStatus.BOOKED).exists())
+
     def test_my_bookings_shows_active_booking_and_recovery_credit(self):
         response = self.get_portal_page(reverse('my-bookings'))
 
@@ -383,6 +406,50 @@ class StudentPortalViewTests(TestCase):
             Booking.objects.filter(session=planned_session, student=self.student, status=BookingStatus.BOOKED).count(),
             1,
         )
+
+    def test_dashboard_shows_weekly_plan_cards_for_multiple_monthly_activities(self):
+        Booking.objects.filter(student=self.student).delete()
+        reformer_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.THURSDAY,
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            is_active=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.section,
+        ).assign_weekly_slots([
+            WeeklyClassSlot.objects.create(
+                section=self.section,
+                weekday=Weekday.WEDNESDAY,
+                start_time=time(18, 0),
+                end_time=time(19, 0),
+                is_active=True,
+            )
+        ])
+        StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            section=self.other_section,
+        ).assign_weekly_slots([reformer_slot])
+        reformer_session = ClassSession.objects.create(
+            section=self.other_section,
+            slot=reformer_slot,
+            date=date(2026, 6, 11),
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+
+        response = self.get_portal_page(reverse('dashboard'))
+
+        weekly_plan_cards = response.context['weekly_plan_cards']
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(card['session'] and card['session'].pk == reformer_session.pk for card in weekly_plan_cards))
+        self.assertContains(response, 'Reformer Arriba')
 
     def test_fixed_plan_cancellation_does_not_reopen_manual_reservation_flow(self):
         Booking.objects.filter(student=self.student).delete()
@@ -995,7 +1062,7 @@ class WebBookingFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Booking.objects.filter(session=session, student=self.student).exists())
-        self.assertContains(response, 'Esta clase corresponde a otra actividad. Solo podés reservar dentro de tu actividad principal.')
+        self.assertContains(response, 'Esta clase corresponde a otra actividad. Solo podés reservar dentro de tus actividades asignadas.')
 
     def test_student_cannot_book_closed_session(self):
         session = self.create_session(status=SessionStatus.CANCELLED)
@@ -1146,7 +1213,7 @@ class BookingReservationTests(TestCase):
         self.student.primary_section = self.other_section
         self.student.save()
 
-        with self.assertRaisesMessage(ValidationError, 'primary section'):
+        with self.assertRaisesMessage(ValidationError, 'assigned activities'):
             Booking.objects.create_booking(session=self.session, student=self.student)
 
     def test_booking_rejects_closed_sessions(self):

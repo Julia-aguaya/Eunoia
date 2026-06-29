@@ -191,7 +191,7 @@ def import_legacy_userselections_manual_backfill_from_csv(
                     f'CSV row {row.row_number}: resolved section {row.resolved_section_code} does not exist.'
                 )
                 continue
-            plan = StudentMonthlyPlan.objects.filter(student=user, month=row.month).first()
+            plan = StudentMonthlyPlan.objects.filter(student=user, month=row.month, section=section).first()
             if plan is not None and not _plan_matches_legacy_identity(
                 plan=plan,
                 legacy_userselection_id=row.legacy_userselection_id,

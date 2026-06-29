@@ -143,11 +143,13 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
                 continue
 
             plan_key = (student_id, normalize_month_start(session.date))
-            effective_plan = plan_cache.get(plan_key)
+            effective_plans = plan_cache.get(plan_key)
+            if effective_plans is None:
+                effective_plans = student.get_effective_monthly_plans_for(session.date)
+                plan_cache[plan_key] = effective_plans
+
+            effective_plan = next((plan for plan in effective_plans if plan.section_id == session.section_id), None)
             if effective_plan is None:
-                effective_plan = student.get_effective_monthly_plan_for(session.date)
-                plan_cache[plan_key] = effective_plan
-            if effective_plan is None or effective_plan.section_id != session.section_id:
                 continue
 
             for slot in effective_plan.get_weekly_slots():

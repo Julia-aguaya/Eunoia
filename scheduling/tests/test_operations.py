@@ -308,6 +308,46 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         self.assertTrue(Booking.objects.filter(session=monday_session, student=student, status=BookingStatus.BOOKED).exists())
         self.assertTrue(Booking.objects.filter(session=wednesday_session, student=student, status=BookingStatus.BOOKED).exists())
 
+    def test_use_case_auto_books_active_monthly_plan_slots_for_multiple_sections_in_same_month(self):
+        other_section = Section.objects.get(code='reformer_arriba')
+        other_slot = WeeklyClassSlot.objects.create(
+            section=other_section,
+            weekday=Weekday.TUESDAY,
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            is_active=True,
+        )
+        student = User.objects.create_user(
+            email='multi-section-auto-booked-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Dorothy',
+            last_name='Vaughan',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=self.section,
+        ).assign_weekly_slots([self.slot])
+        StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=other_section,
+        ).assign_weekly_slots([other_slot])
+
+        generate_class_sessions(start_date=date(2026, 4, 6), end_date=date(2026, 4, 7))
+
+        monday_session = ClassSession.objects.get(section=self.section, date=date(2026, 4, 6), start_time=time(9, 0))
+        tuesday_session = ClassSession.objects.get(section=other_section, date=date(2026, 4, 7), start_time=time(11, 0))
+        self.assertTrue(Booking.objects.filter(session=monday_session, student=student, status=BookingStatus.BOOKED).exists())
+        self.assertTrue(Booking.objects.filter(session=tuesday_session, student=student, status=BookingStatus.BOOKED).exists())
+
 
 class StudentMonthlyPlanModelTests(TestCase):
     def setUp(self):
@@ -415,6 +455,84 @@ class StudentMonthlyPlanModelTests(TestCase):
             list(july_plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')),
             [self.slot_one.pk, self.slot_two.pk],
         )
+
+    def test_get_effective_monthly_plan_for_prefers_exact_empty_override_over_previous_month(self):
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=self.month,
+            section=self.section,
+            notes='Plan de junio',
+        )
+        june_plan.assign_weekly_slots([self.slot_one, self.slot_two])
+        july_month = date(2026, 7, 1)
+        july_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=july_month,
+            section=self.section,
+            notes='Mes pausado',
+        )
+        july_plan.replace_weekly_slots([])
+
+        effective_plan = self.student.get_effective_monthly_plan_for(date(2026, 7, 15))
+
+        self.assertIsNotNone(effective_plan)
+        self.assertEqual(effective_plan.pk, july_plan.pk)
+        self.assertEqual(effective_plan.plan_slots.count(), 0)
+
+    def test_get_effective_monthly_plans_for_keeps_latest_plan_per_section(self):
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=self.month,
+            section=self.section,
+            notes='Cadillac junio',
+        )
+        june_plan.assign_weekly_slots([self.slot_one])
+        july_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            section=self.section,
+            notes='Cadillac julio',
+        )
+        july_plan.assign_weekly_slots([self.slot_two])
+        other_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=self.month,
+            section=self.other_section,
+            notes='Reformer junio',
+        )
+        other_plan.assign_weekly_slots([self.other_slot])
+
+        effective_plans = self.student.get_effective_monthly_plans_for(date(2026, 7, 15))
+
+        self.assertEqual(
+            {(plan.section_id, plan.pk) for plan in effective_plans},
+            {(self.section.pk, july_plan.pk), (self.other_section.pk, other_plan.pk)},
+        )
+
+    def test_session_matches_effective_monthly_plan_for_multiple_sections(self):
+        cadillac_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=self.month,
+            section=self.section,
+        )
+        cadillac_plan.assign_weekly_slots([self.slot_one])
+        reformer_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=self.month,
+            section=self.other_section,
+        )
+        reformer_plan.assign_weekly_slots([self.other_slot])
+        matching_session = ClassSession.objects.create(
+            slot=self.other_slot,
+            section=self.other_section,
+            date=date(2026, 6, 2),
+            start_time=self.other_slot.start_time,
+            end_time=self.other_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+
+        self.assertTrue(self.student.session_matches_effective_monthly_plan(matching_session))
 
 class StudentCsvImportTests(TestCase):
     def setUp(self):

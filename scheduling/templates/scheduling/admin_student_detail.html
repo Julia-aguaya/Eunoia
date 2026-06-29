@@ -693,7 +693,7 @@
                 <h3>Plan mensual fijo</h3>
             </div>
             <div class="plan-header-badges">
-                {% if admin_detail_monthly_plan_summary %}
+                {% if admin_detail_monthly_plan_summaries %}
                     <span class="status-badge success">Plan cargado</span>
                 {% else %}
                     <span class="status-badge muted">Sin plan cargado</span>
@@ -715,6 +715,17 @@
                 <strong>{{ admin_detail_current_month_label }}</strong>
             </article>
         </div>
+
+        {% if admin_detail_monthly_plan_summaries %}
+            <article class="monthly-plan-summary">
+                <span class="overview-label">Actividades activas del mes</span>
+                <div class="saved-slot-list">
+                    {% for summary in admin_detail_monthly_plan_summaries %}
+                        <span class="saved-slot-pill">{{ summary.section.name }} · {% for item in summary.slots %}{{ item.label }}{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endif %}
 
         <div class="monthly-plan-toolbar">
             <p class="field-help">{{ admin_detail_monthly_plan_form.slot_ids.help_text }}</p>
