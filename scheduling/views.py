@@ -1297,12 +1297,18 @@ def _shift_month(month_start, delta):
 def _build_agenda_calendar_context(*, user, context, month_start):
     regular_booking_dates = set()
     makeup_booking_dates = set()
+    booking_counts_by_date = {}
+    regular_booking_counts_by_date = {}
+    makeup_booking_counts_by_date = {}
     for card in context['upcoming_booking_cards']:
         booking_date = card['booking'].session.date
+        booking_counts_by_date[booking_date] = booking_counts_by_date.get(booking_date, 0) + 1
         if card['is_recovery']:
             makeup_booking_dates.add(booking_date)
+            makeup_booking_counts_by_date[booking_date] = makeup_booking_counts_by_date.get(booking_date, 0) + 1
         else:
             regular_booking_dates.add(booking_date)
+            regular_booking_counts_by_date[booking_date] = regular_booking_counts_by_date.get(booking_date, 0) + 1
     booked_dates = regular_booking_dates | makeup_booking_dates
     monthly_plan = user.get_effective_monthly_plan_for(month_start)
     planned_dates = set()
@@ -1333,6 +1339,9 @@ def _build_agenda_calendar_context(*, user, context, month_start):
                     'has_regular_booking': day in regular_booking_dates,
                     'has_makeup_booking': day in makeup_booking_dates,
                     'has_booking': day in booked_dates,
+                    'booking_count': booking_counts_by_date.get(day, 0),
+                    'regular_booking_count': regular_booking_counts_by_date.get(day, 0),
+                    'makeup_booking_count': makeup_booking_counts_by_date.get(day, 0),
                     'is_today': day == context['today'],
                 }
             )

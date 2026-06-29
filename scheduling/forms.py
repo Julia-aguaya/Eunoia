@@ -318,7 +318,10 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         if initial_plan is not None and not self.is_bound:
             if self.plan is not None:
                 self.initial['monthly_plan_id'] = self.plan.pk
-            self.initial['section'] = initial_plan.section_id
+            if self.selected_section is not None:
+                self.initial['section'] = self.selected_section.pk
+            else:
+                self.initial['section'] = initial_plan.section_id
             self.initial['notes'] = strip_legacy_userselections_notes(initial_plan.notes)
             if self.selected_section is not None and initial_plan.section_id == self.selected_section.pk:
                 self.initial['slot_ids'] = list(initial_plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position'))

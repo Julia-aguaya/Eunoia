@@ -281,11 +281,12 @@
         position: absolute;
         right: 6px;
         bottom: 8px;
-        width: 22px;
+        min-width: 22px;
         height: 22px;
         border-radius: 999px;
-        display: grid;
+        display: inline-grid;
         place-items: center;
+        padding: 0 6px;
         background: #fff;
         color: #5a7466;
         border: 1px solid rgba(90, 116, 102, 0.24);
@@ -622,7 +623,7 @@
                                 {% if day.has_makeup_booking %}<span class="calendar-day-marker makeup"></span>{% endif %}
                             </span>
                             {% if day.has_booking %}
-                                <span class="booking-check">✓</span>
+                                <span class="booking-check" aria-label="{{ day.booking_count }} clase{{ day.booking_count|pluralize:"s" }} confirmada{{ day.booking_count|pluralize:"s" }}">{% if day.booking_count > 1 %}{{ day.booking_count }}{% else %}✓{% endif %}</span>
                             {% endif %}
                         </div>
                     {% endfor %}

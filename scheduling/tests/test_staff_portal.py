@@ -966,6 +966,67 @@ class AdminPortalViewTests(TestCase):
         )
         self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
 
+    def test_staff_can_refresh_new_section_and_save_over_existing_monthly_plan(self):
+        old_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        new_slots = [
+            WeeklyClassSlot.objects.create(
+                section=self.other_section,
+                weekday=weekday,
+                start_time=time(8 + index, 0),
+                end_time=time(9 + index, 0),
+                is_active=True,
+            )
+            for index, weekday in enumerate([Weekday.MONDAY, Weekday.WEDNESDAY])
+        ]
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.section,
+            notes='Plan original',
+        )
+        plan.assign_weekly_slots([old_slot])
+        self.client.force_login(self.staff_user)
+        detail_url = reverse('admin-student-detail', args=[self.active_student.pk])
+
+        refresh_response = self.client.get(
+            detail_url,
+            {'q': 'ada', 'section': self.other_section.pk, 'month': self.current_month.strftime('%Y-%m')},
+        )
+
+        hidden_section_value = str(refresh_response.context['admin_detail_monthly_plan_form']['section'].value())
+
+        self.assertEqual(refresh_response.status_code, 200)
+        self.assertEqual(hidden_section_value, str(self.other_section.pk))
+        self.assertContains(refresh_response, f'type="hidden" name="section" value="{self.other_section.pk}"')
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': self.current_month.strftime('%Y-%m'),
+                'section': hidden_section_value,
+                'slot_ids': [slot.pk for slot in new_slots],
+                'notes': 'Plan actualizado en nueva actividad',
+                'q': 'ada',
+                'next': f'{detail_url}?q=ada&section={self.other_section.pk}&month={self.current_month:%Y-%m}',
+            },
+            follow=True,
+        )
+
+        plan.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(plan.section, self.other_section)
+        self.assertEqual(
+            list(plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position')),
+            [slot.pk for slot in new_slots],
+        )
+        self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
+
     def test_non_staff_user_cannot_update_monthly_plan(self):
         slot = WeeklyClassSlot.objects.create(
             section=self.section,
@@ -1896,6 +1957,75 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'class="session-attendee session-attendee-makeup"', count=1)
         self.assertContains(response, 'class="session-attendee-flag"', count=1)
         self.assertNotContains(response, 'Grace Hopper</span></li>')
+
+    def test_staff_agenda_keeps_attendees_visible_when_week_crosses_into_next_month(self):
+        cross_month_student = User.objects.create_user(
+            email='agenda-cross-month-student@example.com',
+            password='StudentPass2026!',
+            first_name='Hedy',
+            last_name='Lamarr',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        monday_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            starts_on=date(2026, 6, 1),
+            is_active=True,
+        )
+        wednesday_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            starts_on=date(2026, 6, 1),
+            is_active=True,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=cross_month_student,
+            month=date(2026, 6, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=cross_month_student,
+            month=date(2026, 6, 1),
+            section=self.section,
+        )
+        june_plan.assign_weekly_slots([monday_slot, wednesday_slot])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': date(2026, 6, 29).isoformat(),
+                'section': self.section.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        monday_row = next(
+            row
+            for group in response.context['staff_agenda_groups']
+            if group['date'] == date(2026, 6, 29)
+            for row in group['sessions']
+            if row['session'].start_time == time(9, 0)
+        )
+        wednesday_row = next(
+            row
+            for group in response.context['staff_agenda_groups']
+            if group['date'] == date(2026, 7, 1)
+            for row in group['sessions']
+            if row['session'].start_time == time(9, 0)
+        )
+        expected_attendees = [{'full_name': 'Hedy Lamarr', 'is_makeup': False}]
+        self.assertEqual(monday_row['attendees'], expected_attendees)
+        self.assertEqual(wednesday_row['attendees'], expected_attendees)
+        self.assertContains(response, 'Hedy Lamarr', count=2)
 
     def test_staff_agenda_keeps_same_time_sessions_split_by_section_in_context(self):
         target_date = self.today + timedelta(days=1)

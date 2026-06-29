@@ -28,6 +28,7 @@ from .models import (
     RecoveryCredit,
     SessionStatus,
     WeeklyClassSlot,
+    add_months,
     normalize_month_start,
 )
 
@@ -100,20 +101,19 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
         return 0
 
     sessions_by_id = {session.id: session for session in sessions}
-    sessions_by_month_and_signature = {}
+    candidate_access_months = set()
     month_starts = set()
     for session in sessions:
         month_start = normalize_month_start(session.date)
         month_starts.add(month_start)
-        sessions_by_month_and_signature.setdefault(
-            (month_start, session.section_id, session.date.isoweekday(), session.start_time),
-            [],
-        ).append(session)
+        candidate_access_months.add(month_start)
+        if session.date.day <= 10:
+            candidate_access_months.add(add_months(month_start, -1))
 
     active_accesses = list(
         MonthlyAccessStatus.objects.select_related('student')
         .filter(
-            month__in=month_starts,
+            month__in=candidate_access_months,
             status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
         )
@@ -123,6 +123,7 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
         return 0
 
     plan_cache = {}
+    access_cache = {}
     students_by_id = {}
     candidate_pairs = []
     candidate_student_ids = set()
@@ -130,25 +131,32 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
     for access in active_accesses:
         students_by_id[access.student_id] = access.student
         candidate_student_ids.add(access.student_id)
-        cache_key = (access.student_id, access.month)
-        effective_plan = plan_cache.get(cache_key)
-        if effective_plan is None:
-            effective_plan = access.student.get_effective_monthly_plan_for(access.month)
-            plan_cache[cache_key] = effective_plan
-        if effective_plan is None:
-            continue
 
-        for slot in effective_plan.get_weekly_slots():
-            session_signature = (
-                access.month,
-                effective_plan.section_id,
-                slot.weekday,
-                slot.start_time,
-            )
-            for session in sessions_by_month_and_signature.get(session_signature, []):
+    for session in sessions:
+        for student_id, student in students_by_id.items():
+            access_key = (student_id, session.date)
+            has_operational_access = access_cache.get(access_key)
+            if has_operational_access is None:
+                has_operational_access = student.has_operational_booking_access_for(session.date)
+                access_cache[access_key] = has_operational_access
+            if not has_operational_access:
+                continue
+
+            plan_key = (student_id, normalize_month_start(session.date))
+            effective_plan = plan_cache.get(plan_key)
+            if effective_plan is None:
+                effective_plan = student.get_effective_monthly_plan_for(session.date)
+                plan_cache[plan_key] = effective_plan
+            if effective_plan is None or effective_plan.section_id != session.section_id:
+                continue
+
+            for slot in effective_plan.get_weekly_slots():
+                if slot.start_time != session.start_time or slot.end_time != session.end_time:
+                    continue
                 if not slot.is_effective_on(session.date):
                     continue
-                candidate_pairs.append((session.id, access.student_id))
+                candidate_pairs.append((session.id, student_id))
+                break
 
     if not candidate_pairs:
         return 0

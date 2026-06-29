@@ -271,6 +271,43 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         self.assertFalse(Booking.objects.filter(session=session, student=student, status=BookingStatus.BOOKED).exists())
         self.assertTrue(Booking.objects.filter(session=session, student=student, status=BookingStatus.CANCELLED).exists())
 
+    def test_use_case_auto_books_cross_month_grace_window_without_new_month_access(self):
+        wednesday_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=None,
+            starts_on=date(2026, 6, 1),
+            is_active=True,
+        )
+        student = User.objects.create_user(
+            email='cross-month-auto-booked-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Dorothy',
+            last_name='Vaughan',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 6, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 6, 1),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([self.slot, wednesday_slot])
+
+        generate_class_sessions(start_date=date(2026, 6, 29), end_date=date(2026, 7, 1))
+
+        monday_session = ClassSession.objects.get(section=self.section, date=date(2026, 6, 29), start_time=time(9, 0))
+        wednesday_session = ClassSession.objects.get(section=self.section, date=date(2026, 7, 1), start_time=time(9, 0))
+        self.assertTrue(Booking.objects.filter(session=monday_session, student=student, status=BookingStatus.BOOKED).exists())
+        self.assertTrue(Booking.objects.filter(session=wednesday_session, student=student, status=BookingStatus.BOOKED).exists())
+
 
 class StudentMonthlyPlanModelTests(TestCase):
     def setUp(self):

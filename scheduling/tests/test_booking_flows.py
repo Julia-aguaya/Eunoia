@@ -619,6 +619,35 @@ class StudentPortalViewTests(TestCase):
         self.assertIn('calendar-day-marker plan', html)
         self.assertIn('calendar-day-marker makeup', html)
 
+    def test_agenda_calendar_surfaces_multiple_bookings_on_same_day(self):
+        extra_session = ClassSession.objects.create(
+            section=self.section,
+            date=self.session.date,
+            start_time=time(17, 0),
+            end_time=time(18, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        extra_booking = Booking.objects.create_booking(session=extra_session, student=self.student)
+
+        response = self.get_portal_page(reverse('agenda'))
+        target_day = next(
+            day
+            for week in response.context['agenda_calendar_weeks']
+            for day in week
+            if day['date'] == self.session.date
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [card['booking'].session_id for card in response.context['agenda_visible_booking_cards']],
+            [self.session.id, extra_booking.session_id],
+        )
+        self.assertEqual(target_day['booking_count'], 2)
+        self.assertEqual(target_day['regular_booking_count'], 2)
+        self.assertEqual(target_day['makeup_booking_count'], 0)
+        self.assertContains(response, 'aria-label="2 clases confirmadas"', html=False)
+
     def test_portal_labels_habitual_recovery_booking_as_confirmed_class(self):
         Booking.objects.filter(student=self.student).delete()
         planned_slot = WeeklyClassSlot.objects.create(
