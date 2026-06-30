@@ -821,6 +821,17 @@ def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
     _reconcile_fixed_plan_bookings(user, start_date=start_date, end_date=end_date)
 
 
+def _resolve_admin_monthly_plan_sync_end(*, plan_month, reference_date):
+    month_end = _shift_month(plan_month, 1) - timedelta(days=1)
+    if plan_month != normalize_month_start(reference_date):
+        return month_end
+
+    _, current_week_end, _ = _get_current_workweek_window(reference_date)
+    if current_week_end > month_end:
+        return current_week_end
+    return month_end
+
+
 def _resolve_fixed_plan_reconcile_end(user, *, start_date, end_date):
     latest_fixed_booking_date = (
         Booking.objects.filter(
@@ -837,6 +848,88 @@ def _resolve_fixed_plan_reconcile_end(user, *, start_date, end_date):
     if latest_fixed_booking_date is not None and latest_fixed_booking_date > end_date:
         return latest_fixed_booking_date
     return end_date
+
+
+def _backfill_missing_monthly_plans_from_fixed_bookings(user, *, start_date, end_date):
+    if end_date < start_date:
+        return
+
+    fixed_bookings = list(
+        Booking.objects.select_related('session__slot', 'session__section')
+        .filter(
+            student=user,
+            status=BookingStatus.BOOKED,
+            source=BookingSource.FIXED_SLOT,
+            moved_from_booking__isnull=True,
+            session__date__range=(start_date, end_date),
+            session__slot__isnull=False,
+        )
+        .order_by('session__date', 'session__start_time', 'pk')
+    )
+    if not fixed_bookings:
+        return
+
+    required_keys = {
+        (normalize_month_start(booking.session.date), booking.session.section_id)
+        for booking in fixed_bookings
+    }
+    existing_plans = {
+        (plan.month, plan.section_id): plan
+        for plan in StudentMonthlyPlan.objects.filter(
+            student=user,
+            month__in=[month for month, _section_id in required_keys],
+            section_id__in=[section_id for _month, section_id in required_keys],
+        )
+    }
+    created_plans = {}
+    effective_plan_cache = {}
+
+    for booking in fixed_bookings:
+        month_start = normalize_month_start(booking.session.date)
+        plan_key = (month_start, booking.session.section_id)
+        if plan_key in existing_plans:
+            continue
+
+        effective_plan_key = (booking.session.date, booking.session.section_id)
+        if effective_plan_key not in effective_plan_cache:
+            effective_plan_cache[effective_plan_key] = user.get_effective_monthly_plan_for_section(
+                booking.session.date,
+                section=booking.session.section_id,
+            )
+
+        effective_plan = effective_plan_cache[effective_plan_key]
+        if effective_plan is not None:
+            effective_slots = {
+                plan_slot.start_time: plan_slot
+                for plan_slot in effective_plan.get_weekly_slots()
+                if plan_slot.is_effective_on(booking.session.date)
+            }
+            matching_slot = effective_slots.get(booking.session.start_time)
+            if (
+                matching_slot is not None
+                and matching_slot.end_time == booking.session.end_time
+                and matching_slot.pk == booking.session.slot_id
+            ):
+                continue
+
+        plan = created_plans.get(plan_key)
+        if plan is None:
+            plan = StudentMonthlyPlan.objects.create(
+                student=user,
+                month=month_start,
+                section=booking.session.section,
+            )
+            created_plans[plan_key] = plan
+            existing_plans[plan_key] = plan
+
+        if plan.plan_slots.filter(weekly_class_slot=booking.session.slot).exists():
+            continue
+
+        next_position = plan.plan_slots.count() + 1
+        plan.plan_slots.create(
+            weekly_class_slot=booking.session.slot,
+            position=next_position,
+        )
 
 
 def _can_restore_obsolete_fixed_booking(*, booking, session, student):
@@ -897,9 +990,41 @@ def _restore_obsolete_fixed_booking(*, session, student, historical_bookings_by_
     return True
 
 
+def _collect_validation_error_messages(exc):
+    if hasattr(exc, 'message_dict'):
+        messages = []
+        for field_messages in exc.message_dict.values():
+            messages.extend(field_messages)
+        if messages:
+            return messages
+    if hasattr(exc, 'messages') and exc.messages:
+        return list(exc.messages)
+    return [str(exc)]
+
+
+def _summarize_fixed_booking_conflicts(conflicts, *, limit=3):
+    preview = []
+    for conflict in conflicts[:limit]:
+        preview.append(
+            f"{conflict['section_name']} {conflict['date']:%d/%m/%Y} {conflict['start_time']:%H:%M}"
+        )
+    return ' | '.join(preview)
+
+
 def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolete=False):
     if end_date < start_date:
-        return
+        return {
+            'created_count': 0,
+            'restored_count': 0,
+            'cancelled_count': 0,
+            'conflicts': [],
+        }
+
+    _backfill_missing_monthly_plans_from_fixed_bookings(
+        user,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
     candidate_sessions = list(
         ClassSession.objects.select_related('section')
@@ -907,7 +1032,12 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
         .order_by('date', 'start_time')
     )
     if not candidate_sessions:
-        return
+        return {
+            'created_count': 0,
+            'restored_count': 0,
+            'cancelled_count': 0,
+            'conflicts': [],
+        }
 
     candidate_session_ids = [session.id for session in candidate_sessions]
     sessions_by_key = {
@@ -932,6 +1062,10 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
     expected_session_ids = set()
     plan_cache = {}
     day_cursor = start_date
+    created_count = 0
+    restored_count = 0
+    cancelled_count = 0
+    conflicts = []
 
     while day_cursor <= end_date:
         if not user.has_operational_booking_access_for(day_cursor):
@@ -967,19 +1101,35 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
                     historical_bookings_by_session_id=historical_bookings_by_session_id,
                 ):
                     existing_bookings_by_session_id.add(session.id)
+                    restored_count += 1
                     continue
 
                 try:
                     Booking.objects.create_booking(session=session, student=user)
-                except ValidationError:
+                except ValidationError as exc:
+                    conflicts.append(
+                        {
+                            'session_id': session.id,
+                            'section_name': session.section.name,
+                            'date': session.date,
+                            'start_time': session.start_time,
+                            'messages': _collect_validation_error_messages(exc),
+                        }
+                    )
                     continue
 
                 existing_bookings_by_session_id.add(session.id)
+                created_count += 1
 
         day_cursor += timedelta(days=1)
 
     if not cancel_obsolete:
-        return
+        return {
+            'created_count': created_count,
+            'restored_count': restored_count,
+            'cancelled_count': cancelled_count,
+            'conflicts': conflicts,
+        }
 
     cancellation_time = timezone.now()
     for booking in existing_fixed_bookings:
@@ -999,6 +1149,14 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
                 'updated_at',
             ]
         )
+        cancelled_count += 1
+
+    return {
+        'created_count': created_count,
+        'restored_count': restored_count,
+        'cancelled_count': cancelled_count,
+        'conflicts': conflicts,
+    }
 
 
 def _get_student_portal_context(user, *, reconcile_fixed_bookings=True):
@@ -2300,20 +2458,21 @@ def admin_update_student_monthly_plan_view(request, student_id):
     form = StaffStudentMonthlyPlanForm(student=student, month=selected_month, section=_resolve_staff_plan_section(selected_section), data=request.POST)
     if form.is_valid():
         plan = form.save()
-        reconcile_start = max(timezone.localdate(), plan.month)
-        month_end = _shift_month(plan.month, 1) - timedelta(days=1)
-        if plan.has_weekly_slots() and reconcile_start <= month_end:
+        today = timezone.localdate()
+        reconcile_start = max(today, plan.month)
+        sync_end = _resolve_admin_monthly_plan_sync_end(plan_month=plan.month, reference_date=today)
+        if plan.has_weekly_slots() and reconcile_start <= sync_end:
             generate_class_sessions(
                 start_date=reconcile_start,
-                end_date=month_end,
+                end_date=sync_end,
                 section_code=plan.section.code,
             )
         reconcile_end = _resolve_fixed_plan_reconcile_end(
             student,
             start_date=reconcile_start,
-            end_date=month_end,
+            end_date=sync_end,
         )
-        _reconcile_fixed_plan_bookings(
+        reconcile_result = _reconcile_fixed_plan_bookings(
             student,
             start_date=reconcile_start,
             end_date=reconcile_end,
@@ -2326,6 +2485,14 @@ def admin_update_student_monthly_plan_view(request, student_id):
                 f'para {plan.month:%m/%Y} con {plan.plan_slots.count()} horario(s) fijo(s).'
             ),
         )
+        if reconcile_result['conflicts']:
+            messages.warning(
+                request,
+                (
+                    f"No se pudieron cargar {len(reconcile_result['conflicts'])} reserva(s) fija(s) "
+                    f"por cupo o conflicto operativo. {_summarize_fixed_booking_conflicts(reconcile_result['conflicts'])}."
+                ),
+            )
         return redirect(redirect_url)
 
     context = _get_admin_student_detail_context(student, query=query, month=selected_month, section=selected_section, monthly_plan_form=form)
