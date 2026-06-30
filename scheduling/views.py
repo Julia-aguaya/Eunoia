@@ -839,6 +839,64 @@ def _resolve_fixed_plan_reconcile_end(user, *, start_date, end_date):
     return end_date
 
 
+def _can_restore_obsolete_fixed_booking(*, booking, session, student):
+    if booking.status != BookingStatus.CANCELLED:
+        return False
+    if booking.source != BookingSource.FIXED_SLOT:
+        return False
+    if booking.cancelled_at is None:
+        return False
+    if booking.cancelled_by_id is not None:
+        return False
+    if booking.cancellation_generates_recovery:
+        return False
+    if booking.used_recovery_credit_id is not None:
+        return False
+    if booking.moved_from_booking_id is not None or booking.moved_to_session_id is not None:
+        return False
+    if session.status != SessionStatus.SCHEDULED:
+        return False
+    if not student.has_operational_booking_access_for(session.date):
+        return False
+
+    effective_section_ids = {section.id for section in student.get_effective_portal_sections_for(session.date)}
+    if session.section_id not in effective_section_ids:
+        return False
+
+    active_bookings = session.active_bookings().exclude(pk=booking.pk)
+    if active_bookings.count() >= session.capacity:
+        return False
+    if active_bookings.filter(student_id=student.pk).exists():
+        return False
+    return True
+
+
+def _restore_obsolete_fixed_booking(*, session, student, historical_bookings_by_session_id):
+    historical_booking = next(
+        (
+            booking
+            for booking in historical_bookings_by_session_id.get(session.id, [])
+            if _can_restore_obsolete_fixed_booking(booking=booking, session=session, student=student)
+        ),
+        None,
+    )
+    if historical_booking is None:
+        return False
+
+    Booking.objects.filter(pk=historical_booking.pk).update(
+        status=BookingStatus.BOOKED,
+        cancelled_at=None,
+        cancelled_by=None,
+        cancellation_generates_recovery=False,
+        updated_at=timezone.now(),
+    )
+    historical_booking.status = BookingStatus.BOOKED
+    historical_booking.cancelled_at = None
+    historical_booking.cancelled_by_id = None
+    historical_booking.cancellation_generates_recovery = False
+    return True
+
+
 def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolete=False):
     if end_date < start_date:
         return
@@ -868,6 +926,9 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
         for booking in active_bookings
         if booking.source == BookingSource.FIXED_SLOT and booking.moved_from_booking_id is None
     ]
+    historical_bookings_by_session_id = {}
+    for booking in Booking.objects.filter(student=user, session_id__in=candidate_session_ids).exclude(status=BookingStatus.BOOKED):
+        historical_bookings_by_session_id.setdefault(booking.session_id, []).append(booking)
     expected_session_ids = set()
     plan_cache = {}
     day_cursor = start_date
@@ -898,6 +959,14 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
                 expected_session_ids.add(session.id)
 
                 if session.id in existing_bookings_by_session_id:
+                    continue
+
+                if _restore_obsolete_fixed_booking(
+                    session=session,
+                    student=user,
+                    historical_bookings_by_session_id=historical_bookings_by_session_id,
+                ):
+                    existing_bookings_by_session_id.add(session.id)
                     continue
 
                 try:

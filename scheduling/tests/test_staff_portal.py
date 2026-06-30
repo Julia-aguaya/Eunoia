@@ -884,6 +884,132 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(new_booking.status, BookingStatus.BOOKED)
         self.assertEqual(Booking.objects.filter(session=old_session, status=BookingStatus.BOOKED).count(), 0)
 
+    def test_staff_monthly_plan_update_recreates_obsolete_fixed_booking_when_slot_returns(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        downstairs_section = Section.objects.get(code='reformer_abajo')
+        self.active_student.primary_section = self.other_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        upstairs_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.MONDAY,
+            start_time=time(8, 0),
+            end_time=time(9, 0),
+            is_active=True,
+        )
+        original_slot = WeeklyClassSlot.objects.create(
+            section=downstairs_section,
+            weekday=Weekday.TUESDAY,
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            is_active=True,
+        )
+        alternate_slot = WeeklyClassSlot.objects.create(
+            section=downstairs_section,
+            weekday=Weekday.THURSDAY,
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            is_active=True,
+        )
+        upstairs_session = ClassSession.objects.create(
+            slot=upstairs_slot,
+            section=self.other_section,
+            date=self._first_weekday_in_month(next_month, Weekday.MONDAY),
+            start_time=upstairs_slot.start_time,
+            end_time=upstairs_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        original_session = ClassSession.objects.create(
+            slot=original_slot,
+            section=downstairs_section,
+            date=self._first_weekday_in_month(next_month, Weekday.TUESDAY),
+            start_time=original_slot.start_time,
+            end_time=original_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        alternate_session = ClassSession.objects.create(
+            slot=alternate_slot,
+            section=downstairs_section,
+            date=self._first_weekday_in_month(next_month, Weekday.THURSDAY),
+            start_time=alternate_slot.start_time,
+            end_time=alternate_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=self.other_section,
+            notes='Mantener actividad principal aparte',
+        ).assign_weekly_slots([upstairs_slot])
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=downstairs_section,
+            notes='Plan original abajo',
+        ).assign_weekly_slots([original_slot])
+        Booking.objects.create_booking(session=original_session, student=self.active_student)
+        self.client.force_login(self.staff_user)
+
+        first_response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': downstairs_section.pk,
+                'slot_ids': [alternate_slot.pk],
+                'notes': 'Cambio temporal abajo',
+            },
+            follow=True,
+        )
+        second_response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': downstairs_section.pk,
+                'slot_ids': [original_slot.pk],
+                'notes': 'Volver al horario original',
+            },
+            follow=True,
+        )
+
+        original_bookings = list(
+            Booking.objects.filter(session=original_session, student=self.active_student).order_by('pk')
+        )
+        alternate_booking = Booking.objects.get(session=alternate_session, student=self.active_student)
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertTrue(Booking.objects.filter(session=upstairs_session, student=self.active_student, status=BookingStatus.BOOKED).exists())
+        self.assertEqual(len(original_bookings), 1)
+        self.assertEqual([booking.status for booking in original_bookings], [BookingStatus.BOOKED])
+        self.assertEqual(original_bookings[0].source, BookingSource.FIXED_SLOT)
+        self.assertEqual(alternate_booking.status, BookingStatus.CANCELLED)
+
+        agenda_response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': original_session.date.isoformat(),
+                'section': downstairs_section.pk,
+            },
+        )
+
+        original_row = next(
+            row
+            for group in agenda_response.context['staff_agenda_groups']
+            if group['date'] == original_session.date
+            for row in group['sessions']
+            if row['session'].pk == original_session.pk
+        )
+        self.assertEqual(original_row['booked_count'], 1)
+        self.assertEqual(original_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
+
     def test_staff_monthly_plan_update_allows_clearing_all_slots_and_removes_student_from_class_list(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
         MonthlyAccessStatus.objects.create(
