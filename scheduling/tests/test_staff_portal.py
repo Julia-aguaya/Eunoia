@@ -751,6 +751,70 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(booking.status, BookingStatus.BOOKED)
         self.assertEqual(booking.source, BookingSource.FIXED_SLOT)
 
+    def test_staff_monthly_plan_update_generates_missing_sessions_before_reconciling_bookings(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        session_date = self._first_weekday_in_month(next_month, Weekday.MONDAY)
+        ClassSession.objects.filter(
+            section=self.section,
+            date=session_date,
+            start_time=slot.start_time,
+        ).delete()
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [slot.pk],
+                'notes': 'Generar sesion faltante',
+            },
+            follow=True,
+        )
+
+        generated_session = ClassSession.objects.get(
+            section=self.section,
+            date=session_date,
+            start_time=slot.start_time,
+        )
+        booking = Booking.objects.get(session=generated_session, student=self.active_student)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(generated_session.slot_id, slot.pk)
+        self.assertEqual(generated_session.status, SessionStatus.SCHEDULED)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+
+        agenda_response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': session_date.isoformat(),
+                'section': self.section.pk,
+            },
+        )
+
+        session_row = next(
+            row
+            for group in agenda_response.context['staff_agenda_groups']
+            if group['date'] == session_date
+            for row in group['sessions']
+            if row['session'].pk == generated_session.pk
+        )
+        self.assertEqual(session_row['booked_count'], 1)
+        self.assertEqual(session_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
+
     def test_staff_monthly_plan_update_cancels_obsolete_fixed_booking_and_creates_new_one(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
         MonthlyAccessStatus.objects.create(

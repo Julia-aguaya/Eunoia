@@ -2232,10 +2232,17 @@ def admin_update_student_monthly_plan_view(request, student_id):
     if form.is_valid():
         plan = form.save()
         reconcile_start = max(timezone.localdate(), plan.month)
+        month_end = _shift_month(plan.month, 1) - timedelta(days=1)
+        if plan.has_weekly_slots() and reconcile_start <= month_end:
+            generate_class_sessions(
+                start_date=reconcile_start,
+                end_date=month_end,
+                section_code=plan.section.code,
+            )
         reconcile_end = _resolve_fixed_plan_reconcile_end(
             student,
             start_date=reconcile_start,
-            end_date=_shift_month(plan.month, 1) - timedelta(days=1),
+            end_date=month_end,
         )
         _reconcile_fixed_plan_bookings(
             student,
