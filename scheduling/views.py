@@ -329,9 +329,10 @@ def _build_admin_student_row(student, access, *, query='', target_date=None):
 
 
 def _get_admin_students_context(*, query='', status_filter='all'):
+    status_filter = status_filter if status_filter in {'all', 'inactive'} else 'all'
     current_month = normalize_month_start(timezone.localdate())
     students_qs = (
-        User.objects.filter(role=UserRole.STUDENT, is_active=True)
+        User.objects.filter(role=UserRole.STUDENT, is_active=(status_filter != 'inactive'))
         .select_related('primary_section')
         .prefetch_related(
             Prefetch(
@@ -372,13 +373,6 @@ def _get_admin_students_context(*, query='', status_filter='all'):
         if row['payment_label'] == 'Impaga':
             summary['impaga'] += 1
         rows.append(row)
-
-    if status_filter == 'active':
-        rows = [row for row in rows if row['filter_key'] == 'active']
-    elif status_filter == 'pending':
-        rows = [row for row in rows if row['operational_label'] in {'Pendiente', 'Sin estado cargado', 'Bloqueado'}]
-    elif status_filter == 'impaga':
-        rows = [row for row in rows if row['payment_label'] == 'Impaga']
 
     return {
         'admin_students': rows,

@@ -21,6 +21,7 @@ from .audit import (
 from .models import (
     Booking,
     BookingSource,
+    BookingStatus,
     ClassSession,
     HolidayClosure,
     MonthlyAccessStatus,
@@ -444,6 +445,43 @@ def _set_student_auth_active(*, student, is_active):
     return True
 
 
+def _cancel_future_active_bookings_for_student(*, student, actor=None, when=None):
+    cancellation_time = when or timezone.now()
+    cancelled_count = 0
+    active_future_bookings = list(
+        Booking.objects.select_for_update()
+        .select_related('session')
+        .filter(
+            student=student,
+            status__in=Booking.active_statuses(),
+            session__date__gte=timezone.localdate(cancellation_time),
+        )
+        .order_by('session__date', 'session__start_time', 'pk')
+    )
+
+    for booking in active_future_bookings:
+        if booking.session.starts_at() <= cancellation_time:
+            continue
+
+        booking.cancelled_at = cancellation_time
+        booking.cancelled_by = actor
+        booking.cancellation_generates_recovery = False
+        booking._transition_to(
+            BookingStatus.CANCELLED,
+            update_fields=[
+                'status',
+                'cancelled_at',
+                'cancelled_by',
+                'cancellation_generates_recovery',
+                'updated_at',
+            ],
+            previous_status=booking.status,
+        )
+        cancelled_count += 1
+
+    return cancelled_count
+
+
 def activate_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
     access, created = _get_or_create_monthly_access(student=student, month=month)
     changed = not access.grants_operational_booking_access()
@@ -457,10 +495,20 @@ def activate_student_monthly_access(*, student, actor=None, month=None, record_a
 
 
 def suspend_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
-    access, created = _get_or_create_monthly_access(student=student, month=month)
-    changed = access.status != MonthlyAccessStatusType.SUSPENDED or access.booking_enabled
-    access.suspend_operational_access()
-    auth_changed = _set_student_auth_active(student=student, is_active=False)
+    suspension_time = timezone.now()
+
+    with transaction.atomic():
+        access, created = _get_or_create_monthly_access(student=student, month=month)
+        access_changed = access.status != MonthlyAccessStatusType.SUSPENDED or access.booking_enabled
+        access.suspend_operational_access(when=suspension_time)
+        auth_changed = _set_student_auth_active(student=student, is_active=False)
+        cancelled_future_bookings = _cancel_future_active_bookings_for_student(
+            student=student,
+            actor=actor,
+            when=suspension_time,
+        )
+
+    changed = access_changed or auth_changed or cancelled_future_bookings > 0
 
     if record_audit and (changed or auth_changed):
         log_staff_monthly_access_change(actor=actor, access=access)

@@ -417,6 +417,19 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Ada Lovelace')
 
+    def test_staff_list_shows_inactive_students_only_in_inactive_filter(self):
+        self.active_student.is_active = False
+        self.active_student.save(update_fields=['is_active', 'updated_at'])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-list'), {'status': 'inactive', 'q': 'ada'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ada Lovelace')
+        self.assertContains(response, 'Todas (activas)')
+        self.assertContains(response, 'Inactivas', count=2)
+        self.assertNotContains(response, 'Grace Hopper')
+
     def test_staff_list_uses_state_specific_monthly_access_ctas(self):
         suspended_student = User.objects.create_user(
             email='hedy@example.com',
@@ -2386,6 +2399,32 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(self.active_student.is_active)
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
         self.assertEqual(response.context['admin_students'], [])
+
+    def test_staff_suspension_cancels_future_booking_and_removes_student_from_class_detail(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-toggle-student-access', args=[self.active_student.pk]),
+            {'q': 'ada'},
+            follow=True,
+        )
+
+        booking = Booking.objects.get(session=self.upcoming_session, student=self.active_student)
+        detail_response = self.client.get(
+            reverse('admin-class-session-detail', args=[self.upcoming_session.pk]),
+            {
+                'date': self.today.isoformat(),
+                'section': self.section.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(booking.cancelled_by, self.staff_user)
+        self.assertFalse(booking.cancellation_generates_recovery)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(detail_response.context['staff_session_active_bookings'], [])
+        self.assertContains(detail_response, 'Ada Lovelace')
 
     def test_staff_can_activate_student_without_current_month_access(self):
         student_without_status = User.objects.create_user(

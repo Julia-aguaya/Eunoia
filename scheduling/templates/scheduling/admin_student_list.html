@@ -340,10 +340,8 @@
                 </div>
 
                 <div class="chip-scroller" aria-label="Filtros de alumnas">
-                    <a href="{% url 'admin-student-list' %}{% if admin_query %}?q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'all' %}active{% endif %}">Todas</a>
-                    <a href="{% url 'admin-student-list' %}?status=active{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'active' %}active{% endif %}">Activas</a>
-                    <a href="{% url 'admin-student-list' %}?status=pending{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'pending' %}active{% endif %}">Pendientes</a>
-                    <a href="{% url 'admin-student-list' %}?status=impaga{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'impaga' %}active{% endif %}">Impagas</a>
+                    <a href="{% url 'admin-student-list' %}{% if admin_query %}?q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'all' %}active{% endif %}">Todas (activas)</a>
+                    <a href="{% url 'admin-student-list' %}?status=inactive{% if admin_query %}&q={{ admin_query|urlencode }}{% endif %}" class="filter-pill {% if admin_status_filter == 'inactive' %}active{% endif %}">Inactivas</a>
                 </div>
             </form>
         </div>
@@ -357,7 +355,7 @@
             </div>
             <div class="section-tools">
                 <div class="status-badge info">
-                    {% if admin_status_filter == 'all' %}Todas{% elif admin_status_filter == 'active' %}Activas{% elif admin_status_filter == 'pending' %}Pendientes{% else %}Impagas{% endif %}
+                    {% if admin_status_filter == 'inactive' %}Inactivas{% else %}Todas (activas){% endif %}
                 </div>
                 <div class="sort-pill">Nombre A-Z</div>
             </div>
