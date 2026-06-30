@@ -46,6 +46,8 @@ from .models import (
     UserRole,
     Weekday,
     WeeklyClassSlot,
+    build_fixed_booking_backfill_notes,
+    has_fixed_booking_backfill_metadata,
     normalize_month_start,
     strip_legacy_userselections_notes,
 )
@@ -918,6 +920,7 @@ def _backfill_missing_monthly_plans_from_fixed_bookings(user, *, start_date, end
                 student=user,
                 month=month_start,
                 section=booking.session.section,
+                notes=build_fixed_booking_backfill_notes(),
             )
             created_plans[plan_key] = plan
             existing_plans[plan_key] = plan
@@ -1011,7 +1014,14 @@ def _summarize_fixed_booking_conflicts(conflicts, *, limit=3):
     return ' | '.join(preview)
 
 
-def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolete=False):
+def _reconcile_fixed_plan_bookings(
+    user,
+    *,
+    start_date,
+    end_date,
+    cancel_obsolete=False,
+    backfill_missing_plans=True,
+):
     if end_date < start_date:
         return {
             'created_count': 0,
@@ -1020,11 +1030,12 @@ def _reconcile_fixed_plan_bookings(user, *, start_date, end_date, cancel_obsolet
             'conflicts': [],
         }
 
-    _backfill_missing_monthly_plans_from_fixed_bookings(
-        user,
-        start_date=start_date,
-        end_date=end_date,
-    )
+    if backfill_missing_plans:
+        _backfill_missing_monthly_plans_from_fixed_bookings(
+            user,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     candidate_sessions = list(
         ClassSession.objects.select_related('section')
@@ -2455,9 +2466,27 @@ def admin_update_student_monthly_plan_view(request, student_id):
     if request.method != 'POST':
         return redirect(redirect_url)
 
+    existing_monthly_plans = list(
+        StudentMonthlyPlan.objects.prefetch_related('plan_slots').filter(student=student, month=selected_month)
+    )
+    explicit_existing_plans = [
+        plan for plan in existing_monthly_plans
+        if not has_fixed_booking_backfill_metadata(plan.notes)
+    ]
+
     form = StaffStudentMonthlyPlanForm(student=student, month=selected_month, section=_resolve_staff_plan_section(selected_section), data=request.POST)
     if form.is_valid():
         plan = form.save()
+        backfill_missing_plans = False
+        if explicit_existing_plans:
+            backfill_missing_plans = True
+        else:
+            for stale_plan in existing_monthly_plans:
+                if stale_plan.section_id == plan.section_id:
+                    continue
+                if not has_fixed_booking_backfill_metadata(stale_plan.notes):
+                    continue
+                stale_plan.replace_weekly_slots([])
         today = timezone.localdate()
         reconcile_start = max(today, plan.month)
         sync_end = _resolve_admin_monthly_plan_sync_end(plan_month=plan.month, reference_date=today)
@@ -2477,6 +2506,7 @@ def admin_update_student_monthly_plan_view(request, student_id):
             start_date=reconcile_start,
             end_date=reconcile_end,
             cancel_obsolete=True,
+            backfill_missing_plans=backfill_missing_plans,
         )
         messages.success(
             request,
