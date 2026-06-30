@@ -892,11 +892,6 @@ class RecoveryCredit(TimeStampedModel):
                 'Recovery credit is not compatible with this section.'
             )
 
-        if self.origin_session_id == session.pk:
-            errors.setdefault('used_recovery_credit', []).append(
-                'Recovery credit must be used for another session in the same section.'
-            )
-
         if self.is_expired(on_date=on_date):
             errors.setdefault('used_recovery_credit', []).append('Recovery credit is expired.')
         elif self.status != RecoveryCreditStatus.AVAILABLE:
@@ -1196,6 +1191,7 @@ class Booking(TimeStampedModel):
 
         if (
             not duplicate_exists
+            and self.used_recovery_credit_id is None
             and student.session_matches_effective_monthly_plan(session)
             and existing_student_bookings.exists()
         ):

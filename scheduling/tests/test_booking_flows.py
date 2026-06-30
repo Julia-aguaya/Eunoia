@@ -1726,7 +1726,7 @@ class BookingCancellationAndRecoveryTests(TestCase):
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
         self.assertIsNone(recovery_credit.used_at)
 
-    def test_using_recovery_on_original_session_is_rejected(self):
+    def test_using_recovery_on_original_session_is_allowed(self):
         start_at = timezone.now() + timedelta(days=6)
         session = self.create_session(section=self.section, start_at=start_at)
         self.grant_access(self.student, session.date)
@@ -1739,16 +1739,19 @@ class BookingCancellationAndRecoveryTests(TestCase):
             expires_at=date(2026, 12, 31),
         )
 
-        with self.assertRaisesMessage(ValidationError, 'another session in the same section'):
-            Booking.objects.create_booking(
-                session=session,
-                student=self.student,
-                used_recovery_credit=recovery_credit,
-            )
+        booking = Booking.objects.create_booking(
+            session=session,
+            student=self.student,
+            used_recovery_credit=recovery_credit,
+        )
 
         recovery_credit.refresh_from_db()
-        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
-        self.assertIsNone(recovery_credit.used_at)
+        self.assertEqual(booking.session, session)
+        self.assertEqual(booking.student, self.student)
+        self.assertEqual(booking.source, BookingSource.MAKEUP)
+        self.assertEqual(booking.used_recovery_credit, recovery_credit)
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.USED)
+        self.assertIsNotNone(recovery_credit.used_at)
 
     def test_admin_manual_grant_creates_available_recovery_credit(self):
         session = self.create_session(section=self.section, start_at=timezone.now() + timedelta(days=7))

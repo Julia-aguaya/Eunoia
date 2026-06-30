@@ -66,10 +66,6 @@ from .use_cases import (
 STUDENT_PORTAL_PREVIEW_LIMIT = 6
 ADMIN_DETAIL_PREVIEW_LIMIT = 5
 STAFF_AGENDA_WINDOW_DAYS = 7
-STAFF_AGENDA_HIDDEN_SESSION_STATUSES = {
-    SessionStatus.CANCELLED,
-    SessionStatus.HOLIDAY_CLOSED,
-}
 SPANISH_MONTH_NAMES = {
     1: 'Enero',
     2: 'Febrero',
@@ -111,7 +107,6 @@ BOOKING_ERROR_MESSAGES = {
     'Student already has booking history for this fixed plan session.': 'Este turno fijo ya fue gestionado para esta clase.',
     'Recovery credit belongs to another student.': 'Esta recuperacion no pertenece a tu cuenta.',
     'Recovery credit is not compatible with this section.': 'Esta recuperación no se puede usar en esta actividad.',
-    'Recovery credit must be used for another session in the same section.': 'La recuperacion solo sirve para otra clase de la misma actividad, no para la sesion original.',
     'Recovery credit is not available.': 'La recuperacion elegida ya no esta disponible para usar.',
     'Recovery credit is expired.': 'La recuperacion elegida esta vencida y ya no puede usarse.',
     'Recovery credit is not available for this student.': 'La recuperacion elegida ya no esta disponible en tu portal.',
@@ -441,7 +436,6 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
     sessions_qs = (
         ClassSession.objects.select_related('section', 'holiday_closure')
         .filter(date__range=(anchor_date, window_end))
-        .exclude(status__in=STAFF_AGENDA_HIDDEN_SESSION_STATUSES)
         .annotate(
             booked_count=Count(
                 'bookings',
@@ -823,8 +817,9 @@ def _resolve_admin_monthly_plan_sync_end(*, plan_month, reference_date):
         return month_end
 
     _, current_week_end, _ = _get_current_workweek_window(reference_date)
-    if current_week_end > month_end:
-        return current_week_end
+    portal_range_end = _shift_month(normalize_month_start(current_week_end), 1) - timedelta(days=1)
+    if portal_range_end > month_end:
+        return portal_range_end
     return month_end
 
 
@@ -929,6 +924,31 @@ def _backfill_missing_monthly_plans_from_fixed_bookings(user, *, start_date, end
         )
 
 
+def _get_future_explicit_monthly_plan_months(user, *, section, after_month, through_month):
+    if through_month <= after_month:
+        return []
+
+    months = []
+    seen_months = set()
+    for plan in (
+        StudentMonthlyPlan.objects.prefetch_related('plan_slots')
+        .filter(
+            student=user,
+            section=section,
+            month__gt=after_month,
+            month__lte=through_month,
+        )
+        .order_by('month', 'pk')
+    ):
+        if has_fixed_booking_backfill_metadata(plan.notes) or not plan.has_weekly_slots():
+            continue
+        if plan.month in seen_months:
+            continue
+        seen_months.add(plan.month)
+        months.append(plan.month)
+    return months
+
+
 def _can_restore_obsolete_fixed_booking(*, booking, session, student):
     if booking.status != BookingStatus.CANCELLED:
         return False
@@ -1015,6 +1035,7 @@ def _reconcile_fixed_plan_bookings(
     end_date,
     cancel_obsolete=False,
     backfill_missing_plans=True,
+    backfill_end_date=None,
 ):
     if end_date < start_date:
         return {
@@ -1028,7 +1049,7 @@ def _reconcile_fixed_plan_bookings(
         _backfill_missing_monthly_plans_from_fixed_bookings(
             user,
             start_date=start_date,
-            end_date=end_date,
+            end_date=backfill_end_date or end_date,
         )
 
     candidate_sessions = list(
@@ -2484,6 +2505,14 @@ def admin_update_student_monthly_plan_view(request, student_id):
         today = timezone.localdate()
         reconcile_start = max(today, plan.month)
         sync_end = _resolve_admin_monthly_plan_sync_end(plan_month=plan.month, reference_date=today)
+        future_explicit_plan_months = []
+        if not plan.has_weekly_slots():
+            future_explicit_plan_months = _get_future_explicit_monthly_plan_months(
+                student,
+                section=plan.section,
+                after_month=plan.month,
+                through_month=normalize_month_start(sync_end),
+            )
         if plan.has_weekly_slots() and reconcile_start <= sync_end:
             generate_class_sessions(
                 start_date=reconcile_start,
@@ -2501,6 +2530,7 @@ def admin_update_student_monthly_plan_view(request, student_id):
             end_date=reconcile_end,
             cancel_obsolete=True,
             backfill_missing_plans=backfill_missing_plans,
+            backfill_end_date=_shift_month(plan.month, 1) - timedelta(days=1),
         )
         messages.success(
             request,
@@ -2515,6 +2545,15 @@ def admin_update_student_monthly_plan_view(request, student_id):
                 (
                     f"No se pudieron cargar {len(reconcile_result['conflicts'])} reserva(s) fija(s) "
                     f"por cupo o conflicto operativo. {_summarize_fixed_booking_conflicts(reconcile_result['conflicts'])}."
+                ),
+            )
+        if future_explicit_plan_months:
+            month_labels = ', '.join(f'{month:%m/%Y}' for month in future_explicit_plan_months)
+            messages.warning(
+                request,
+                (
+                    f'Siguen activas reservas fijas en {plan.section.name} por planes mensuales futuros '
+                    f'({month_labels}). Si queres limpiar esa agenda, actualiza tambien esos meses.'
                 ),
             )
         return redirect(redirect_url)

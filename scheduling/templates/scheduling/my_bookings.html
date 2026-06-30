@@ -48,7 +48,7 @@
     }
 
     .recovery-hero h2 {
-        font-size: clamp(3rem, 9vw, 4.6rem);
+        font-size: clamp(2.4rem, 8vw, 4.4rem);
         line-height: 0.92;
         margin: 0;
     }
@@ -71,7 +71,7 @@
 
     .section-head h3 {
         margin: 0;
-        font-size: clamp(1.55rem, 4.2vw, 2.05rem);
+        font-size: clamp(1.35rem, 4vw, 1.95rem);
         line-height: 0.98;
     }
 
@@ -89,7 +89,6 @@
 
     .summary-icon,
     .step-icon,
-    .history-icon,
     .detail-icon {
         width: 40px;
         height: 40px;
@@ -107,7 +106,6 @@
 
     .summary-icon svg,
     .step-icon svg,
-    .history-icon svg,
     .detail-icon svg,
     .bottom-nav svg {
         width: 22px;
@@ -116,13 +114,13 @@
 
     .summary-count {
         font-family: "Cormorant Garamond", Georgia, serif;
-        font-size: clamp(2.45rem, 8vw, 3.6rem);
+        font-size: clamp(2.1rem, 7vw, 3.5rem);
         line-height: 0.88;
         color: var(--text);
     }
 
     .summary-count-label {
-        font-size: clamp(1rem, 3.2vw, 1.3rem);
+        font-size: clamp(0.96rem, 3vw, 1.2rem);
         color: var(--primary-strong);
         font-weight: 600;
     }
@@ -190,14 +188,12 @@
         font-weight: 700;
     }
 
-    .steps-list,
-    .history-list {
+    .steps-list {
         display: grid;
         gap: 0;
     }
 
-    .step-row,
-    .history-row {
+    .step-row {
         display: grid;
         grid-template-columns: 44px 44px minmax(0, 1fr);
         gap: 12px;
@@ -206,12 +202,7 @@
         border-bottom: 1px solid rgba(105, 132, 119, 0.14);
     }
 
-    .history-row {
-        grid-template-columns: 44px minmax(0, 1fr) auto;
-    }
-
-    .step-row:last-child,
-    .history-row:last-child {
+    .step-row:last-child {
         border-bottom: 0;
     }
 
@@ -224,66 +215,6 @@
         background: linear-gradient(145deg, #eff5ef, #e5eee3);
         color: var(--primary-strong);
         font-weight: 700;
-    }
-
-    .history-meta {
-        color: var(--muted);
-        margin-top: 4px;
-    }
-
-    .history-meta-aux {
-        color: var(--muted);
-        margin-top: 4px;
-        font-size: 0.95rem;
-    }
-
-    .history-tag {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 0 10px;
-        border-radius: 999px;
-        background: rgba(223, 232, 223, 0.55);
-        color: var(--primary-strong);
-        font-size: 0.82rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-    }
-
-    .history-status {
-        display: inline-flex;
-        align-items: center;
-        min-height: 36px;
-        padding: 0 14px;
-        border-radius: 999px;
-        background: rgba(233, 237, 234, 0.9);
-        color: #59665f;
-        font-weight: 600;
-    }
-
-    .history-status.warning {
-        background: var(--warning-soft);
-        color: var(--warning);
-    }
-
-    .history-status.success {
-        background: var(--success-soft);
-        color: var(--success);
-    }
-
-    .history-detail-link {
-        min-height: 40px;
-        padding: 0 14px;
-        font-size: 0.94rem;
-    }
-
-    .badge-row {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: wrap;
     }
 
     .empty-copy {
@@ -317,7 +248,7 @@
     }
 
     .detail-handle { width: 72px; height: 6px; border-radius: 999px; background: rgba(105, 132, 119, 0.28); margin: 0 auto 16px; }
-    .detail-sheet-card h3 { margin: 0 0 16px; text-align: center; font-size: clamp(2rem, 5vw, 2.7rem); line-height: 0.98; }
+    .detail-sheet-card h3 { margin: 0 0 16px; text-align: center; font-size: clamp(1.7rem, 4.8vw, 2.5rem); line-height: 0.98; }
     .detail-grid { display: grid; gap: 0; border: 1px solid rgba(105, 132, 119, 0.14); border-radius: 22px; overflow: hidden; background: rgba(255, 255, 255, 0.84); }
     .detail-row-sheet { display: grid; grid-template-columns: 44px minmax(120px, 0.9fr) minmax(0, 1.1fr); gap: 12px; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(105, 132, 119, 0.12); }
     .detail-row-sheet:last-child { border-bottom: 0; }
@@ -370,6 +301,14 @@
             padding-bottom: 104px;
         }
 
+        .recovery-hero h2 {
+            font-size: clamp(2.2rem, 11vw, 2.9rem);
+        }
+
+        .section-head h3 {
+            font-size: 1.28rem;
+        }
+
         .recovery-card {
             padding: 16px;
             border-radius: 24px;
@@ -387,23 +326,14 @@
 
         .summary-icon svg,
         .step-icon svg,
-        .history-icon svg,
         .detail-icon svg,
         .bottom-nav svg {
             width: 20px;
             height: 20px;
         }
 
-        .history-row {
-            grid-template-columns: 1fr;
-        }
-
         .empty-actions {
             grid-template-columns: 1fr;
-        }
-
-        .badge-row {
-            justify-content: flex-start;
         }
 
         .step-row {
@@ -411,12 +341,20 @@
             gap: 10px;
         }
 
-        .history-status {
-            width: fit-content;
+        .summary-count {
+            font-size: 2rem;
+        }
+
+        .summary-count-label,
+        .detail-copy,
+        .meta,
+        .empty-copy {
+            font-size: 0.95rem;
         }
 
         .detail-sheet { padding: 10px 8px calc(12px + env(safe-area-inset-bottom, 0px)); }
         .detail-sheet-card { padding: 12px 14px 16px; }
+        .detail-sheet-card h3 { font-size: 1.55rem; }
         .detail-row-sheet { grid-template-columns: 36px minmax(0, 1fr); }
         .detail-value { text-align: left; grid-column: 2; }
 
@@ -571,89 +509,9 @@
         </div>
     </article>
 
-    <article class="card recovery-card">
-        <div class="section-head" style="justify-content: space-between; align-items: center;">
-            <div>
-                <h3>Historial</h3>
-            </div>
-            {% if used_recovery_credits or expired_recovery_credits %}
-                <a href="#history-list" class="button-quiet">Ver todo</a>
-            {% endif %}
-        </div>
-
-        {% if used_recovery_credits or expired_recovery_credits %}
-            <div class="history-list" id="history-list">
-                {% for credit in used_recovery_credits %}
-                    <div class="history-row">
-                        <span class="history-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"></circle>
-                                <path d="M12 7v6l4 2"></path>
-                            </svg>
-                        </span>
-                        <div>
-                            <div class="detail-copy">
-                                <strong>{% if credit.has_legacy_recoverableturn_context %}Recuperación legacy ya usada{% else %}Generada por cancelación{% endif %}</strong>
-                            </div>
-                            <div class="history-meta">
-                                {% if credit.has_legacy_recoverableturn_context %}
-                                    {% if credit.legacy_recovery_date %}Usada el {{ credit.legacy_recovery_date|date:"d/m/Y" }}{% elif credit.used_at %}Usada el {{ credit.used_at|date:"d/m/Y" }}{% endif %}
-                                    {% if credit.expires_at %} · Vencía el {{ credit.expires_at|date:"d/m" }}{% endif %}
-                                {% else %}
-                                    {% if credit.origin_session %}{{ credit.origin_session.date|date:"d/m" }}{% else %}Sin fecha de origen{% endif %}
-                                    {% if credit.expires_at %} · Vencía el {{ credit.expires_at|date:"d/m" }}{% endif %}
-                                {% endif %}
-                            </div>
-                            {% if credit.has_legacy_recoverableturn_context %}
-                                <div class="history-meta-aux">
-                                    {% if credit.legacy_original_slot_label %}Original: {{ credit.legacy_original_slot_label }}{% endif %}
-                                    {% if credit.legacy_original_slot_label and credit.legacy_assigned_slot_label %} · {% endif %}
-                                    {% if credit.legacy_assigned_slot_label %}Asignada a: {{ credit.legacy_assigned_slot_label }}{% endif %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="badge-row">
-                            {% if credit.has_legacy_recoverableturn_context %}
-                                <span class="history-tag">Legacy</span>
-                            {% endif %}
-                            <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary history-detail-link">Ver detalle</a>
-                            <span class="history-status">Usada</span>
-                        </div>
-                    </div>
-                {% endfor %}
-
-                {% for credit in expired_recovery_credits %}
-                    <div class="history-row">
-                        <span class="history-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"></circle>
-                                <path d="M12 7v6l4 2"></path>
-                            </svg>
-                        </span>
-                        <div>
-                            <div class="detail-copy"><strong>Generada por cancelación</strong></div>
-                            <div class="history-meta">
-                                {% if credit.origin_session %}{{ credit.origin_session.date|date:"d/m" }}{% else %}Sin fecha de origen{% endif %}
-                                {% if credit.expires_at %} · Venció el {{ credit.expires_at|date:"d/m" }}{% endif %}
-                            </div>
-                        </div>
-                        <div class="badge-row">
-                            <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary history-detail-link">Ver detalle</a>
-                            <span class="history-status warning">Vencida</span>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty">
-                <p class="empty-copy"><strong>Todavía no tenés historial de recuperaciones.</strong></p>
-                <p class="meta">Cuando uses o se venza una recuperación, la vas a ver listada acá.</p>
-            </div>
-        {% endif %}
-    </article>
 </section>
 
-{% if detail_recovery_credit %}
+{% if detail_recovery_credit and detail_recovery_credit.status == 'available' %}
     <a href="{{ detail_recovery_back_url }}" class="detail-overlay" aria-label="Cerrar detalle de recuperación"></a>
     <section class="detail-sheet" aria-label="Detalle de recuperación">
         <div class="detail-sheet-card">
