@@ -78,6 +78,8 @@ LEGACY_RECOVERABLETURNS_NOTES_START = '[legacy-recoverableturns-import]'
 LEGACY_RECOVERABLETURNS_NOTES_END = '[/legacy-recoverableturns-import]'
 LEGACY_USERSELECTIONS_NOTES_START = '[legacy-userselections-import]'
 LEGACY_USERSELECTIONS_NOTES_END = '[/legacy-userselections-import]'
+FIXED_BOOKING_BACKFILL_NOTES_START = '[fixed-booking-backfill]'
+FIXED_BOOKING_BACKFILL_NOTES_END = '[/fixed-booking-backfill]'
 
 
 def strip_managed_notes_block(notes, *, start_marker, end_marker):
@@ -109,8 +111,42 @@ def strip_legacy_userselections_notes(notes):
     )
 
 
+def strip_fixed_booking_backfill_notes(notes):
+    return strip_managed_notes_block(
+        notes,
+        start_marker=FIXED_BOOKING_BACKFILL_NOTES_START,
+        end_marker=FIXED_BOOKING_BACKFILL_NOTES_END,
+    )
+
+
+def strip_hidden_monthly_plan_notes(notes):
+    return strip_fixed_booking_backfill_notes(strip_legacy_userselections_notes(notes))
+
+
+def build_fixed_booking_backfill_notes(existing_notes=''):
+    visible_notes = strip_hidden_monthly_plan_notes(existing_notes)
+    backfill_block = (
+        f'{FIXED_BOOKING_BACKFILL_NOTES_START}\n'
+        'source=fixed_plan_booking_reconcile\n'
+        f'{FIXED_BOOKING_BACKFILL_NOTES_END}'
+    )
+    if visible_notes:
+        return f'{visible_notes}\n\n{backfill_block}'
+    return backfill_block
+
+
+def has_fixed_booking_backfill_metadata(notes):
+    return bool(
+        extract_managed_notes_block(
+            notes,
+            start_marker=FIXED_BOOKING_BACKFILL_NOTES_START,
+            end_marker=FIXED_BOOKING_BACKFILL_NOTES_END,
+        )
+    )
+
+
 def merge_notes_with_legacy_userselections_metadata(public_notes, existing_notes=''):
-    visible_notes = strip_legacy_userselections_notes(public_notes)
+    visible_notes = strip_hidden_monthly_plan_notes(public_notes)
     legacy_block = extract_managed_notes_block(
         existing_notes,
         start_marker=LEGACY_USERSELECTIONS_NOTES_START,

@@ -12,7 +12,7 @@ from .models import (
     WeeklyClassSlot,
     merge_notes_with_legacy_userselections_metadata,
     normalize_month_start,
-    strip_legacy_userselections_notes,
+    strip_hidden_monthly_plan_notes,
 )
 
 
@@ -327,7 +327,7 @@ class StaffStudentMonthlyPlanForm(forms.Form):
                 self.initial['section'] = self.selected_section.pk
             else:
                 self.initial['section'] = initial_plan.section_id
-            self.initial['notes'] = strip_legacy_userselections_notes(initial_plan.notes)
+            self.initial['notes'] = strip_hidden_monthly_plan_notes(initial_plan.notes)
             if self.selected_section is not None and initial_plan.section_id == self.selected_section.pk:
                 self.initial['slot_ids'] = list(initial_plan.plan_slots.values_list('weekly_class_slot_id', flat=True).order_by('position'))
 
