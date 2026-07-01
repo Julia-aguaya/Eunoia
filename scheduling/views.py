@@ -864,8 +864,9 @@ def _backfill_missing_monthly_plans_from_fixed_bookings(user, *, start_date, end
     if end_date < start_date:
         return
 
-    fixed_bookings = list(
-        Booking.objects.select_related('session__slot', 'session__section')
+    fixed_bookings = [
+        booking
+        for booking in Booking.objects.select_related('session__slot', 'session__section')
         .filter(
             student=user,
             status=BookingStatus.BOOKED,
@@ -875,7 +876,8 @@ def _backfill_missing_monthly_plans_from_fixed_bookings(user, *, start_date, end
             session__slot__isnull=False,
         )
         .order_by('session__date', 'session__start_time', 'pk')
-    )
+        if booking.session.section_id == booking.session.slot.section_id
+    ]
     if not fixed_bookings:
         return
 

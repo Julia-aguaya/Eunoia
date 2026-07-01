@@ -1561,6 +1561,80 @@ class AdminPortalViewTests(TestCase):
             ).exists()
         )
 
+    def test_staff_monthly_plan_update_ignores_corrupt_fixed_booking_backfill_candidates_in_other_section(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        selected_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=self.section,
+            notes='Plan explicito cadillac',
+        ).assign_weekly_slots([selected_slot])
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=next_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        session_date = self._first_weekday_in_month(next_month, Weekday.MONDAY)
+        corrupted_session = ClassSession.objects.create(
+            slot=selected_slot,
+            section=self.section,
+            date=session_date,
+            start_time=selected_slot.start_time,
+            end_time=selected_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        corrupted_booking = Booking.objects.create_booking(session=corrupted_session, student=self.active_student)
+        corrupted_session.section = self.other_section
+        corrupted_session.save(update_fields=['section', 'updated_at'])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [selected_slot.pk],
+                'notes': 'Actualizar sin explotar por booking legado corrupto',
+            },
+            follow=True,
+        )
+
+        corrupted_booking.refresh_from_db()
+        replacement_session = ClassSession.objects.get(
+            section=self.section,
+            date=session_date,
+            start_time=selected_slot.start_time,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
+        self.assertFalse(
+            StudentMonthlyPlan.objects.filter(
+                student=self.active_student,
+                month=next_month,
+                section=self.other_section,
+            ).exists()
+        )
+        self.assertEqual(corrupted_booking.status, BookingStatus.CANCELLED)
+        self.assertTrue(
+            Booking.objects.filter(
+                session=replacement_session,
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+
     def test_staff_clearing_current_month_plan_warns_when_future_month_keeps_fixed_booking_in_class_agenda(self):
         june_30 = date(2026, 6, 30)
         current_month = normalize_month_start(june_30)
