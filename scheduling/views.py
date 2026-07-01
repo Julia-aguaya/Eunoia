@@ -1028,6 +1028,10 @@ def _restore_obsolete_fixed_booking(*, session, student, historical_bookings_by_
     return True
 
 
+def _has_blocking_fixed_plan_history(*, session, historical_bookings_by_session_id):
+    return bool(historical_bookings_by_session_id.get(session.id))
+
+
 def _collect_validation_error_messages(exc):
     if hasattr(exc, 'message_dict'):
         messages = []
@@ -1057,6 +1061,7 @@ def _reconcile_fixed_plan_bookings(
     cancel_obsolete=False,
     backfill_missing_plans=True,
     backfill_end_date=None,
+    allow_new_booking_over_history=False,
 ):
     if end_date < start_date:
         return {
@@ -1149,6 +1154,15 @@ def _reconcile_fixed_plan_bookings(
                 ):
                     existing_bookings_by_session_id.add(session.id)
                     restored_count += 1
+                    continue
+
+                if (
+                    not allow_new_booking_over_history
+                    and _has_blocking_fixed_plan_history(
+                        session=session,
+                        historical_bookings_by_session_id=historical_bookings_by_session_id,
+                    )
+                ):
                     continue
 
                 try:
@@ -1529,12 +1543,12 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
 
             session = sessions_by_slot_date.get((slot.pk, day_cursor))
             if session is None:
-                state['has_unresolved_occurrences'] = True
+                if day_cursor not in holiday_dates:
+                    state['has_unresolved_occurrences'] = True
                 day_cursor += timedelta(days=1)
                 continue
 
             if session.status != SessionStatus.SCHEDULED:
-                state['has_unresolved_occurrences'] = True
                 day_cursor += timedelta(days=1)
                 continue
 
@@ -2610,6 +2624,7 @@ def admin_update_student_monthly_plan_view(request, student_id):
                 cancel_obsolete=True,
                 backfill_missing_plans=backfill_missing_plans,
                 backfill_end_date=_shift_month(plan.month, 1) - timedelta(days=1),
+                allow_new_booking_over_history=True,
             )
         messages.success(
             request,

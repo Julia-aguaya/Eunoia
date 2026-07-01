@@ -1242,6 +1242,42 @@ class WebBookingFlowTests(TestCase):
         self.assertContains(dashboard_response, 'Todavía no tenés turnos esta semana.')
         self.assertContains(dashboard_response, '1 disponible')
 
+    def test_dashboard_does_not_recreate_self_cancelled_fixed_slot_booking_from_monthly_plan(self):
+        session = self.create_session(days=4)
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=session.date.isoweekday(),
+            start_time=session.start_time,
+            end_time=session.end_time,
+            is_active=True,
+        )
+        session.slot = slot
+        session.save(update_fields=['slot', 'updated_at'])
+        StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(session.date),
+            section=self.section,
+            notes='Plan fijo portal',
+        ).assign_weekly_slots([slot])
+        booking = Booking.objects.create_booking(session=session, student=self.student)
+
+        cancellation_response = self.post_cancellation(booking)
+        dashboard_response = self.client.get(reverse('dashboard'))
+
+        booking.refresh_from_db()
+        self.assertEqual(cancellation_response.status_code, 200)
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(Booking.objects.filter(session=session, student=self.student).count(), 1)
+        self.assertFalse(
+            Booking.objects.filter(
+                session=session,
+                student=self.student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertContains(dashboard_response, 'Turno cancelado')
+
     def test_student_cannot_cancel_booking_inside_two_hour_window(self):
         start_at = timezone.now() + timedelta(minutes=90)
         session = self.create_session_at(start_at)
