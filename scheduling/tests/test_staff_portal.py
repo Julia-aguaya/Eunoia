@@ -1239,6 +1239,80 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(save_response, future_full_session.date.strftime('%d/%m/%Y'))
         self.assertContains(response, 'Sin cupo')
 
+    def test_staff_monthly_plan_picker_marks_current_month_slot_full_when_all_relevant_horizon_occurrences_are_full(self):
+        june_30 = date(2026, 6, 30)
+        current_month = normalize_month_start(june_30)
+        next_month = date(2026, 7, 1)
+        self.active_student.primary_section = self.other_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=current_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=next_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        full_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            is_active=True,
+        )
+
+        for index, session_date in enumerate((date(2026, 7, 3), date(2026, 7, 10), date(2026, 7, 17), date(2026, 7, 24), date(2026, 7, 31))):
+            attendee = User.objects.create_user(
+                email=f'full-horizon-{index}@example.com',
+                password='StudentPass2026!',
+                first_name=f'Lleno{index}',
+                last_name='Horizonte',
+                primary_section=self.other_section,
+                must_change_password=False,
+            )
+            MonthlyAccessStatus.objects.update_or_create(
+                student=attendee,
+                month=next_month,
+                defaults={
+                    'status': MonthlyAccessStatusType.ACTIVE,
+                    'booking_enabled': True,
+                },
+            )
+            session = ClassSession.objects.create(
+                slot=full_slot,
+                section=self.other_section,
+                date=session_date,
+                start_time=full_slot.start_time,
+                end_time=full_slot.end_time,
+                capacity=1,
+                status=SessionStatus.SCHEDULED,
+            )
+            Booking.objects.create_booking(session=session, student=attendee)
+
+        self.client.force_login(self.staff_user)
+
+        with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
+            response = self.client.get(
+                reverse('admin-student-detail', args=[self.active_student.pk]),
+                {'month': current_month.strftime('%Y-%m'), 'section': self.other_section.pk},
+            )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(option_map[full_slot.pk]['is_full'])
+        self.assertTrue(option_map[full_slot.pk]['is_disabled'])
+        self.assertContains(response, 'Sin cupo')
+
     def test_staff_monthly_plan_picker_ignores_cancelled_next_session_when_later_dates_can_be_generated(self):
         june_30 = date(2026, 6, 30)
         current_month = normalize_month_start(june_30)
@@ -2704,15 +2778,17 @@ class AdminPortalViewTests(TestCase):
             status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
         )
-        full_session = ClassSession.objects.create(
-            slot=full_slot,
-            section=self.section,
-            date=next_month + timedelta(days=1),
-            start_time=full_slot.start_time,
-            end_time=full_slot.end_time,
-            capacity=1,
-            status=SessionStatus.SCHEDULED,
-        )
+        for session_date in self._all_weekdays_in_month(next_month, Weekday.TUESDAY):
+            full_session = ClassSession.objects.create(
+                slot=full_slot,
+                section=self.section,
+                date=session_date,
+                start_time=full_slot.start_time,
+                end_time=full_slot.end_time,
+                capacity=1,
+                status=SessionStatus.SCHEDULED,
+            )
+            Booking.objects.create_booking(session=full_session, student=other_student)
         ClassSession.objects.create(
             slot=open_slot,
             section=self.section,
@@ -2722,7 +2798,6 @@ class AdminPortalViewTests(TestCase):
             capacity=3,
             status=SessionStatus.SCHEDULED,
         )
-        Booking.objects.create_booking(session=full_session, student=other_student)
         self.client.force_login(self.staff_user)
 
         response = self.client.get(

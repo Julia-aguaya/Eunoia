@@ -1491,6 +1491,15 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
     availability_end = month_end
     if month_start == normalize_month_start(today):
         availability_start = max(today, month_start)
+        availability_end = _resolve_admin_monthly_plan_sync_end(plan_month=month_start, reference_date=today)
+
+    picker_section = getattr(form, 'selected_section', None)
+    if picker_section is not None and availability_start <= availability_end:
+        _ensure_generated_sessions_for_sections(
+            start_date=availability_start,
+            end_date=availability_end,
+            sections=[picker_section],
+        )
 
     monthly_sessions = ClassSession.objects.filter(
         slot_id__in=slot_ids,
@@ -1523,10 +1532,6 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
 
             session = sessions_by_slot_date.get((slot.pk, day_cursor))
             if session is None:
-                if day_cursor not in holiday_dates:
-                    state['has_bookable_occurrences'] = True
-                    state['has_open_spots'] = True
-                    break
                 day_cursor += timedelta(days=1)
                 continue
 
