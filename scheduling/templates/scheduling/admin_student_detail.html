@@ -1,4 +1,5 @@
 {% extends "scheduling/admin_base.html" %}
+{% load staff_labels %}
 
 {% block title %}{{ admin_detail_student.get_full_name|default:admin_detail_student.email }} | Portal admin Eunoia{% endblock %}
 
@@ -158,6 +159,149 @@
             padding: 24px;
             gap: 18px;
             background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(247, 244, 237, 0.96));
+        }
+
+        .recovery-shell {
+            padding: 24px;
+            gap: 18px;
+        }
+
+        .recovery-header,
+        .recovery-summary,
+        .recovery-form-grid,
+        .recovery-card-head,
+        .recovery-card-meta,
+        .recovery-item-head {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .recovery-grid,
+        .recovery-summary-grid,
+        .recovery-lists {
+            display: grid;
+            gap: 14px;
+        }
+
+        .recovery-grid,
+        .recovery-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .recovery-summary-card,
+        .recovery-form-card,
+        .recovery-list-card,
+        .recovery-empty {
+            border-radius: 18px;
+            border: 1px solid rgba(63, 85, 97, 0.12);
+            background: rgba(255, 255, 255, 0.86);
+        }
+
+        .recovery-summary-card,
+        .recovery-form-card,
+        .recovery-list-card,
+        .recovery-empty {
+            padding: 18px;
+        }
+
+        .recovery-count {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 999px;
+            background: var(--success-soft);
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .recovery-count.muted {
+            background: rgba(95, 108, 115, 0.12);
+            color: var(--muted);
+        }
+
+        .recovery-chip-list,
+        .recovery-card-meta,
+        .recovery-item-stack,
+        .recovery-card-stack {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .recovery-chip,
+        .recovery-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: rgba(216, 229, 235, 0.58);
+            color: var(--primary-strong);
+            font-size: 0.88rem;
+        }
+
+        .recovery-pill.warning {
+            background: var(--warning-soft);
+            color: var(--warning);
+        }
+
+        .recovery-form-grid {
+            align-items: end;
+        }
+
+        .recovery-form-grid label {
+            display: grid;
+            gap: 6px;
+        }
+
+        .recovery-form-grid .button {
+            width: 100%;
+        }
+
+        .recovery-field-copy,
+        .recovery-list-copy,
+        .recovery-item-copy,
+        .recovery-empty p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .recovery-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .recovery-item {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(63, 85, 97, 0.1);
+            background: rgba(250, 247, 240, 0.72);
+        }
+
+        .recovery-item form {
+            margin: 0;
+        }
+
+        .recovery-item-head strong,
+        .recovery-list-card h4,
+        .recovery-form-card h4,
+        .recovery-summary-card strong {
+            margin: 0;
+        }
+
+        .recovery-item-notes {
+            margin: 0;
+            padding-left: 16px;
+            border-left: 2px solid rgba(63, 85, 97, 0.14);
+            color: var(--text);
         }
 
         .panel-copy,
@@ -569,7 +713,9 @@
 
         @media (max-width: 1080px) {
             .monthly-plan-topline,
-            .monthly-plan-footer {
+            .monthly-plan-footer,
+            .recovery-grid,
+            .recovery-summary-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -588,7 +734,13 @@
             .identity-row,
             .plan-header,
             .month-inline-form,
-            .selection-counter {
+            .selection-counter,
+            .recovery-header,
+            .recovery-summary,
+            .recovery-form-grid,
+            .recovery-card-head,
+            .recovery-card-meta,
+            .recovery-item-head {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -685,6 +837,165 @@
                 <dd>{{ payment_label }}</dd>
             </div>
         </dl>
+    </section>
+
+    <section class="panel stack recovery-shell">
+        <div class="recovery-header">
+            <div class="plan-title-group">
+                <h3>Recuperaciones</h3>
+                <p class="recovery-list-copy">Carga manual para resolver faltantes sin tocar el flujo general de reservas.</p>
+            </div>
+            <div class="recovery-summary">
+                <span class="recovery-count{% if not admin_detail_summary.available_recoveries_count %} muted{% endif %}">
+                    {{ admin_detail_summary.available_recoveries_count }} disponible{% if admin_detail_summary.available_recoveries_count != 1 %}s{% endif %}
+                </span>
+                {% if admin_detail_summary.expired_recoveries_count %}
+                    <span class="recovery-count muted">{{ admin_detail_summary.expired_recoveries_count }} vencida{% if admin_detail_summary.expired_recoveries_count != 1 %}s{% endif %}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="recovery-summary-grid">
+            <article class="recovery-summary-card">
+                <span class="overview-label">Disponibles ahora</span>
+                <strong>{{ admin_detail_summary.available_recoveries_count }} recuperacion{% if admin_detail_summary.available_recoveries_count != 1 %}es{% endif %}</strong>
+                {% if admin_detail_available_recovery_counts_by_section %}
+                    <div class="recovery-chip-list">
+                        {% for item in admin_detail_available_recovery_counts_by_section %}
+                            <span class="recovery-chip">{{ item.section.name }} · {{ item.count }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="recovery-field-copy">Todavia no hay recuperaciones disponibles para esta alumna.</p>
+                {% endif %}
+            </article>
+
+            <article class="recovery-form-card">
+                <div class="recovery-card-head">
+                    <div>
+                        <span class="overview-label">Accion manual</span>
+                        <h4>Agregar recuperacion</h4>
+                    </div>
+                    <span class="recovery-pill">Actuales: {{ admin_detail_summary.available_recoveries_count }}</span>
+                </div>
+                {% if admin_detail_manual_recovery_form.non_field_errors %}
+                    <p class="field-errors">{{ admin_detail_manual_recovery_form.non_field_errors|join:", " }}</p>
+                {% endif %}
+                <form method="post" action="{% url 'admin-grant-manual-recovery' admin_detail_student.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="q" value="{{ admin_detail_query }}">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <div class="recovery-form-grid">
+                        <label for="{{ admin_detail_manual_recovery_form.section.id_for_label }}">
+                            <span class="overview-label">Actividad</span>
+                            {{ admin_detail_manual_recovery_form.section }}
+                            {% if admin_detail_manual_recovery_form.section.help_text %}
+                                <span class="recovery-field-copy">{{ admin_detail_manual_recovery_form.section.help_text }}</span>
+                            {% endif %}
+                            {% if admin_detail_manual_recovery_form.section.errors %}
+                                <span class="field-errors">{{ admin_detail_manual_recovery_form.section.errors|join:", " }}</span>
+                            {% endif %}
+                        </label>
+                        <label for="{{ admin_detail_manual_recovery_form.quantity.id_for_label }}">
+                            <span class="overview-label">Cantidad</span>
+                            {{ admin_detail_manual_recovery_form.quantity }}
+                            <span class="recovery-field-copy">{{ admin_detail_manual_recovery_form.quantity.help_text }}</span>
+                            {% if admin_detail_manual_recovery_form.quantity.errors %}
+                                <span class="field-errors">{{ admin_detail_manual_recovery_form.quantity.errors|join:", " }}</span>
+                            {% endif %}
+                        </label>
+                        <label for="{{ admin_detail_manual_recovery_form.notes.id_for_label }}">
+                            <span class="overview-label">Motivo breve</span>
+                            {{ admin_detail_manual_recovery_form.notes }}
+                            <span class="recovery-field-copy">{{ admin_detail_manual_recovery_form.notes.help_text }}</span>
+                            {% if admin_detail_manual_recovery_form.notes.errors %}
+                                <span class="field-errors">{{ admin_detail_manual_recovery_form.notes.errors|join:", " }}</span>
+                            {% endif %}
+                        </label>
+                        <button type="submit" class="button">Agregar recuperacion</button>
+                    </div>
+                </form>
+            </article>
+        </div>
+
+        <div class="recovery-grid">
+            <article class="recovery-list-card">
+                <div class="recovery-card-head">
+                    <div>
+                        <span class="overview-label">Disponibles</span>
+                        <h4>Para usar en nuevas reservas</h4>
+                    </div>
+                    <span class="recovery-pill">{{ admin_detail_summary.available_recoveries_count }}</span>
+                </div>
+                {% if admin_detail_available_recoveries %}
+                    <div class="recovery-list">
+                        {% for credit in admin_detail_available_recoveries %}
+                            <article class="recovery-item">
+                                <div class="recovery-item-head">
+                                    <div class="recovery-card-stack">
+                                        <strong>{{ credit.section.name }}</strong>
+                                        <div class="recovery-card-meta">
+                                            <span class="recovery-pill">Vence {{ credit.expires_at|date:"d/m/Y" }}</span>
+                                            <span class="recovery-pill">{{ credit.source|recovery_source_label }}</span>
+                                            {% if credit.origin_session %}
+                                                <span class="recovery-pill">Origen {{ credit.origin_session.date|date:"d/m/Y" }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <form method="post" action="{% url 'admin-expire-recovery-credit' admin_detail_student.pk credit.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="q" value="{{ admin_detail_query }}">
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="button-secondary">Marcar vencida</button>
+                                    </form>
+                                </div>
+                                {% if credit.notes %}
+                                    <p class="recovery-item-notes">{{ credit.notes }}</p>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="recovery-empty">
+                        <strong>No hay recuperaciones disponibles.</strong>
+                        <p>Si falta cargar alguna, podés agregarla manualmente desde esta misma vista.</p>
+                    </div>
+                {% endif %}
+            </article>
+
+            <article class="recovery-list-card">
+                <div class="recovery-card-head">
+                    <div>
+                        <span class="overview-label">Historial corto</span>
+                        <h4>Recuperaciones vencidas</h4>
+                    </div>
+                    <span class="recovery-pill warning">{{ admin_detail_summary.expired_recoveries_count }}</span>
+                </div>
+                {% if admin_detail_expired_recoveries %}
+                    <div class="recovery-list">
+                        {% for credit in admin_detail_expired_recoveries %}
+                            <article class="recovery-item">
+                                <div class="recovery-card-stack">
+                                    <strong>{{ credit.section.name }}</strong>
+                                    <div class="recovery-card-meta">
+                                        <span class="recovery-pill warning">Vencio {{ credit.expires_at|date:"d/m/Y" }}</span>
+                                        <span class="recovery-pill">{{ credit.source|recovery_source_label }}</span>
+                                    </div>
+                                </div>
+                                {% if credit.notes %}
+                                    <p class="recovery-item-notes">{{ credit.notes }}</p>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="recovery-empty">
+                        <strong>No hay recuperaciones vencidas.</strong>
+                        <p>Todo lo disponible sigue utilizable desde el portal.</p>
+                    </div>
+                {% endif %}
+            </article>
+        </div>
     </section>
 
     <section class="panel stack monthly-plan-shell">

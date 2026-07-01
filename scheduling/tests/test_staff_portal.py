@@ -485,6 +485,9 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, self.section.name)
         self.assertContains(response, 'Pago del mes')
         self.assertContains(response, 'Volver al listado')
+        self.assertContains(response, 'Agregar recuperacion')
+        self.assertContains(response, '1 disponible')
+        self.assertContains(response, 'Cadillac · 1')
 
     def test_staff_list_uses_effective_plan_activity_when_primary_section_is_missing(self):
         self.active_student.primary_section = None
@@ -1089,6 +1092,125 @@ class AdminPortalViewTests(TestCase):
                 status=BookingStatus.BOOKED,
             ).exists()
         )
+
+    def test_staff_monthly_plan_picker_marks_current_month_slot_full_from_future_portal_horizon(self):
+        june_30 = date(2026, 6, 30)
+        current_month = normalize_month_start(june_30)
+        next_month = date(2026, 7, 1)
+        self.active_student.primary_section = self.other_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=current_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=next_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        full_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            is_active=True,
+        )
+        past_open_session = ClassSession.objects.create(
+            slot=full_slot,
+            section=self.other_section,
+            date=date(2026, 6, 26),
+            start_time=full_slot.start_time,
+            end_time=full_slot.end_time,
+            capacity=7,
+            status=SessionStatus.SCHEDULED,
+        )
+        future_full_session = ClassSession.objects.create(
+            slot=full_slot,
+            section=self.other_section,
+            date=date(2026, 7, 3),
+            start_time=full_slot.start_time,
+            end_time=full_slot.end_time,
+            capacity=1,
+            status=SessionStatus.SCHEDULED,
+        )
+        other_student = User.objects.create_user(
+            email='future-capacity@example.com',
+            password='StudentPass2026!',
+            first_name='Otra',
+            last_name='Capacidad',
+            primary_section=self.other_section,
+            must_change_password=False,
+        )
+        for access_month in (current_month, next_month):
+            MonthlyAccessStatus.objects.update_or_create(
+                student=other_student,
+                month=access_month,
+                defaults={
+                    'status': MonthlyAccessStatusType.ACTIVE,
+                    'booking_enabled': True,
+                },
+            )
+        for index in range(4):
+            attendee = User.objects.create_user(
+                email=f'past-open-{index}@example.com',
+                password='StudentPass2026!',
+                first_name=f'Past{index}',
+                last_name='Open',
+                primary_section=self.other_section,
+                must_change_password=False,
+            )
+            MonthlyAccessStatus.objects.update_or_create(
+                student=attendee,
+                month=current_month,
+                defaults={
+                    'status': MonthlyAccessStatusType.ACTIVE,
+                    'booking_enabled': True,
+                },
+            )
+            Booking.objects.create_booking(session=past_open_session, student=attendee)
+        Booking.objects.create_booking(session=future_full_session, student=other_student)
+        self.client.force_login(self.staff_user)
+
+        with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
+            response = self.client.get(
+                reverse('admin-student-detail', args=[self.active_student.pk]),
+                {'month': current_month.strftime('%Y-%m'), 'section': self.other_section.pk},
+            )
+            save_response = self.client.post(
+                reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+                {
+                    'month': current_month.strftime('%Y-%m'),
+                    'section': self.other_section.pk,
+                    'slot_ids': [full_slot.pk],
+                    'notes': 'Detectar cupo futuro del horizonte actual',
+                },
+                follow=True,
+            )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(option_map[full_slot.pk]['is_full'])
+        self.assertTrue(option_map[full_slot.pk]['is_disabled'])
+        self.assertEqual(Booking.objects.filter(session=past_open_session, status=BookingStatus.BOOKED).count(), 4)
+        self.assertFalse(
+            Booking.objects.filter(
+                session=future_full_session,
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertContains(save_response, 'No se pudieron cargar 1 reserva(s) fija(s)')
+        self.assertContains(save_response, future_full_session.date.strftime('%d/%m/%Y'))
+        self.assertContains(response, 'Sin cupo')
 
     def test_staff_monthly_plan_update_replaces_cross_month_sql_style_fixed_bookings(self):
         june_30 = date(2026, 6, 30)
@@ -2256,6 +2378,7 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(StudentMonthlyPlan.objects.filter(student=self.active_student, month=self.current_month).exists())
 
     def test_staff_monthly_plan_marks_full_slot_as_sin_cupo(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
         open_slot = WeeklyClassSlot.objects.create(
             section=self.section,
             weekday=Weekday.MONDAY,
@@ -2280,14 +2403,14 @@ class AdminPortalViewTests(TestCase):
         )
         MonthlyAccessStatus.objects.create(
             student=other_student,
-            month=self.current_month,
+            month=next_month,
             status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
         )
         full_session = ClassSession.objects.create(
             slot=full_slot,
             section=self.section,
-            date=self.current_month + timedelta(days=1),
+            date=next_month + timedelta(days=1),
             start_time=full_slot.start_time,
             end_time=full_slot.end_time,
             capacity=1,
@@ -2296,7 +2419,7 @@ class AdminPortalViewTests(TestCase):
         ClassSession.objects.create(
             slot=open_slot,
             section=self.section,
-            date=self.current_month + timedelta(days=2),
+            date=next_month + timedelta(days=2),
             start_time=open_slot.start_time,
             end_time=open_slot.end_time,
             capacity=3,
@@ -2305,15 +2428,77 @@ class AdminPortalViewTests(TestCase):
         Booking.objects.create_booking(session=full_session, student=other_student)
         self.client.force_login(self.staff_user)
 
-        response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]), {'q': 'ada'})
+        response = self.client.get(
+            reverse('admin-student-detail', args=[self.active_student.pk]),
+            {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
+        )
 
         picker = response.context['admin_detail_monthly_plan_picker']
         option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(option_map[full_slot.pk]['is_full'])
+        self.assertTrue(option_map[full_slot.pk]['is_disabled'])
         self.assertFalse(option_map[open_slot.pk]['is_full'])
+        self.assertFalse(option_map[open_slot.pk]['is_disabled'])
         self.assertContains(response, 'Sin cupo')
+
+    def test_staff_monthly_plan_picker_ignores_mixed_capacity_across_sessions_of_same_slot(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        mixed_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        other_student = User.objects.create_user(
+            email='mixed-capacity@example.com',
+            password='StudentPass2026!',
+            first_name='Otra',
+            last_name='Capacidad',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=other_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        full_session = ClassSession.objects.create(
+            slot=mixed_slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.MONDAY),
+            start_time=mixed_slot.start_time,
+            end_time=mixed_slot.end_time,
+            capacity=1,
+            status=SessionStatus.SCHEDULED,
+        )
+        ClassSession.objects.create(
+            slot=mixed_slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.MONDAY) + timedelta(days=7),
+            start_time=mixed_slot.start_time,
+            end_time=mixed_slot.end_time,
+            capacity=3,
+            status=SessionStatus.SCHEDULED,
+        )
+        Booking.objects.create_booking(session=full_session, student=other_student)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-student-detail', args=[self.active_student.pk]),
+            {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
+        )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(option_map[mixed_slot.pk]['is_full'])
+        self.assertFalse(option_map[mixed_slot.pk]['is_disabled'])
+        self.assertNotContains(response, 'Sin cupo')
 
     def test_staff_can_grant_manual_recovery_from_detail(self):
         self.client.force_login(self.staff_user)
@@ -2343,6 +2528,83 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(audit_log.payload['status'], RecoveryCreditStatus.AVAILABLE)
         self.assertEqual(audit_log.payload['notes'], 'Cortesia operativa')
         self.assertContains(response, 'Se otorgo una recuperacion manual para Ada Lovelace')
+
+    def test_staff_can_grant_multiple_manual_recoveries_from_detail(self):
+        self.client.force_login(self.staff_user)
+        detail_url = f"{reverse('admin-student-detail', args=[self.active_student.pk])}?q=ada"
+
+        response = self.client.post(
+            reverse('admin-grant-manual-recovery', args=[self.active_student.pk]),
+            {
+                'section': self.other_section.pk,
+                'quantity': 2,
+                'notes': 'Ajuste manual abajo',
+                'q': 'ada',
+                'next': detail_url,
+            },
+            follow=True,
+        )
+
+        created_credits = RecoveryCredit.objects.filter(
+            student=self.active_student,
+            section=self.other_section,
+            notes='Ajuste manual abajo',
+        ).order_by('pk')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(created_credits.count(), 2)
+        self.assertContains(response, 'Se otorgaron 2 recuperaciones manuales para Ada Lovelace')
+        self.assertContains(response, 'Reformer Arriba · 2')
+        self.assertEqual(
+            AuditLog.objects.filter(
+                entity_type='RecoveryCredit',
+                action=AuditAction.CREDIT,
+                payload__notes='Ajuste manual abajo',
+            ).count(),
+            2,
+        )
+
+    def test_staff_manual_recovery_prioritizes_effective_activity_sections(self):
+        downstairs_section = Section.objects.get(code='reformer_abajo')
+        self.active_student.primary_section = downstairs_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        cadillac_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        reformer_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(16, 0),
+            end_time=time(17, 0),
+            is_active=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.section,
+            notes='Plan cadillac activo',
+        ).assign_weekly_slots([cadillac_slot])
+        StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.other_section,
+            notes='Plan reformer activo',
+        ).assign_weekly_slots([reformer_slot])
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
+
+        form = response.context['admin_detail_manual_recovery_form']
+        ordered_names = list(form.fields['section'].queryset.values_list('name', flat=True))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(form.fields['section'].initial, self.section.pk)
+        self.assertEqual(ordered_names[:2], ['Cadillac', 'Reformer Arriba'])
+        self.assertContains(response, 'Se priorizan las actividades activas de la alumna: Cadillac, Reformer Arriba.')
 
     def test_staff_manual_recovery_ignores_unsafe_next_url(self):
         self.client.force_login(self.staff_user)

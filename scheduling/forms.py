@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
+from django.db.models import Case, IntegerField, Value, When
 from django.utils import timezone
 
 from .models import (
@@ -224,6 +225,13 @@ class AccountProfileForm(forms.ModelForm):
 
 
 class StaffManualRecoveryCreditForm(forms.Form):
+    quantity = forms.IntegerField(
+        required=False,
+        min_value=1,
+        initial=1,
+        label='Cantidad de recuperaciones',
+        help_text='Podés cargar una o varias en la misma accion.',
+    )
     section = forms.ModelChoiceField(
         queryset=Section.objects.none(),
         label='Actividad de la recuperacion',
@@ -239,10 +247,46 @@ class StaffManualRecoveryCreditForm(forms.Form):
     def __init__(self, *, student, **kwargs):
         super().__init__(**kwargs)
         self.student = student
-        self.fields['section'].queryset = Section.objects.filter(is_active=True).order_by('name')
-        if student.primary_section_id:
-            self.fields['section'].initial = student.primary_section_id
+        reference_date = timezone.localdate()
+        preferred_sections = []
+        seen_section_ids = set()
+        for plan in student.get_effective_monthly_plans_for(reference_date):
+            if not plan.has_weekly_slots() or plan.section_id in seen_section_ids:
+                continue
+            preferred_sections.append(plan.section)
+            seen_section_ids.add(plan.section_id)
+
+        preferred_section_ids = [section.pk for section in preferred_sections]
+        base_queryset = Section.objects.filter(is_active=True)
+        if preferred_section_ids:
+            preferred_order = Case(
+                *[
+                    When(pk=section_id, then=Value(index))
+                    for index, section_id in enumerate(preferred_section_ids)
+                ],
+                default=Value(len(preferred_section_ids)),
+                output_field=IntegerField(),
+            )
+            self.fields['section'].queryset = base_queryset.order_by(preferred_order, 'name', 'pk')
+        else:
+            self.fields['section'].queryset = base_queryset.order_by('name', 'pk')
+
+        initial_section_id = preferred_section_ids[0] if preferred_section_ids else student.primary_section_id
+        if initial_section_id:
+            self.fields['section'].initial = initial_section_id
+
+        if len(preferred_sections) > 1:
+            prioritized_names = ', '.join(section.name for section in preferred_sections)
+            self.fields['section'].help_text = (
+                f'Se priorizan las actividades activas de la alumna: {prioritized_names}.'
+            )
+        elif preferred_sections:
+            self.fields['section'].help_text = 'Sale preseleccionada la actividad activa que hoy usa la alumna.'
+        elif student.primary_section_id:
             self.fields['section'].help_text = 'Sale preseleccionada la actividad principal de la alumna.'
+
+    def clean_quantity(self):
+        return self.cleaned_data.get('quantity') or 1
 
     def save(self, *, granted_by):
         return RecoveryCredit.objects.grant_manual_credit(

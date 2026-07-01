@@ -651,6 +651,19 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         else:
             available_recovery_credits.append(credit)
 
+    available_recovery_counts_by_section = []
+    if available_recovery_credits:
+        counts_by_section = {}
+        for credit in available_recovery_credits:
+            section_id = credit.section_id
+            if section_id not in counts_by_section:
+                counts_by_section[section_id] = {'section': credit.section, 'count': 0}
+            counts_by_section[section_id]['count'] += 1
+        available_recovery_counts_by_section = sorted(
+            counts_by_section.values(),
+            key=lambda item: (item['section'].name.lower(), item['section'].pk),
+        )
+
     upcoming_bookings = list(
         Booking.objects.select_related('session', 'session__section', 'used_recovery_credit')
         .filter(student=student, status=BookingStatus.BOOKED, session__date__gte=today)
@@ -696,6 +709,7 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         'admin_detail_selected_plan_section_name': selected_plan_section.name if selected_plan_section is not None else 'Sin actividad seleccionada',
         'admin_detail_upcoming_bookings': upcoming_bookings,
         'admin_detail_available_recoveries': available_recovery_credits,
+        'admin_detail_available_recovery_counts_by_section': available_recovery_counts_by_section,
         'admin_detail_expired_recoveries': expired_recovery_credits,
         'admin_detail_recent_bookings': recent_bookings,
         'admin_detail_recent_access_history': recent_access_history,
@@ -703,7 +717,11 @@ def _get_admin_student_detail_context(student, *, query='', month=None, section=
         'admin_detail_monthly_plan': selected_monthly_plan,
         'admin_detail_monthly_plan_summary': _build_monthly_plan_summary(selected_monthly_plan),
         'admin_detail_monthly_plan_summaries': _build_monthly_plan_summaries(current_monthly_plans),
-        'admin_detail_monthly_plan_picker': _build_staff_monthly_plan_picker(resolved_monthly_plan_form, month=selected_month),
+        'admin_detail_monthly_plan_picker': _build_staff_monthly_plan_picker(
+            resolved_monthly_plan_form,
+            month=selected_month,
+            reference_date=today,
+        ),
         'admin_detail_summary': {
             'upcoming_bookings_count': len(upcoming_bookings),
             'available_recoveries_count': len(available_recovery_credits),
@@ -1445,7 +1463,7 @@ def _build_student_booking_status(*, user, booking):
     }
 
 
-def _build_staff_monthly_plan_picker(form, *, month):
+def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
     selected_ids = set()
     for value in form['slot_ids'].value() or []:
         try:
@@ -1459,9 +1477,16 @@ def _build_staff_monthly_plan_picker(form, *, month):
 
     month_start = _resolve_month_value(month)
     month_end = _shift_month(month_start, 1) - timedelta(days=1)
+    today = reference_date or timezone.localdate()
+    availability_start = month_start
+    availability_end = month_end
+    if month_start == normalize_month_start(today):
+        availability_start = max(today, month_start)
+        availability_end = _resolve_admin_monthly_plan_sync_end(plan_month=month_start, reference_date=today)
+
     monthly_sessions = ClassSession.objects.filter(
         slot_id__in=slot_ids,
-        date__range=(month_start, month_end),
+        date__range=(availability_start, availability_end),
         status=SessionStatus.SCHEDULED,
     ).annotate(
         booked_count=Count(
@@ -2575,20 +2600,29 @@ def admin_grant_manual_recovery_view(request, student_id):
 
     form = StaffManualRecoveryCreditForm(student=student, data=request.POST)
     if form.is_valid():
-        credit = grant_manual_recovery_credit(
-            student=student,
-            section=form.cleaned_data['section'],
-            granted_by=request.user,
-            notes=form.cleaned_data.get('notes', ''),
-            record_audit=True,
-        )
-        messages.success(
-            request,
-            (
+        quantity = form.cleaned_data['quantity']
+        created_credits = [
+            grant_manual_recovery_credit(
+                student=student,
+                section=form.cleaned_data['section'],
+                granted_by=request.user,
+                notes=form.cleaned_data.get('notes', ''),
+                record_audit=True,
+            )
+            for _ in range(quantity)
+        ]
+        first_credit = created_credits[0]
+        if quantity == 1:
+            message = (
                 f'Se otorgo una recuperacion manual para {student.get_full_name() or student.email} '
-                f'en {credit.section.name}. Queda disponible hasta el {credit.expires_at:%d/%m/%Y}.'
-            ),
-        )
+                f'en {first_credit.section.name}. Queda disponible hasta el {first_credit.expires_at:%d/%m/%Y}.'
+            )
+        else:
+            message = (
+                f'Se otorgaron {quantity} recuperaciones manuales para {student.get_full_name() or student.email} '
+                f'en {first_credit.section.name}. Quedan disponibles hasta el {first_credit.expires_at:%d/%m/%Y}.'
+            )
+        messages.success(request, message)
         return redirect(redirect_url)
 
     context = _get_admin_student_detail_context(student, query=query, manual_recovery_form=form)
