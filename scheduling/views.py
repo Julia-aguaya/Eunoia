@@ -1473,7 +1473,13 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
 
     slot_queryset = form.fields['slot_ids'].queryset
     slot_ids = list(slot_queryset.values_list('pk', flat=True))
-    slot_availability = {slot_id: {'has_sessions': False, 'has_open_spots': False} for slot_id in slot_ids}
+    slot_availability = {
+        slot_id: {
+            'has_bookable_occurrences': False,
+            'has_open_spots': False,
+        }
+        for slot_id in slot_ids
+    }
 
     month_start = _resolve_month_value(month)
     month_end = _shift_month(month_start, 1) - timedelta(days=1)
@@ -1487,7 +1493,6 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
     monthly_sessions = ClassSession.objects.filter(
         slot_id__in=slot_ids,
         date__range=(availability_start, availability_end),
-        status=SessionStatus.SCHEDULED,
     ).annotate(
         booked_count=Count(
             'bookings',
@@ -1495,13 +1500,43 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
             distinct=True,
         )
     )
-    for session in monthly_sessions:
-        state = slot_availability.get(session.slot_id)
+    sessions_by_slot_date = {
+        (session.slot_id, session.date): session
+        for session in monthly_sessions
+    }
+    holiday_dates = set(
+        HolidayClosure.objects.filter(date__range=(availability_start, availability_end)).values_list('date', flat=True)
+    )
+
+    for slot in slot_queryset:
+        state = slot_availability.get(slot.pk)
         if state is None:
             continue
-        state['has_sessions'] = True
-        if session.booked_count < session.capacity:
-            state['has_open_spots'] = True
+
+        day_cursor = availability_start
+        while day_cursor <= availability_end:
+            if not slot.is_effective_on(day_cursor):
+                day_cursor += timedelta(days=1)
+                continue
+
+            session = sessions_by_slot_date.get((slot.pk, day_cursor))
+            if session is None:
+                if day_cursor not in holiday_dates:
+                    state['has_bookable_occurrences'] = True
+                    state['has_open_spots'] = True
+                    break
+                day_cursor += timedelta(days=1)
+                continue
+
+            if session.status != SessionStatus.SCHEDULED:
+                day_cursor += timedelta(days=1)
+                continue
+
+            state['has_bookable_occurrences'] = True
+            if session.booked_count < session.capacity:
+                state['has_open_spots'] = True
+
+            day_cursor += timedelta(days=1)
 
     day_rows = [
         {
@@ -1515,8 +1550,14 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
     extra_slots = []
 
     for slot in slot_queryset:
-        availability = slot_availability.get(slot.pk, {'has_sessions': False, 'has_open_spots': False})
-        is_full = availability['has_sessions'] and not availability['has_open_spots']
+        availability = slot_availability.get(
+            slot.pk,
+            {
+                'has_bookable_occurrences': False,
+                'has_open_spots': False,
+            },
+        )
+        is_full = availability['has_bookable_occurrences'] and not availability['has_open_spots']
         slot_card = {
             'id': slot.pk,
             'input_id': f'id_slot_ids_{slot.pk}',

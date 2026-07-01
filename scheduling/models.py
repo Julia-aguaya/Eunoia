@@ -111,6 +111,14 @@ def strip_legacy_userselections_notes(notes):
     )
 
 
+def strip_legacy_recoverableturns_notes(notes):
+    return strip_managed_notes_block(
+        notes,
+        start_marker=LEGACY_RECOVERABLETURNS_NOTES_START,
+        end_marker=LEGACY_RECOVERABLETURNS_NOTES_END,
+    )
+
+
 def strip_fixed_booking_backfill_notes(notes):
     return strip_managed_notes_block(
         notes,
@@ -121,6 +129,10 @@ def strip_fixed_booking_backfill_notes(notes):
 
 def strip_hidden_monthly_plan_notes(notes):
     return strip_fixed_booking_backfill_notes(strip_legacy_userselections_notes(notes))
+
+
+def strip_hidden_recovery_credit_notes(notes):
+    return strip_legacy_recoverableturns_notes(notes)
 
 
 def build_fixed_booking_backfill_notes(existing_notes=''):

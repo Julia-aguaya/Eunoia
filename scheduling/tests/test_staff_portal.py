@@ -344,6 +344,15 @@ class AdminPortalViewTests(TestCase):
             day_cursor += timedelta(days=1)
         raise AssertionError(f'No se encontro el dia {weekday} en {month_start:%Y-%m}.')
 
+    def _all_weekdays_in_month(self, month_start, weekday):
+        matches = []
+        day_cursor = month_start
+        while day_cursor.month == month_start.month:
+            if day_cursor.isoweekday() == weekday:
+                matches.append(day_cursor)
+            day_cursor += timedelta(days=1)
+        return matches
+
     def test_staff_labels_tag_library_loads_for_staff_templates(self):
         template = engines['django'].from_string('{% load staff_labels %}{{ value|staff_session_status_label }}')
 
@@ -356,7 +365,8 @@ class AdminPortalViewTests(TestCase):
             '{% load staff_labels %}'
             '{{ booking|booking_status_label }}|'
             '{{ session|session_status_label }}|'
-            '{{ recovery|recovery_source_label }}'
+            '{{ recovery|recovery_source_label }}|'
+            '{{ notes|recovery_notes_public }}'
         )
 
         rendered = template.render(
@@ -364,10 +374,11 @@ class AdminPortalViewTests(TestCase):
                 'booking': BookingStatus.CANCELLED,
                 'session': SessionStatus.HOLIDAY_CLOSED,
                 'recovery': RecoveryCreditSource.MANUAL,
+                'notes': 'Nota visible\n\n[legacy-recoverableturns-import]\nlegacy_recoverableturn_id=legacy-1\n[/legacy-recoverableturns-import]',
             }
         )
 
-        self.assertEqual(rendered, 'Cancelada|Cerrada por feriado|carga manual')
+        self.assertEqual(rendered, 'Cancelada|Cerrada por feriado|carga manual|Nota visible')
 
     def test_admin_portal_requires_login(self):
         response = self.client.get(reverse('admin-student-list'))
@@ -1197,9 +1208,25 @@ class AdminPortalViewTests(TestCase):
         picker = response.context['admin_detail_monthly_plan_picker']
         option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
 
+        agenda_response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': past_open_session.date.isoformat(),
+                'section': self.other_section.pk,
+            },
+        )
+        agenda_row = next(
+            row
+            for group in agenda_response.context['staff_agenda_groups']
+            if group['date'] == past_open_session.date
+            for row in group['sessions']
+            if row['session'].pk == past_open_session.pk
+        )
+
         self.assertEqual(response.status_code, 200)
         self.assertTrue(option_map[full_slot.pk]['is_full'])
         self.assertTrue(option_map[full_slot.pk]['is_disabled'])
+        self.assertEqual(agenda_row['booked_count'], 4)
         self.assertEqual(Booking.objects.filter(session=past_open_session, status=BookingStatus.BOOKED).count(), 4)
         self.assertFalse(
             Booking.objects.filter(
@@ -1211,6 +1238,89 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(save_response, 'No se pudieron cargar 1 reserva(s) fija(s)')
         self.assertContains(save_response, future_full_session.date.strftime('%d/%m/%Y'))
         self.assertContains(response, 'Sin cupo')
+
+    def test_staff_monthly_plan_picker_ignores_cancelled_next_session_when_later_dates_can_be_generated(self):
+        june_30 = date(2026, 6, 30)
+        current_month = normalize_month_start(june_30)
+        next_month = date(2026, 7, 1)
+        self.active_student.primary_section = self.other_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=current_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=next_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        cancelled_session = ClassSession.objects.create(
+            slot=slot,
+            section=self.other_section,
+            date=date(2026, 7, 3),
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            capacity=7,
+            status=SessionStatus.CANCELLED,
+        )
+        self.client.force_login(self.staff_user)
+
+        with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
+            response = self.client.get(
+                reverse('admin-student-detail', args=[self.active_student.pk]),
+                {'month': current_month.strftime('%Y-%m'), 'section': self.other_section.pk},
+            )
+            save_response = self.client.post(
+                reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+                {
+                    'month': current_month.strftime('%Y-%m'),
+                    'section': self.other_section.pk,
+                    'slot_ids': [slot.pk],
+                    'notes': 'No bloquear por una fecha cancelada',
+                },
+                follow=True,
+            )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
+        july_10_session = ClassSession.objects.get(
+            section=self.other_section,
+            date=date(2026, 7, 10),
+            start_time=slot.start_time,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(option_map[slot.pk]['is_full'])
+        self.assertFalse(option_map[slot.pk]['is_disabled'])
+        self.assertFalse(
+            Booking.objects.filter(
+                session=cancelled_session,
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertTrue(
+            Booking.objects.filter(
+                session=july_10_session,
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertContains(save_response, 'Se actualizó el plan mensual de Ada Lovelace')
 
     def test_staff_monthly_plan_update_replaces_cross_month_sql_style_fixed_bookings(self):
         june_30 = date(2026, 6, 30)
@@ -2443,7 +2553,7 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(option_map[open_slot.pk]['is_disabled'])
         self.assertContains(response, 'Sin cupo')
 
-    def test_staff_monthly_plan_picker_ignores_mixed_capacity_across_sessions_of_same_slot(self):
+    def test_staff_monthly_plan_picker_marks_slot_full_when_any_month_occurrence_is_full(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
         mixed_slot = WeeklyClassSlot.objects.create(
             section=self.section,
@@ -2496,9 +2606,58 @@ class AdminPortalViewTests(TestCase):
         option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(option_map[mixed_slot.pk]['is_full'])
-        self.assertFalse(option_map[mixed_slot.pk]['is_disabled'])
-        self.assertNotContains(response, 'Sin cupo')
+        self.assertTrue(option_map[mixed_slot.pk]['is_full'])
+        self.assertTrue(option_map[mixed_slot.pk]['is_disabled'])
+        self.assertContains(response, 'Sin cupo')
+
+    def test_staff_monthly_plan_picker_marks_slot_full_only_when_all_month_occurrences_are_full(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        full_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.TUESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        other_student = User.objects.create_user(
+            email='all-full@example.com',
+            password='StudentPass2026!',
+            first_name='Otra',
+            last_name='Completa',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=other_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        for session_date in self._all_weekdays_in_month(next_month, Weekday.TUESDAY):
+            full_session = ClassSession.objects.create(
+                slot=full_slot,
+                section=self.section,
+                date=session_date,
+                start_time=full_slot.start_time,
+                end_time=full_slot.end_time,
+                capacity=1,
+                status=SessionStatus.SCHEDULED,
+            )
+            Booking.objects.create_booking(session=full_session, student=other_student)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-student-detail', args=[self.active_student.pk]),
+            {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
+        )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(option_map[full_slot.pk]['is_full'])
+        self.assertTrue(option_map[full_slot.pk]['is_disabled'])
+        self.assertContains(response, 'Sin cupo')
 
     def test_staff_can_grant_manual_recovery_from_detail(self):
         self.client.force_login(self.staff_user)
@@ -2563,6 +2722,31 @@ class AdminPortalViewTests(TestCase):
             ).count(),
             2,
         )
+
+    def test_staff_detail_moves_recoveries_below_plan_and_hides_legacy_recovery_metadata(self):
+        RecoveryCredit.objects.create(
+            student=self.active_student,
+            section=self.section,
+            source=RecoveryCreditSource.MANUAL,
+            status=RecoveryCreditStatus.AVAILABLE,
+            expires_at=self.today + timedelta(days=10),
+            notes=(
+                'Cortesia por ajuste de agenda\n\n'
+                '[legacy-recoverableturns-import]\n'
+                'legacy_recoverableturn_id=legacy-admin-detail\n'
+                '[/legacy-recoverableturns-import]'
+            ),
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('admin-student-detail', args=[self.active_student.pk]))
+        html = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Cortesia por ajuste de agenda')
+        self.assertNotContains(response, '[legacy-recoverableturns-import]')
+        self.assertNotContains(response, 'legacy_recoverableturn_id=legacy-admin-detail')
+        self.assertLess(html.index('Plan mensual fijo'), html.index('Recuperaciones'))
 
     def test_staff_manual_recovery_prioritizes_effective_activity_sections(self):
         downstairs_section = Section.objects.get(code='reformer_abajo')

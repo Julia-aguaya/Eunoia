@@ -1,5 +1,7 @@
 from django import template
 
+from scheduling.models import strip_hidden_recovery_credit_notes
+
 
 WEEKDAY_LABELS = {
     0: 'Lunes',
@@ -80,6 +82,12 @@ def staff_booking_status_label(value):
 @register.filter(name='recovery_source_label')
 def staff_recovery_source_label(value):
     return RECOVERY_SOURCE_LABELS.get(value, value)
+
+
+@register.filter(name='staff_recovery_notes_public')
+@register.filter(name='recovery_notes_public')
+def staff_recovery_notes_public(value):
+    return strip_hidden_recovery_credit_notes(value)
 
 
 @register.filter(name='weekday_spanish')
