@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404
 from django.http import HttpResponseForbidden
@@ -1480,6 +1480,7 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
         slot_id: {
             'has_bookable_occurrences': False,
             'has_open_spots': False,
+            'has_unresolved_occurrences': False,
         }
         for slot_id in slot_ids
     }
@@ -1492,17 +1493,6 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
     if month_start == normalize_month_start(today):
         availability_start = max(today, month_start)
         availability_end = _resolve_admin_monthly_plan_sync_end(plan_month=month_start, reference_date=today)
-
-    picker_section = getattr(form, 'selected_section', None)
-    if picker_section is not None and availability_start <= availability_end:
-        try:
-            _ensure_generated_sessions_for_sections(
-                start_date=availability_start,
-                end_date=availability_end,
-                sections=[picker_section],
-            )
-        except IntegrityError:
-            pass
 
     monthly_sessions = ClassSession.objects.filter(
         slot_id__in=slot_ids,
@@ -1535,10 +1525,12 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
 
             session = sessions_by_slot_date.get((slot.pk, day_cursor))
             if session is None:
+                state['has_unresolved_occurrences'] = True
                 day_cursor += timedelta(days=1)
                 continue
 
             if session.status != SessionStatus.SCHEDULED:
+                state['has_unresolved_occurrences'] = True
                 day_cursor += timedelta(days=1)
                 continue
 
@@ -1565,9 +1557,14 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
             {
                 'has_bookable_occurrences': False,
                 'has_open_spots': False,
+                'has_unresolved_occurrences': False,
             },
         )
-        is_full = availability['has_bookable_occurrences'] and not availability['has_open_spots']
+        is_full = (
+            availability['has_bookable_occurrences']
+            and not availability['has_open_spots']
+            and not availability['has_unresolved_occurrences']
+        )
         slot_card = {
             'id': slot.pk,
             'input_id': f'id_slot_ids_{slot.pk}',

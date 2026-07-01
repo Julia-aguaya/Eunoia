@@ -1314,7 +1314,7 @@ class AdminPortalViewTests(TestCase):
         self.assertTrue(option_map[full_slot.pk]['is_disabled'])
         self.assertContains(response, 'Sin cupo')
 
-    def test_staff_monthly_plan_picker_refresh_ignores_session_generation_integrity_error(self):
+    def test_staff_monthly_plan_picker_refresh_does_not_generate_sessions_on_get(self):
         june_30 = date(2026, 6, 30)
         current_month = normalize_month_start(june_30)
         self.active_student.primary_section = self.other_section
@@ -1346,14 +1346,15 @@ class AdminPortalViewTests(TestCase):
         self.client.force_login(self.staff_user)
 
         with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
-            with mock.patch(
-                'scheduling.views._ensure_generated_sessions_for_sections',
-                side_effect=IntegrityError('duplicate session'),
-            ):
-                response = self.client.get(
-                    reverse('admin-student-detail', args=[self.active_student.pk]),
-                    {'month': current_month.strftime('%Y-%m'), 'section': self.other_section.pk},
-                )
+            with mock.patch('scheduling.views._ensure_generated_sessions_for_sections') as ensure_sessions_mock:
+                with mock.patch(
+                    'scheduling.views.generate_class_sessions',
+                    side_effect=AssertionError('GET must not generate sessions'),
+                ) as generate_sessions_mock:
+                    response = self.client.get(
+                        reverse('admin-student-detail', args=[self.active_student.pk]),
+                        {'month': current_month.strftime('%Y-%m'), 'section': self.other_section.pk},
+                    )
 
         picker = response.context['admin_detail_monthly_plan_picker']
         option_map = {slot_data['id']: slot_data for day in picker['days'] for slot_data in day['slots']}
@@ -1362,6 +1363,8 @@ class AdminPortalViewTests(TestCase):
         self.assertIn(slot.pk, option_map)
         self.assertIn('admin_detail_monthly_plan_picker', response.context)
         self.assertContains(response, existing_session.date.strftime('%m/%Y'))
+        ensure_sessions_mock.assert_not_called()
+        generate_sessions_mock.assert_not_called()
 
     def test_staff_monthly_plan_picker_ignores_cancelled_next_session_when_later_dates_can_be_generated(self):
         june_30 = date(2026, 6, 30)
@@ -2956,10 +2959,14 @@ class AdminPortalViewTests(TestCase):
         Booking.objects.create_booking(session=full_session, student=other_student)
         self.client.force_login(self.staff_user)
 
-        response = self.client.get(
-            reverse('admin-student-detail', args=[self.active_student.pk]),
-            {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
-        )
+        with mock.patch(
+            'scheduling.views.generate_class_sessions',
+            side_effect=AssertionError('GET must not generate sessions'),
+        ) as generate_sessions_mock:
+            response = self.client.get(
+                reverse('admin-student-detail', args=[self.active_student.pk]),
+                {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
+            )
 
         picker = response.context['admin_detail_monthly_plan_picker']
         option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
@@ -2967,6 +2974,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(option_map[slot.pk]['is_full'])
         self.assertFalse(option_map[slot.pk]['is_disabled'])
+        generate_sessions_mock.assert_not_called()
 
     def test_staff_monthly_plan_picker_marks_slot_full_only_when_all_month_occurrences_are_full(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
