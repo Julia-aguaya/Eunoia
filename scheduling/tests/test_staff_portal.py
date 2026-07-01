@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.template import engines
 
 from ._shared import *
@@ -1312,6 +1313,55 @@ class AdminPortalViewTests(TestCase):
         self.assertTrue(option_map[full_slot.pk]['is_full'])
         self.assertTrue(option_map[full_slot.pk]['is_disabled'])
         self.assertContains(response, 'Sin cupo')
+
+    def test_staff_monthly_plan_picker_refresh_ignores_session_generation_integrity_error(self):
+        june_30 = date(2026, 6, 30)
+        current_month = normalize_month_start(june_30)
+        self.active_student.primary_section = self.other_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=current_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            is_active=True,
+        )
+        existing_session = ClassSession.objects.create(
+            slot=slot,
+            section=self.other_section,
+            date=date(2026, 7, 3),
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        self.client.force_login(self.staff_user)
+
+        with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
+            with mock.patch(
+                'scheduling.views._ensure_generated_sessions_for_sections',
+                side_effect=IntegrityError('duplicate session'),
+            ):
+                response = self.client.get(
+                    reverse('admin-student-detail', args=[self.active_student.pk]),
+                    {'month': current_month.strftime('%Y-%m'), 'section': self.other_section.pk},
+                )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot_data['id']: slot_data for day in picker['days'] for slot_data in day['slots']}
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(slot.pk, option_map)
+        self.assertIn('admin_detail_monthly_plan_picker', response.context)
+        self.assertContains(response, existing_session.date.strftime('%m/%Y'))
 
     def test_staff_monthly_plan_picker_ignores_cancelled_next_session_when_later_dates_can_be_generated(self):
         june_30 = date(2026, 6, 30)

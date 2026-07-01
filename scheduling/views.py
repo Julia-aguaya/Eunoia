@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404
 from django.http import HttpResponseForbidden
@@ -1495,11 +1495,14 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
 
     picker_section = getattr(form, 'selected_section', None)
     if picker_section is not None and availability_start <= availability_end:
-        _ensure_generated_sessions_for_sections(
-            start_date=availability_start,
-            end_date=availability_end,
-            sections=[picker_section],
-        )
+        try:
+            _ensure_generated_sessions_for_sections(
+                start_date=availability_start,
+                end_date=availability_end,
+                sections=[picker_section],
+            )
+        except IntegrityError:
+            pass
 
     monthly_sessions = ClassSession.objects.filter(
         slot_id__in=slot_ids,
