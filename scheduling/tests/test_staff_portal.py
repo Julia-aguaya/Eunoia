@@ -1407,6 +1407,7 @@ class AdminPortalViewTests(TestCase):
         ).assign_weekly_slots([old_wednesday_slot, old_friday_slot])
         old_wednesday_booking = Booking.objects.create_booking(session=old_wednesday_session, student=self.active_student)
         old_friday_booking = Booking.objects.create_booking(session=old_friday_session, student=self.active_student)
+        initial_recovery_count = RecoveryCredit.objects.filter(student=self.active_student).count()
         self.client.force_login(self.staff_user)
 
         with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
@@ -1440,11 +1441,123 @@ class AdminPortalViewTests(TestCase):
                 status=BookingStatus.BOOKED,
             ).exists()
         )
+        self.assertEqual(RecoveryCredit.objects.filter(student=self.active_student).count(), initial_recovery_count)
         self.assertFalse(
             StudentMonthlyPlan.objects.filter(
                 student=self.active_student,
                 month=date(2026, 7, 1),
                 section=self.other_section,
+            ).exists()
+        )
+
+    def test_staff_monthly_plan_update_current_month_friday_downstairs_full_slot_returns_warning_without_500_or_recovery(self):
+        june_30 = date(2026, 6, 30)
+        current_month = normalize_month_start(june_30)
+        downstairs_section = Section.objects.get(code='reformer_abajo')
+        self.active_student.primary_section = downstairs_section
+        self.active_student.save(update_fields=['primary_section', 'updated_at'])
+        MonthlyAccessStatus.objects.update_or_create(
+            student=self.active_student,
+            month=current_month,
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+        other_student = User.objects.create_user(
+            email='downstairs-full@example.com',
+            password='StudentPass2026!',
+            first_name='Otra',
+            last_name='Completa',
+            primary_section=downstairs_section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=other_student,
+            month=date(2026, 7, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        friday_slot = WeeklyClassSlot.objects.create(
+            section=downstairs_section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        friday_session = ClassSession.objects.create(
+            slot=friday_slot,
+            section=downstairs_section,
+            date=date(2026, 7, 3),
+            start_time=friday_slot.start_time,
+            end_time=friday_slot.end_time,
+            capacity=1,
+            status=SessionStatus.SCHEDULED,
+        )
+        Booking.objects.create_booking(session=friday_session, student=other_student)
+        initial_recovery_count = RecoveryCredit.objects.filter(student=self.active_student).count()
+        self.client.force_login(self.staff_user)
+
+        with mock.patch('scheduling.views.timezone.localdate', return_value=june_30):
+            response = self.client.post(
+                reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+                {
+                    'month': current_month.strftime('%Y-%m'),
+                    'section': downstairs_section.pk,
+                    'slot_ids': [friday_slot.pk],
+                    'notes': 'Repro viernes 18 abajo sin cupo',
+                },
+                follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            StudentMonthlyPlan.objects.filter(
+                student=self.active_student,
+                month=current_month,
+                section=downstairs_section,
+            ).exists()
+        )
+        self.assertFalse(
+            Booking.objects.filter(
+                session=friday_session,
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertEqual(RecoveryCredit.objects.filter(student=self.active_student).count(), initial_recovery_count)
+        self.assertContains(response, 'No se pudieron cargar 1 reserva(s) fija(s)')
+        self.assertContains(response, downstairs_section.name)
+        self.assertContains(response, friday_session.date.strftime('%d/%m/%Y'))
+
+    def test_staff_monthly_plan_update_rolls_back_saved_plan_when_reconcile_crashes(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        self.client.force_login(self.staff_user)
+
+        with mock.patch('scheduling.views._reconcile_fixed_plan_bookings', side_effect=RuntimeError('boom')):
+            with self.assertRaises(RuntimeError):
+                self.client.post(
+                    reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+                    {
+                        'month': next_month.strftime('%Y-%m'),
+                        'section': self.section.pk,
+                        'slot_ids': [slot.pk],
+                        'notes': 'No persistir si falla la reconciliacion',
+                    },
+                )
+
+        self.assertFalse(
+            StudentMonthlyPlan.objects.filter(
+                student=self.active_student,
+                month=next_month,
+                section=self.section,
             ).exists()
         )
 

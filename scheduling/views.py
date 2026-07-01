@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404
 from django.http import HttpResponseForbidden
@@ -2556,47 +2557,48 @@ def admin_update_student_monthly_plan_view(request, student_id):
 
     form = StaffStudentMonthlyPlanForm(student=student, month=selected_month, section=_resolve_staff_plan_section(selected_section), data=request.POST)
     if form.is_valid():
-        plan = form.save()
-        backfill_missing_plans = False
-        if explicit_existing_plans:
-            backfill_missing_plans = True
-        else:
-            for stale_plan in existing_monthly_plans:
-                if stale_plan.section_id == plan.section_id:
-                    continue
-                if not has_fixed_booking_backfill_metadata(stale_plan.notes):
-                    continue
-                stale_plan.replace_weekly_slots([])
-        today = timezone.localdate()
-        reconcile_start = max(today, plan.month)
-        sync_end = _resolve_admin_monthly_plan_sync_end(plan_month=plan.month, reference_date=today)
-        future_explicit_plan_months = []
-        if not plan.has_weekly_slots():
-            future_explicit_plan_months = _get_future_explicit_monthly_plan_months(
+        with transaction.atomic():
+            plan = form.save()
+            backfill_missing_plans = False
+            if explicit_existing_plans:
+                backfill_missing_plans = True
+            else:
+                for stale_plan in existing_monthly_plans:
+                    if stale_plan.section_id == plan.section_id:
+                        continue
+                    if not has_fixed_booking_backfill_metadata(stale_plan.notes):
+                        continue
+                    stale_plan.replace_weekly_slots([])
+            today = timezone.localdate()
+            reconcile_start = max(today, plan.month)
+            sync_end = _resolve_admin_monthly_plan_sync_end(plan_month=plan.month, reference_date=today)
+            future_explicit_plan_months = []
+            if not plan.has_weekly_slots():
+                future_explicit_plan_months = _get_future_explicit_monthly_plan_months(
+                    student,
+                    section=plan.section,
+                    after_month=plan.month,
+                    through_month=normalize_month_start(sync_end),
+                )
+            if plan.has_weekly_slots() and reconcile_start <= sync_end:
+                generate_class_sessions(
+                    start_date=reconcile_start,
+                    end_date=sync_end,
+                    section_code=plan.section.code,
+                )
+            reconcile_end = _resolve_fixed_plan_reconcile_end(
                 student,
-                section=plan.section,
-                after_month=plan.month,
-                through_month=normalize_month_start(sync_end),
-            )
-        if plan.has_weekly_slots() and reconcile_start <= sync_end:
-            generate_class_sessions(
                 start_date=reconcile_start,
                 end_date=sync_end,
-                section_code=plan.section.code,
             )
-        reconcile_end = _resolve_fixed_plan_reconcile_end(
-            student,
-            start_date=reconcile_start,
-            end_date=sync_end,
-        )
-        reconcile_result = _reconcile_fixed_plan_bookings(
-            student,
-            start_date=reconcile_start,
-            end_date=reconcile_end,
-            cancel_obsolete=True,
-            backfill_missing_plans=backfill_missing_plans,
-            backfill_end_date=_shift_month(plan.month, 1) - timedelta(days=1),
-        )
+            reconcile_result = _reconcile_fixed_plan_bookings(
+                student,
+                start_date=reconcile_start,
+                end_date=reconcile_end,
+                cancel_obsolete=True,
+                backfill_missing_plans=backfill_missing_plans,
+                backfill_end_date=_shift_month(plan.month, 1) - timedelta(days=1),
+            )
         messages.success(
             request,
             (
