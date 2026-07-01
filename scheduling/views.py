@@ -1152,7 +1152,11 @@ def _reconcile_fixed_plan_bookings(
                     continue
 
                 try:
-                    Booking.objects.create_booking(session=session, student=user)
+                    Booking.objects.create_booking(
+                        session=session,
+                        student=user,
+                        allow_fixed_plan_history=True,
+                    )
                 except ValidationError as exc:
                     conflicts.append(
                         {

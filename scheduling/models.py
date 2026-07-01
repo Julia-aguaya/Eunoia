@@ -985,7 +985,15 @@ class RecoveryCredit(TimeStampedModel):
 
 
 class BookingManager(models.Manager):
-    def create_booking(self, *, session, student, source=BookingSource.FIXED_SLOT, **extra_fields):
+    def create_booking(
+        self,
+        *,
+        session,
+        student,
+        source=BookingSource.FIXED_SLOT,
+        allow_fixed_plan_history=False,
+        **extra_fields,
+    ):
         with transaction.atomic():
             locked_session = ClassSession.objects.select_for_update().select_related('section').get(pk=session.pk)
             recovery_credit = extra_fields.pop('used_recovery_credit', None)
@@ -1002,6 +1010,7 @@ class BookingManager(models.Manager):
                 used_recovery_credit=locked_credit,
                 **extra_fields,
             )
+            booking._allow_fixed_plan_history = allow_fixed_plan_history
             booking.save(force_insert=True)
             if locked_credit is not None:
                 locked_credit.mark_as_used(student=student, session=locked_session)
@@ -1204,6 +1213,7 @@ class Booking(TimeStampedModel):
         if (
             not duplicate_exists
             and self.used_recovery_credit_id is None
+            and not getattr(self, '_allow_fixed_plan_history', False)
             and student.session_matches_effective_monthly_plan(session)
             and existing_student_bookings.exists()
         ):

@@ -1394,6 +1394,45 @@ class BookingReservationTests(TestCase):
         self.assertEqual(new_booking.status, BookingStatus.BOOKED)
         self.assertEqual(Booking.objects.filter(session=self.session, student=self.student).count(), 2)
 
+    def test_fixed_plan_history_can_be_bypassed_for_reconciliation_rebooking(self):
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=self.session.date.isoweekday(),
+            start_time=self.session.start_time,
+            end_time=self.session.end_time,
+            is_active=True,
+        )
+        self.session.slot = slot
+        self.session.save(update_fields=['slot', 'updated_at'])
+        StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.session.date),
+            section=self.section,
+            notes='Plan fijo para reactivar por reconciliacion',
+        ).assign_weekly_slots([slot])
+        historical_booking = Booking.objects.create(
+            session=self.session,
+            student=self.student,
+            status=BookingStatus.CANCELLED,
+            source=BookingSource.FIXED_SLOT,
+            cancelled_at=timezone.now(),
+            cancelled_by=self.student,
+        )
+
+        with self.assertRaisesMessage(ValidationError, 'booking history for this fixed plan session'):
+            Booking.objects.create_booking(session=self.session, student=self.student)
+
+        new_booking = Booking.objects.create_booking(
+            session=self.session,
+            student=self.student,
+            allow_fixed_plan_history=True,
+        )
+
+        self.assertEqual(historical_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(new_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(new_booking.source, BookingSource.FIXED_SLOT)
+        self.assertEqual(Booking.objects.filter(session=self.session, student=self.student).count(), 2)
+
 class StudentBookingUseCaseTests(TestCase):
     def setUp(self):
         self.section = Section.objects.get(code='cadillac')

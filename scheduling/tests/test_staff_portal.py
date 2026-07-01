@@ -967,6 +967,81 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(session_row['booked_count'], 1)
         self.assertEqual(session_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
 
+    def test_staff_monthly_plan_update_recreates_non_restorable_fixed_booking_history(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        session_date = self._first_weekday_in_month(next_month, Weekday.MONDAY)
+        session = ClassSession.objects.create(
+            slot=slot,
+            section=self.section,
+            date=session_date,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        historical_booking = Booking.objects.create(
+            session=session,
+            student=self.active_student,
+            status=BookingStatus.CANCELLED,
+            source=BookingSource.FIXED_SLOT,
+            cancelled_at=timezone.now(),
+            cancelled_by=self.staff_user,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [slot.pk],
+                'notes': 'Recrear booking visible si ya habia historial no restaurable',
+            },
+            follow=True,
+        )
+
+        historical_booking.refresh_from_db()
+        active_booking = Booking.objects.get(
+            session=session,
+            student=self.active_student,
+            status=BookingStatus.BOOKED,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(historical_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(active_booking.source, BookingSource.FIXED_SLOT)
+        self.assertEqual(Booking.objects.filter(session=session, student=self.active_student).count(), 2)
+
+        agenda_response = self.client.get(
+            reverse('admin-class-agenda'),
+            {
+                'date': session_date.isoformat(),
+                'section': self.section.pk,
+            },
+        )
+
+        session_row = next(
+            row
+            for group in agenda_response.context['staff_agenda_groups']
+            if group['date'] == session_date
+            for row in group['sessions']
+            if row['session'].pk == session.pk
+        )
+        self.assertEqual(session_row['booked_count'], 1)
+        self.assertEqual(session_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
+
     def test_staff_monthly_plan_update_generates_sessions_without_global_booking_sync(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
         slot = WeeklyClassSlot.objects.create(
