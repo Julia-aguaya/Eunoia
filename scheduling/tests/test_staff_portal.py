@@ -1104,7 +1104,7 @@ class AdminPortalViewTests(TestCase):
             ).exists()
         )
 
-    def test_staff_monthly_plan_picker_marks_current_month_slot_full_from_future_portal_horizon(self):
+    def test_staff_monthly_plan_picker_does_not_mark_current_month_slot_full_from_future_portal_horizon(self):
         june_30 = date(2026, 6, 30)
         current_month = normalize_month_start(june_30)
         next_month = date(2026, 7, 1)
@@ -1224,8 +1224,8 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(option_map[full_slot.pk]['is_full'])
-        self.assertTrue(option_map[full_slot.pk]['is_disabled'])
+        self.assertFalse(option_map[full_slot.pk]['is_full'])
+        self.assertFalse(option_map[full_slot.pk]['is_disabled'])
         self.assertEqual(agenda_row['booked_count'], 4)
         self.assertEqual(Booking.objects.filter(session=past_open_session, status=BookingStatus.BOOKED).count(), 4)
         self.assertFalse(
@@ -2553,7 +2553,7 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(option_map[open_slot.pk]['is_disabled'])
         self.assertContains(response, 'Sin cupo')
 
-    def test_staff_monthly_plan_picker_marks_slot_full_when_any_month_occurrence_is_full(self):
+    def test_staff_monthly_plan_picker_keeps_slot_selectable_when_later_month_occurrences_have_capacity(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
         mixed_slot = WeeklyClassSlot.objects.create(
             section=self.section,
@@ -2606,9 +2606,55 @@ class AdminPortalViewTests(TestCase):
         option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(option_map[mixed_slot.pk]['is_full'])
-        self.assertTrue(option_map[mixed_slot.pk]['is_disabled'])
-        self.assertContains(response, 'Sin cupo')
+        self.assertFalse(option_map[mixed_slot.pk]['is_full'])
+        self.assertFalse(option_map[mixed_slot.pk]['is_disabled'])
+
+    def test_staff_monthly_plan_picker_keeps_slot_selectable_when_later_occurrences_are_not_generated_yet(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            is_active=True,
+        )
+        other_student = User.objects.create_user(
+            email='missing-mask-capacity@example.com',
+            password='StudentPass2026!',
+            first_name='Otra',
+            last_name='Capacidad',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=other_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        full_session = ClassSession.objects.create(
+            slot=slot,
+            section=self.section,
+            date=self._first_weekday_in_month(next_month, Weekday.MONDAY),
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            capacity=1,
+            status=SessionStatus.SCHEDULED,
+        )
+        Booking.objects.create_booking(session=full_session, student=other_student)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-student-detail', args=[self.active_student.pk]),
+            {'q': 'ada', 'month': next_month.strftime('%Y-%m')},
+        )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        option_map = {slot['id']: slot for day in picker['days'] for slot in day['slots']}
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(option_map[slot.pk]['is_full'])
+        self.assertFalse(option_map[slot.pk]['is_disabled'])
 
     def test_staff_monthly_plan_picker_marks_slot_full_only_when_all_month_occurrences_are_full(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))

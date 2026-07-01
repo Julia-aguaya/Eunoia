@@ -1488,7 +1488,6 @@ def _build_staff_monthly_plan_picker(form, *, month, reference_date=None):
     availability_end = month_end
     if month_start == normalize_month_start(today):
         availability_start = max(today, month_start)
-        availability_end = _resolve_admin_monthly_plan_sync_end(plan_month=month_start, reference_date=today)
 
     monthly_sessions = ClassSession.objects.filter(
         slot_id__in=slot_ids,
