@@ -321,7 +321,7 @@ def cancel_student_booking(*, booking_id, student, actor=None, when=None):
     return cancel_booking(booking_id=booking_id, student=student, actor=actor, when=when)
 
 
-def generate_class_sessions(*, start_date, end_date, section_code=None, dry_run=False):
+def generate_class_sessions(*, start_date, end_date, section_code=None, dry_run=False, sync_monthly_plan_bookings=True):
     if end_date < start_date:
         raise ValueError('end_date must be greater than or equal to start_date.')
 
@@ -367,7 +367,7 @@ def generate_class_sessions(*, start_date, end_date, section_code=None, dry_run=
 
     if not dry_run and created_sessions:
         ClassSession.objects.bulk_create(created_sessions)
-    if not dry_run:
+    if not dry_run and sync_monthly_plan_bookings:
         _sync_monthly_plan_bookings_for_published_sessions(
             start_date=start_date,
             end_date=end_date,

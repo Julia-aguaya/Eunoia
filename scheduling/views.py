@@ -2592,6 +2592,7 @@ def admin_update_student_monthly_plan_view(request, student_id):
                     start_date=reconcile_start,
                     end_date=sync_end,
                     section_code=plan.section.code,
+                    sync_monthly_plan_bookings=False,
                 )
             reconcile_end = _resolve_fixed_plan_reconcile_end(
                 student,

@@ -166,6 +166,36 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         self.assertEqual(booking.status, BookingStatus.BOOKED)
         self.assertEqual(booking.source, BookingSource.FIXED_SLOT)
 
+    def test_use_case_can_skip_global_monthly_plan_booking_sync(self):
+        student = User.objects.create_user(
+            email='skip-sync-student@example.com',
+            password='StudentPlan2026!',
+            first_name='Katherine',
+            last_name='Johnson',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=student,
+            month=date(2026, 4, 1),
+            section=self.section,
+        )
+        plan.assign_weekly_slots([self.slot])
+
+        generate_class_sessions(
+            start_date=date(2026, 4, 6),
+            end_date=date(2026, 4, 6),
+            sync_monthly_plan_bookings=False,
+        )
+
+        session = ClassSession.objects.get(section=self.section, date=date(2026, 4, 6), start_time=time(9, 0))
+        self.assertFalse(Booking.objects.filter(session=session, student=student).exists())
+
     def test_use_case_does_not_duplicate_manual_booking_for_matching_plan_session(self):
         student = User.objects.create_user(
             email='manual-booking-student@example.com',

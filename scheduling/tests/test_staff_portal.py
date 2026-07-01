@@ -967,6 +967,44 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(session_row['booked_count'], 1)
         self.assertEqual(session_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
 
+    def test_staff_monthly_plan_update_generates_sessions_without_global_booking_sync(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        self.client.force_login(self.staff_user)
+        expected_sync_end = normalize_month_start(next_month + timedelta(days=32)) - timedelta(days=1)
+
+        with mock.patch('scheduling.views.generate_class_sessions') as generate_sessions_mock:
+            with mock.patch('scheduling.views._reconcile_fixed_plan_bookings', return_value={
+                'created_count': 0,
+                'restored_count': 0,
+                'cancelled_count': 0,
+                'conflicts': [],
+            }):
+                response = self.client.post(
+                    reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+                    {
+                        'month': next_month.strftime('%Y-%m'),
+                        'section': self.section.pk,
+                        'slot_ids': [slot.pk],
+                        'notes': 'Evitar sync global en request',
+                    },
+                    follow=True,
+                )
+
+        self.assertEqual(response.status_code, 200)
+        generate_sessions_mock.assert_called_once_with(
+            start_date=next_month,
+            end_date=expected_sync_end,
+            section_code=self.section.code,
+            sync_monthly_plan_bookings=False,
+        )
+
     def test_staff_monthly_plan_update_keeps_cross_month_workweek_bookings_visible(self):
         june_30 = date(2026, 6, 30)
         current_month = normalize_month_start(june_30)
