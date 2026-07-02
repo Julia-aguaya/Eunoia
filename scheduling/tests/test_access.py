@@ -601,6 +601,14 @@ class RecoveryCreditModelTests(TestCase):
 
         self.assert_status_transition_error(recovery_credit, RecoveryCreditStatus.EXPIRED)
 
+    def test_used_credit_exposes_restore_to_available_transition(self):
+        recovery_credit = self.create_credit(status=RecoveryCreditStatus.USED, used_at=timezone.now())
+
+        self.assertEqual(
+            recovery_credit.available_status_transitions(),
+            {RecoveryCreditStatus.AVAILABLE},
+        )
+
     def test_expired_credit_cannot_transition_to_used(self):
         recovery_credit = self.create_credit(status=RecoveryCreditStatus.EXPIRED)
         recovery_credit.used_at = timezone.now()
@@ -617,6 +625,76 @@ class RecoveryCreditModelTests(TestCase):
 
         self.assertIn('used_at', exc.exception.message_dict)
         self.assertIn('Used recovery credits must keep the usage timestamp.', exc.exception.message_dict['used_at'])
+
+    def test_restore_to_available_clears_usage_timestamp(self):
+        recovery_credit = self.create_credit(status=RecoveryCreditStatus.USED, used_at=timezone.now())
+
+        changed = recovery_credit.restore_to_available()
+
+        self.assertTrue(changed)
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
+        self.assertIsNone(recovery_credit.used_at)
+
+
+class RemoveMakeupBookingUseCaseTests(TestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.section = Section.objects.get(code='cadillac')
+        self.staff_user = User.objects.create_user(
+            email='staff-remove-makeup@example.com',
+            password='secret123',
+            first_name='Grace',
+            last_name='Hopper',
+            is_staff=True,
+        )
+        self.student = User.objects.create_user(
+            email='student-remove-makeup@example.com',
+            password='secret123',
+            first_name='Ada',
+            last_name='Lovelace',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=normalize_month_start(self.today),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        self.session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today + timedelta(days=3),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+
+    def test_remove_makeup_booking_keeps_booking_active_and_restores_credit(self):
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=self.student,
+            section=self.section,
+            granted_by=self.staff_user,
+            reference_date=self.session.date,
+        )
+        booking = Booking.objects.create_booking(
+            session=self.session,
+            student=self.student,
+            used_recovery_credit=recovery_credit,
+        )
+
+        result = remove_makeup_booking(booking_id=booking.pk, actor=self.staff_user, record_audit=True)
+
+        booking.refresh_from_db()
+        recovery_credit.refresh_from_db()
+        self.assertEqual(result.booking.pk, booking.pk)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertIsNone(booking.used_recovery_credit)
+        self.assertEqual(booking.source, BookingSource.MANUAL)
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
+        self.assertIsNone(recovery_credit.used_at)
+        audit_log = AuditLog.objects.get(entity_type='Booking', entity_id=booking.pk, action=AuditAction.UPDATE)
+        self.assertEqual(audit_log.actor, self.staff_user)
+        self.assertEqual(audit_log.payload['recovery_credit_id'], recovery_credit.pk)
 
 class HolidayClosureProcessingTests(TestCase):
     def setUp(self):

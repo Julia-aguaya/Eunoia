@@ -15,6 +15,7 @@ from .application.recovery_credits import (
 from .audit import (
     log_staff_class_session_cancelled,
     log_staff_holiday_closure_applied,
+    log_staff_makeup_booking_removed,
     log_staff_manual_recovery_granted,
     log_staff_monthly_access_change,
 )
@@ -85,6 +86,12 @@ class CancelClassSessionResult:
     active_bookings: int
     created_credits: int
     existing_credits: int
+
+
+@dataclass(frozen=True)
+class RemoveMakeupBookingResult:
+    booking: Booking
+    recovery_credit: RecoveryCredit
 
 
 def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, section_code=None):
@@ -291,6 +298,43 @@ def cancel_class_session(*, session_id, actor=None, when=None, record_audit=Fals
         )
 
     return result
+
+
+def remove_makeup_booking(*, booking_id, actor=None, when=None, record_audit=False):
+    with transaction.atomic():
+        booking = (
+            Booking.objects.select_for_update()
+            .select_related('student', 'session', 'session__section', 'used_recovery_credit')
+            .get(pk=booking_id)
+        )
+
+        if not booking.is_active_reservation():
+            raise ValidationError('Only active bookings can remove their recovery credit.')
+
+        if booking.used_recovery_credit_id is None:
+            raise ValidationError('Only bookings with a recovery credit can remove that recovery.')
+
+        recovery_credit = (
+            RecoveryCredit.objects.select_for_update()
+            .select_related('student', 'section', 'origin_session')
+            .get(pk=booking.used_recovery_credit_id)
+        )
+
+        recovery_credit.restore_to_available()
+        booking.used_recovery_credit = None
+        if booking.source == BookingSource.MAKEUP:
+            booking.source = BookingSource.MANUAL
+
+        booking.save(update_fields=['used_recovery_credit', 'source', 'updated_at'])
+        recovery_credit.save(update_fields=['status', 'used_at', 'updated_at'])
+
+    refreshed_booking = Booking.objects.select_related('student', 'session', 'session__section').get(pk=booking.pk)
+    refreshed_credit = RecoveryCredit.objects.select_related('student', 'section', 'origin_session').get(pk=recovery_credit.pk)
+
+    if record_audit:
+        log_staff_makeup_booking_removed(actor=actor, booking=refreshed_booking, credit=refreshed_credit)
+
+    return RemoveMakeupBookingResult(booking=refreshed_booking, recovery_credit=refreshed_credit)
 
 
 def _mark_booking_attendance(*, booking_id, marker, when=None):

@@ -4177,6 +4177,8 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Katherine Johnson')
         self.assertContains(response, 'Reserva por recuperación manual')
         self.assertContains(response, 'Con recuperación')
+        self.assertContains(response, 'Alumnas que recuperan')
+        self.assertContains(response, 'Quitar recuperación')
         self.assertContains(response, 'class="booking-row booking-row-makeup"', count=1)
         self.assertContains(response, 'class="booking-student-makeup"', count=1)
         self.assertContains(response, 'class="booking-recovery-flag"', count=1)
@@ -4188,6 +4190,75 @@ class AdminPortalViewTests(TestCase):
             response,
             f'{reverse("admin-class-agenda")}?date={self.today.isoformat()}&amp;section={self.section.pk}',
         )
+
+    def test_staff_can_remove_makeup_booking_and_restore_credit_from_class_detail(self):
+        makeup_student = User.objects.create_user(
+            email='remove-makeup@example.com',
+            password='StudentPass2026!',
+            first_name='Katherine',
+            last_name='Johnson',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=makeup_student,
+            month=normalize_month_start(self.upcoming_session.date),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=makeup_student,
+            section=self.section,
+            granted_by=self.staff_user,
+            reference_date=self.upcoming_session.date,
+        )
+        booking = Booking.objects.create_booking(
+            session=self.upcoming_session,
+            student=makeup_student,
+            used_recovery_credit=recovery_credit,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-remove-class-session-makeup-booking', args=[self.upcoming_session.pk, booking.pk]),
+            {
+                'next': f'{reverse("admin-class-session-detail", args=[self.upcoming_session.pk])}?date={self.today.isoformat()}&section={self.section.pk}',
+            },
+            follow=True,
+        )
+
+        booking.refresh_from_db()
+        recovery_credit.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertIsNone(booking.used_recovery_credit)
+        self.assertEqual(booking.source, BookingSource.MANUAL)
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
+        self.assertIsNone(recovery_credit.used_at)
+        self.assertEqual(response.context['staff_session_makeup_bookings'], [])
+        self.assertContains(response, 'Se elimino la recuperacion de Katherine Johnson en esta clase.')
+        self.assertContains(response, 'La reserva quedo regular y el credito volvio a quedar disponible')
+        self.assertContains(response, '2 regulares')
+        audit_log = AuditLog.objects.get(entity_type='Booking', entity_id=booking.pk, action=AuditAction.UPDATE)
+        self.assertEqual(audit_log.actor, self.staff_user)
+        self.assertEqual(audit_log.payload['recovery_credit_id'], recovery_credit.pk)
+
+    def test_staff_cannot_remove_regular_booking_from_makeup_action(self):
+        regular_booking = Booking.objects.get(session=self.upcoming_session, student=self.active_student)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-remove-class-session-makeup-booking', args=[self.upcoming_session.pk, regular_booking.pk]),
+            {
+                'next': reverse('admin-class-session-detail', args=[self.upcoming_session.pk]),
+            },
+            follow=True,
+        )
+
+        regular_booking.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(regular_booking.status, BookingStatus.BOOKED)
+        self.assertContains(response, 'Esa reserva ya no tiene una recuperacion asociada para quitar.')
 
     def test_staff_can_apply_holiday_closure_from_class_agenda(self):
         closure_date = self.today + timedelta(days=1)

@@ -316,6 +316,18 @@
             gap: 8px;
         }
 
+        .booking-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .booking-subsection {
+            display: grid;
+            gap: 10px;
+        }
+
         .manual-actions {
             justify-content: flex-start;
         }
@@ -422,6 +434,7 @@
             .panel-head,
             .booking-top,
             .booking-meta,
+            .booking-actions,
             .manual-actions {
                 flex-direction: column;
                 align-items: stretch;
@@ -595,35 +608,80 @@
                 <h3>Alumnas anotadas</h3>
                 <p class="tiny-copy">Reservas activas de esta sesión.</p>
             </div>
-            <span class="status-badge muted">{{ staff_session_regular_bookings_count }} sin recuperación</span>
+            <span class="status-badge muted">{{ staff_session_booked_count }} activas</span>
         </div>
 
         {% if staff_session_active_bookings %}
-            <div class="booking-list">
-                {% for booking in staff_session_active_bookings %}
-                    <article class="booking-row{% if booking.used_recovery_credit %} booking-row-makeup{% endif %}">
-                        <div class="booking-top">
-                            <div class="booking-copy">
-                                <div class="booking-student-line">
-                                    <strong{% if booking.used_recovery_credit %} class="booking-student-makeup"{% endif %}>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
-                                    {% if booking.used_recovery_credit %}<span class="booking-recovery-flag">Recuperación</span>{% endif %}
-                                </div>
-                                <p>{{ booking.student.email }}</p>
-                                {% if booking.used_recovery_credit %}
-                                    <p>Reserva por recuperación {% if booking.used_recovery_credit.source == 'manual' %}manual{% else %}{{ booking.used_recovery_credit.source|staff_recovery_source_label }}{% endif %}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
-                                {% else %}
-                                    <p>Reserva regular sin recuperación asociada.</p>
-                                {% endif %}
+            <div class="stack">
+                {% if staff_session_makeup_bookings %}
+                    <div class="booking-subsection">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Alumnas que recuperan</h3>
+                                <p class="tiny-copy">Si quitás la recuperación, la reserva queda regular y el crédito vuelve a quedar disponible.</p>
                             </div>
-                            <div class="booking-meta">
-                                <span class="status-badge success">{{ booking.status|staff_booking_status_label }}</span>
-                                <span class="status-badge {% if booking.used_recovery_credit %}warning{% else %}muted{% endif %}">
-                                    {% if booking.used_recovery_credit %}Con recuperación{% else %}Regular{% endif %}
-                                </span>
-                            </div>
+                            <span class="status-badge warning">{{ staff_session_makeup_bookings_count }} con recuperación</span>
                         </div>
-                    </article>
-                {% endfor %}
+                        <div class="booking-list">
+                            {% for booking in staff_session_makeup_bookings %}
+                                <article class="booking-row booking-row-makeup">
+                                    <div class="booking-top">
+                                        <div class="booking-copy">
+                                            <div class="booking-student-line">
+                                                <strong class="booking-student-makeup">{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                                <span class="booking-recovery-flag">Recuperación</span>
+                                            </div>
+                                            <p>{{ booking.student.email }}</p>
+                                            <p>Reserva por recuperación {% if booking.used_recovery_credit.source == 'manual' %}manual{% else %}{{ booking.used_recovery_credit.source|staff_recovery_source_label }}{% endif %}{% if booking.used_recovery_credit.origin_session %} · origen {{ booking.used_recovery_credit.origin_session.date|date:"d/m" }} {{ booking.used_recovery_credit.origin_session.start_time|time:"H:i" }}{% endif %}</p>
+                                        </div>
+                                        <div class="booking-meta">
+                                            <span class="status-badge success">{{ booking.status|staff_booking_status_label }}</span>
+                                            <span class="status-badge warning">Con recuperación</span>
+                                        </div>
+                                    </div>
+                                    <div class="booking-actions">
+                                        <form method="post" action="{% url 'admin-remove-class-session-makeup-booking' staff_session.pk booking.pk %}" onsubmit="return confirm('Esto va a quitar la recuperación de esta clase, dejar la reserva como regular y devolver el crédito para volver a usarlo. ¿Querés continuar?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ staff_session_detail_url }}">
+                                            <button type="submit" class="button-secondary">Quitar recuperación</button>
+                                        </form>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if staff_session_regular_bookings %}
+                    <div class="booking-subsection">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Alumnas sin recuperación</h3>
+                                <p class="tiny-copy">Reservas regulares de esta sesión.</p>
+                            </div>
+                            <span class="status-badge muted">{{ staff_session_regular_bookings_count }} regulares</span>
+                        </div>
+                        <div class="booking-list">
+                            {% for booking in staff_session_regular_bookings %}
+                                <article class="booking-row">
+                                    <div class="booking-top">
+                                        <div class="booking-copy">
+                                            <div class="booking-student-line">
+                                                <strong>{{ booking.student.get_full_name|default:booking.student.email }}</strong>
+                                            </div>
+                                            <p>{{ booking.student.email }}</p>
+                                            <p>Reserva regular sin recuperación asociada.</p>
+                                        </div>
+                                        <div class="booking-meta">
+                                            <span class="status-badge success">{{ booking.status|staff_booking_status_label }}</span>
+                                            <span class="status-badge muted">Regular</span>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         {% else %}
             <div class="empty">Todavía no hay reservas activas para esta sesión.</div>

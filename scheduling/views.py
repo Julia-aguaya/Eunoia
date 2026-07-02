@@ -60,6 +60,7 @@ from .use_cases import (
     create_booking,
     generate_class_sessions,
     grant_manual_recovery_credit,
+    remove_makeup_booking,
     suspend_student_monthly_access,
 )
 
@@ -121,6 +122,9 @@ CANCELLATION_ERROR_MESSAGES = {
 
 RECOVERY_MANAGEMENT_ERROR_MESSAGES = {
     'Only available recovery credits can be manually expired.': 'Solo se pueden marcar como vencidas las recuperaciones que siguen disponibles.',
+    'Only active bookings can remove their recovery credit.': 'Solo se pueden quitar recuperaciones de reservas que siguen activas en la clase.',
+    'Only bookings with a recovery credit can remove that recovery.': 'Esa reserva ya no tiene una recuperacion asociada para quitar.',
+    'Only used recovery credits can be restored to available.': 'Solo se pueden restaurar recuperaciones que ya estaban usadas.',
 }
 
 
@@ -572,8 +576,10 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
     )
 
     booked_count = len(active_bookings)
+    makeup_bookings = [booking for booking in active_bookings if booking.used_recovery_credit_id]
+    regular_bookings = [booking for booking in active_bookings if booking.used_recovery_credit_id is None]
     available_spots = max(session.capacity - booked_count, 0)
-    makeup_bookings_count = sum(1 for booking in active_bookings if booking.used_recovery_credit_id)
+    makeup_bookings_count = len(makeup_bookings)
     occupancy_percent = int((booked_count / session.capacity) * 100) if session.capacity else 0
     generated_recovery_credits_count = RecoveryCredit.objects.filter(
         origin_session=session,
@@ -601,9 +607,12 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
         'staff_session': session,
         'staff_session_is_manual': session.slot_id is None,
         'staff_session_back_url': _build_staff_class_agenda_url(date=requested_date, section=requested_section),
+        'staff_session_detail_url': _build_staff_class_session_detail_url(session.pk, date=requested_date, section=requested_section),
         'staff_session_back_date': requested_date,
         'staff_session_back_section_id': requested_section,
         'staff_session_active_bookings': active_bookings,
+        'staff_session_makeup_bookings': makeup_bookings,
+        'staff_session_regular_bookings': regular_bookings,
         'staff_session_recent_booking_events': recent_booking_events,
         'staff_session_booked_count': booked_count,
         'staff_session_available_spots': available_spots,
@@ -2477,6 +2486,44 @@ def admin_cancel_class_session_view(request, session_id):
         )
 
     return redirect('admin-class-session-detail', session_id=session.pk)
+
+
+@staff_required
+def admin_remove_class_session_makeup_booking_view(request, session_id, booking_id):
+    session = get_object_or_404(ClassSession.objects.select_related('section', 'holiday_closure'), pk=session_id)
+    requested_next_url = request.POST.get('next', '').strip()
+    redirect_url = requested_next_url
+    if not redirect_url or not url_has_allowed_host_and_scheme(redirect_url, allowed_hosts={request.get_host()}):
+        redirect_url = _build_staff_class_session_detail_url(session.pk)
+
+    if request.method != 'POST':
+        return redirect(redirect_url)
+
+    booking = get_object_or_404(
+        Booking.objects.select_related('student', 'used_recovery_credit'),
+        pk=booking_id,
+        session=session,
+    )
+
+    try:
+        result = remove_makeup_booking(
+            booking_id=booking.pk,
+            actor=request.user,
+            record_audit=True,
+        )
+    except ValidationError as exc:
+        messages.error(request, _get_recovery_management_error_message(exc))
+    else:
+        student_label = result.booking.student.get_full_name() or result.booking.student.email
+        messages.success(
+            request,
+            (
+                f'Se elimino la recuperacion de {student_label} en esta clase. '
+                f'La reserva quedo regular y el credito volvio a quedar disponible hasta el {result.recovery_credit.expires_at:%d/%m/%Y}.'
+            ),
+        )
+
+    return redirect(redirect_url)
 
 
 @staff_required

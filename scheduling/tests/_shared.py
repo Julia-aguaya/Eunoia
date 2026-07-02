@@ -73,6 +73,7 @@ from scheduling.use_cases import (
     grant_manual_recovery_credit,
     mark_booking_attended,
     mark_booking_no_show,
+    remove_makeup_booking,
     suspend_student_monthly_access,
     toggle_student_monthly_access,
 )

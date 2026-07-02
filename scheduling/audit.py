@@ -76,6 +76,32 @@ def log_staff_recovery_credit_expired(*, actor, credit, reason='manual'):
     )
 
 
+def log_staff_makeup_booking_removed(*, actor, booking, credit):
+    student = booking.student
+    return AuditLog.objects.create(
+        actor=actor,
+        action=AuditAction.UPDATE,
+        entity_type='Booking',
+        entity_id=booking.pk,
+        description=(
+            f'Staff quito la recuperacion de una reserva de {student.get_full_name() or student.email}'
+        ),
+        payload={
+            'scope': 'staff_portal',
+            'student_id': student.pk,
+            'student_email': student.email,
+            'booking_id': booking.pk,
+            'session_id': booking.session_id,
+            'section_id': booking.session.section_id,
+            'section_name': booking.session.section.name,
+            'recovery_credit_id': credit.pk,
+            'recovery_credit_source': credit.source,
+            'restored_recovery_status': credit.status,
+            'expires_at': credit.expires_at.isoformat(),
+        },
+    )
+
+
 def log_staff_manual_recovery_expired(*, actor, credit):
     return log_staff_recovery_credit_expired(actor=actor, credit=credit, reason='manual')
 

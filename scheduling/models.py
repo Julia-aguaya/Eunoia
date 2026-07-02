@@ -740,7 +740,7 @@ class RecoveryCredit(TimeStampedModel):
             RecoveryCreditStatus.EXPIRED,
             RecoveryCreditStatus.REVOKED,
         }),
-        RecoveryCreditStatus.USED: frozenset(),
+        RecoveryCreditStatus.USED: frozenset({RecoveryCreditStatus.AVAILABLE}),
         RecoveryCreditStatus.EXPIRED: frozenset(),
         RecoveryCreditStatus.REVOKED: frozenset(),
     }
@@ -918,6 +918,19 @@ class RecoveryCredit(TimeStampedModel):
         self.validate_status_transition(RecoveryCreditStatus.USED)
         self.status = RecoveryCreditStatus.USED
         self.used_at = usage_time
+
+    def restore_to_available(self):
+        if self.status == RecoveryCreditStatus.AVAILABLE:
+            self.used_at = None
+            return False
+
+        if self.status != RecoveryCreditStatus.USED:
+            raise ValidationError('Only used recovery credits can be restored to available.')
+
+        self.validate_status_transition(RecoveryCreditStatus.AVAILABLE)
+        self.status = RecoveryCreditStatus.AVAILABLE
+        self.used_at = None
+        return True
 
     def compatible_section_codes(self):
         return self.SECTION_COMPATIBILITY.get(self.section.code, frozenset({self.section.code}))
