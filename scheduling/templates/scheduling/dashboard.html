@@ -662,14 +662,16 @@
         {% if primary_recovery_credit_card %}
             <div class="mini-summary">
                 <span class="status-pill">Disponible para usar</span>
+                <span class="meta">{{ primary_recovery_credit_card.compatibility_badge }}</span>
                 {% if upcoming_makeup_bookings_count or expired_recovery_credits %}
                     <span class="meta">{{ upcoming_makeup_bookings_count }} aplicadas{% if expired_recovery_credits %} · {{ expired_recovery_credits|length }} vencidas{% endif %}</span>
                 {% endif %}
             </div>
-            <p class="meta" style="margin: 10px 0 0;">Disponible para usar {% if portal_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %} en {{ primary_section.name|default:"tu actividad" }}.</p>
-            <p class="empty-copy">Podés usar esta recuperación en una clase compatible de {{ primary_section.name|default:"tu actividad" }}.</p>
+            <p class="meta" style="margin: 10px 0 0;">Disponible para usar {% if portal_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %}.</p>
+            <p class="empty-copy">{{ primary_recovery_credit_card.dashboard_message }}</p>
+            <p class="meta" style="margin-top: 8px;">{{ primary_recovery_credit_card.discoverability_message }}</p>
             <div class="action-row">
-                <a href="{{ primary_recovery_credit_card.use_url }}" class="button">Usar recuperación</a>
+                <a href="{{ primary_recovery_credit_card.use_url }}" class="button">{{ primary_recovery_credit_card.cta_label }}</a>
                 <a href="{% url 'my-bookings' %}" class="button-secondary">Ver detalle</a>
             </div>
         {% else %}

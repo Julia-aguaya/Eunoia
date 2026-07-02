@@ -3,7 +3,7 @@
 
 {% block title %}Usar recuperación | Eunoia{% endblock %}
 {% block hero_title %}Usar recuperación{% endblock %}
-{% block hero_copy %}Elegí un día y un horario de {% if recovery_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %} para usar tu recuperación.{% endblock %}
+{% block hero_copy %}Elegí {% if recovery_requires_activity_selection %}la actividad, {% endif %}un día y un horario de {% if recovery_workweek_is_next %}la próxima semana{% else %}esta semana{% endif %} para usar tu recuperación.{% endblock %}
 {% block hero_class %}recovery-picker-hero{% endblock %}
 
 {% block topbar_context %}{% endblock %}
@@ -116,6 +116,32 @@
         margin: 0;
         color: var(--text);
         font-size: 1rem;
+    }
+
+    .activity-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .activity-selector-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(105, 132, 119, 0.16);
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--primary-strong);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .activity-selector-link.active {
+        background: linear-gradient(145deg, #eff5ef, #e5eee3);
+        border-color: rgba(105, 132, 119, 0.28);
     }
 
     .calendar-header {
@@ -551,10 +577,18 @@
                 <p>Vence el {{ recovery_focus_credit.expires_at|date:"d/m" }}</p>
             </div>
             <div class="activity-chip">
-                <span>{{ recovery_focus_credit.section.name }}</span>
+                <span>{{ recovery_selected_activity.name }}</span>
             </div>
         </div>
-        <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} horario{{ eligible_sessions_count|pluralize:"s" }} con cupo del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }}.</p>
+        {% if recovery_requires_activity_selection %}
+            <p class="helper-copy">Elegí la actividad para ver su calendario y los horarios disponibles con esta recuperación.</p>
+            <div class="activity-selector" aria-label="Elegir actividad para recuperar">
+                {% for option in recovery_activity_options %}
+                    <a href="{{ option.select_url }}" class="activity-selector-link{% if option.is_selected %} active{% endif %}"{% if option.is_selected %} aria-current="true"{% endif %}>{{ option.section.name }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} horario{{ eligible_sessions_count|pluralize:"s" }} con cupo en {{ recovery_selected_activity.name }} del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }}.</p>
     </article>
 
     <article class="card picker-card">
@@ -619,7 +653,7 @@
                 <div class="slot-grid">
                     {% for card in recovery_selected_day_cards %}
                         {% if card.action.can_book %}
-                            <a class="slot-button available{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}">{{ card.display_label }}</a>
+                            <a class="slot-button available{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&section={{ recovery_selected_activity.code }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}">{{ card.display_label }}</a>
                         {% else %}
                             <span class="slot-button blocked {{ card.action.state|default:'blocked' }}">{{ card.display_label }}</span>
                         {% endif %}
@@ -628,17 +662,17 @@
             {% else %}
                 <div class="slots-empty-state">
                     <strong>Sin horarios con cupo</strong>
-                    <p class="empty-copy" style="margin: 0;">Ese día no tiene horarios disponibles para usar esta recuperación.</p>
-                    <p class="meta" style="margin: 0;">Probá con otra fecha marcada de la misma semana.</p>
+                    <p class="empty-copy" style="margin: 0;">Ese día no tiene horarios disponibles en {{ recovery_selected_activity.name }} para usar esta recuperación.</p>
+                    <p class="meta" style="margin: 0;">{% if recovery_requires_activity_selection %}Probá con otra fecha o cambiá de actividad para revisar más opciones.{% else %}Probá con otra fecha marcada de la misma semana.{% endif %}</p>
                 </div>
             {% endif %}
         {% else %}
             <div class="empty">
-                <p class="empty-copy"><strong>Esta semana no hay horarios con cupo para esta recuperación.</strong></p>
+                <p class="empty-copy"><strong>Esta semana no hay horarios con cupo en {{ recovery_selected_activity.name }} para esta recuperación.</strong></p>
                 {% if recovery_workweek_is_next %}
                     <p class="meta" style="margin-top: 8px;">Todavía no hay cupos publicados para la próxima semana.</p>
                 {% else %}
-                <p class="meta" style="margin-top: 8px;">Probá más tarde o revisá tus turnos para seguir tus recuperaciones.</p>
+                <p class="meta" style="margin-top: 8px;">{% if recovery_requires_activity_selection %}Probá cambiando de actividad o revisá tus turnos para seguir tus recuperaciones.{% else %}Probá más tarde o revisá tus turnos para seguir tus recuperaciones.{% endif %}</p>
                 {% endif %}
             </div>
         {% endif %}

@@ -96,6 +96,7 @@ STAFF_PLAN_WEEKDAY_LABELS = {
     Weekday.SATURDAY: 'Sábado',
     Weekday.SUNDAY: 'Domingo',
 }
+RECOVERY_ACTIVITY_ORDER = ('cadillac', 'reformer_arriba', 'reformer_abajo')
 
 BOOKING_ERROR_MESSAGES = {
     'Student must have a primary section before reserving.': 'Todavía no tenés una actividad principal configurada. Escribinos para habilitar tu agenda.',
@@ -312,6 +313,17 @@ def _get_student_activity_label(student, *, target_date):
     if not sections:
         return 'Sin sección principal'
     return ' + '.join(section.name for section in sections)
+
+
+def _join_labels_with_y(labels):
+    labels = [label for label in labels if label]
+    if not labels:
+        return ''
+    if len(labels) == 1:
+        return labels[0]
+    if len(labels) == 2:
+        return ' y '.join(labels)
+    return f"{', '.join(labels[:-1])} y {labels[-1]}"
 
 
 def _build_admin_student_row(student, access, *, query='', target_date=None):
@@ -1349,15 +1361,53 @@ def _get_student_portal_context(user, *, reconcile_fixed_bookings=True):
             available_recovery_credits.append(credit)
 
     recovery_credit_cards = []
+    recovery_compatibility_by_credit_id = {}
     available_recovery_credit_ids_by_section = {}
     available_recovery_credit_map = {}
     for credit in available_recovery_credits:
+        activity_sections = _build_recovery_activity_sections(credit)
+        activity_names = [section.name for section in activity_sections]
+        supports_multiple_activities = len(activity_sections) > 1
+        compatibility_label = _join_labels_with_y(activity_names)
+        compatibility_badge = (
+            f'{len(activity_sections)} actividades compatibles'
+            if supports_multiple_activities
+            else activity_names[0]
+        )
+        cta_label = 'Ver actividades y horarios' if supports_multiple_activities else 'Ver horarios'
+        recovery_meta = {
+            'activity_sections': activity_sections,
+            'activity_names': activity_names,
+            'activity_count': len(activity_sections),
+            'compatibility_label': compatibility_label,
+            'compatibility_badge': compatibility_badge,
+            'supports_multiple_activities': supports_multiple_activities,
+            'cta_label': cta_label,
+            'dashboard_message': (
+                f'Podés usar esta recuperación en {compatibility_label}.'
+                if compatibility_label
+                else 'Podés usar esta recuperación en una clase compatible.'
+            ),
+            'discoverability_message': (
+                f'Entrá para elegir entre {compatibility_label} y ver los horarios con cupo.'
+                if supports_multiple_activities
+                else 'Entrá para ver los horarios con cupo y confirmarla cuando te sirva.'
+            ),
+            'usage_steps_label': (
+                'Elegí una actividad y un horario'
+                if supports_multiple_activities
+                else 'Elegí un horario'
+            ),
+            'detail_label': 'Actividades compatibles' if supports_multiple_activities else 'Actividad',
+        }
+        recovery_compatibility_by_credit_id[credit.id] = recovery_meta
         available_recovery_credit_map[credit.id] = credit
         available_recovery_credit_ids_by_section.setdefault(credit.section_id, []).append(credit.id)
         recovery_credit_cards.append(
             {
                 'credit': credit,
                 'use_url': reverse('use-recovery', args=[credit.pk]),
+                **recovery_meta,
             }
         )
     primary_recovery_credit_card = recovery_credit_cards[0] if recovery_credit_cards else None
@@ -1402,6 +1452,7 @@ def _get_student_portal_context(user, *, reconcile_fixed_bookings=True):
         'upcoming_session_cards': upcoming_session_cards,
         'available_recovery_credits': available_recovery_credits,
         'recovery_credit_cards': recovery_credit_cards,
+        'recovery_compatibility_by_credit_id': recovery_compatibility_by_credit_id,
         'primary_recovery_credit_card': primary_recovery_credit_card,
         'upcoming_makeup_bookings_count': len(upcoming_makeup_bookings),
         'expired_recovery_credits': expired_recovery_credits,
@@ -1813,6 +1864,7 @@ def _build_recovery_calendar_context(
     selectable_dates=None,
     selected_date=None,
     selected_session_id=None,
+    selected_section_code=None,
 ):
     available_dates = {card['session'].date for card in recovery_session_cards}
     published_dates = {card['session'].date for card in recovery_day_cards}
@@ -1847,7 +1899,7 @@ def _build_recovery_calendar_context(
                     'is_selectable': day in selectable_dates,
                     'is_selected': selected_date == day,
                     'select_url': (
-                        f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'date': day.isoformat()})}"
+                        f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'date': day.isoformat(), 'section': selected_section_code})}"
                         if day in selectable_dates
                         else ''
                     ),
@@ -1875,8 +1927,8 @@ def _build_recovery_calendar_context(
         'recovery_selected_date': selected_date,
         'recovery_selected_day_cards': selected_day_cards,
         'recovery_selected_session_card': selected_session_card,
-        'recovery_prev_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m')})}",
-        'recovery_next_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, 1).strftime('%Y-%m')})}",
+        'recovery_prev_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m'), 'section': selected_section_code})}",
+        'recovery_next_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, 1).strftime('%Y-%m'), 'section': selected_section_code})}",
     }
 
 
@@ -1891,6 +1943,22 @@ def _build_recovery_session_action(*, user, session, recovery_credit, now):
             'state': 'past',
         }
     return action
+
+
+def _build_recovery_activity_sections(credit):
+    compatible_codes = set(credit.compatible_section_codes())
+    ordered_codes = [credit.section.code]
+    ordered_codes.extend(
+        code for code in RECOVERY_ACTIVITY_ORDER if code in compatible_codes and code != credit.section.code
+    )
+    ordered_codes.extend(
+        sorted(code for code in compatible_codes if code not in ordered_codes)
+    )
+    sections_by_code = {
+        section.code: section
+        for section in Section.objects.filter(code__in=ordered_codes)
+    }
+    return [sections_by_code[code] for code in ordered_codes if code in sections_by_code]
 
 
 def _build_booking_detail_modal_context(*, request, context):
@@ -1940,6 +2008,7 @@ def _build_recovery_detail_modal_context(*, request, context):
 
     return {
         'detail_recovery_credit': selected_credit,
+        'detail_recovery_compatibility': context['recovery_compatibility_by_credit_id'].get(selected_credit.id) if selected_credit else None,
         'detail_recovery_back_url': reverse('my-bookings'),
     }
 
@@ -2245,6 +2314,12 @@ def use_recovery_view(request, recovery_credit_id):
     week_start, week_end, recovery_week_is_next = _get_current_workweek_window(today)
     month_start = _parse_agenda_month(request.GET.get('month'), today)
     month_end = date(month_start.year, month_start.month, calendar.monthrange(month_start.year, month_start.month)[1])
+    activity_sections = _build_recovery_activity_sections(credit)
+    selected_section_code = request.GET.get('section')
+    valid_activity_codes = {section.code for section in activity_sections}
+    if selected_section_code not in valid_activity_codes and activity_sections:
+        selected_section_code = activity_sections[0].code
+
     fixed_schedule_dates = set()
     day_cursor = month_start
     while day_cursor <= month_end:
@@ -2265,7 +2340,7 @@ def use_recovery_view(request, recovery_credit_id):
         fixed_schedule_dates = {
             session.date
             for session in ClassSession.objects.filter(
-                section__code__in=credit.compatible_section_codes(),
+                section__code=selected_section_code,
                 status=SessionStatus.SCHEDULED,
                 date__range=(month_start, month_end),
             )
@@ -2274,7 +2349,7 @@ def use_recovery_view(request, recovery_credit_id):
     candidate_sessions = list(
         ClassSession.objects.select_related('section')
         .filter(
-            section__code__in=credit.compatible_section_codes(),
+            section__code=selected_section_code,
             status=SessionStatus.SCHEDULED,
             date__range=(week_start, week_end),
         )
@@ -2335,12 +2410,30 @@ def use_recovery_view(request, recovery_credit_id):
         selectable_dates=recovery_selectable_dates,
         selected_date=selected_date,
         selected_session_id=selected_session_id,
+        selected_section_code=selected_section_code,
     )
+
+    selected_section = next(
+        (section for section in activity_sections if section.code == selected_section_code),
+        credit.section,
+    )
+    selected_date_query = request.GET.get('date', '').strip()
+    recovery_activity_options = [
+        {
+            'section': section,
+            'is_selected': section.code == selected_section_code,
+            'select_url': f"{reverse('use-recovery', args=[credit.id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'section': section.code, **({'date': selected_date_query} if selected_date_query else {})})}",
+        }
+        for section in activity_sections
+    ]
 
     context.update(
         {
             'recovery_focus_credit': credit,
             'recovery_focus_credit_overdue': credit.is_expired(on_date=today),
+            'recovery_selected_activity': selected_section,
+            'recovery_activity_options': recovery_activity_options,
+            'recovery_requires_activity_selection': len(recovery_activity_options) > 1,
             'recovery_session_cards': recovery_session_cards,
             'recovery_day_cards': recovery_day_cards,
             'eligible_sessions_count': len(recovery_session_cards),

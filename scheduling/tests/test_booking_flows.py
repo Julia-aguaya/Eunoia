@@ -124,8 +124,18 @@ class StudentPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Recuperaciones')
-        self.assertContains(response, 'Ver horarios')
+        self.assertContains(response, 'Ver actividades y horarios')
         self.assertContains(response, 'Cómo usarla')
+        self.assertContains(response, 'Cadillac, Reformer Arriba y Reformer Abajo')
+        self.assertContains(response, 'Elegí una actividad y un horario')
+
+    def test_dashboard_surfaces_cross_activity_recovery_scope(self):
+        response = self.get_portal_page(reverse('dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '3 actividades compatibles')
+        self.assertContains(response, 'Podés usar esta recuperación en Cadillac, Reformer Arriba y Reformer Abajo.')
+        self.assertContains(response, 'Ver actividades y horarios')
 
     def test_my_bookings_history_shows_legacy_used_recovery_context(self):
         legacy_credit = RecoveryCredit.objects.create(
@@ -1777,9 +1787,10 @@ class BookingCancellationAndRecoveryTests(TestCase):
         self.assertEqual(booking.source, 'makeup')
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.USED)
 
-    def test_reformer_recovery_on_different_activity_is_rejected(self):
+    def test_reformer_recovery_can_be_used_on_other_reformer_section(self):
+        reformer_downstairs = Section.objects.get(code='reformer_abajo')
         start_at = timezone.now() + timedelta(days=5)
-        session = self.create_session(section=self.section, start_at=start_at)
+        session = self.create_session(section=reformer_downstairs, start_at=start_at)
         self.student.primary_section = self.other_section
         self.student.save(update_fields=['primary_section', 'updated_at'])
         self.grant_access(self.student, session.date)
@@ -1790,16 +1801,17 @@ class BookingCancellationAndRecoveryTests(TestCase):
             reference_date=timezone.localdate(),
         )
 
-        with self.assertRaisesMessage(ValidationError, 'compatible with this section'):
-            Booking.objects.create_booking(
-                session=session,
-                student=self.student,
-                used_recovery_credit=recovery_credit,
-            )
+        booking = Booking.objects.create_booking(
+            session=session,
+            student=self.student,
+            used_recovery_credit=recovery_credit,
+        )
 
+        self.assertEqual(booking.used_recovery_credit, recovery_credit)
+        self.assertEqual(booking.source, BookingSource.MAKEUP)
         recovery_credit.refresh_from_db()
-        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
-        self.assertIsNone(recovery_credit.used_at)
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.USED)
+        self.assertIsNotNone(recovery_credit.used_at)
 
     def test_using_recovery_on_original_session_is_allowed(self):
         start_at = timezone.now() + timedelta(days=6)

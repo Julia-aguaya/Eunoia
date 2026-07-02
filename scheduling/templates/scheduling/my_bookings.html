@@ -381,8 +381,8 @@
     {% endif %}
 
     <article class="card recovery-card">
-        {% if available_recovery_credits %}
-            {% with credit=available_recovery_credits.0 %}
+        {% if primary_recovery_credit_card %}
+            {% with credit=primary_recovery_credit_card.credit %}
                 <div class="summary-card">
                     <div class="summary-top">
                         <div class="summary-icon" aria-hidden="true">
@@ -418,6 +418,20 @@
                                 </svg>
                             </span>
                             <div class="detail-copy">
+                                Disponible en <strong>{{ primary_recovery_credit_card.compatibility_label }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 10V6a2 2 0 0 0-2-2h-4"></path>
+                                    <path d="m14 2 4 4-4 4"></path>
+                                    <path d="M4 14v4a2 2 0 0 0 2 2h4"></path>
+                                    <path d="m10 22-4-4 4-4"></path>
+                                </svg>
+                            </span>
+                            <div class="detail-copy">
                                 {% if credit.origin_session %}
                                     Generada por cancelación del <strong>{{ credit.origin_session.date|date:"d/m" }}</strong>
                                 {% else %}
@@ -435,11 +449,11 @@
                                 <path d="M11 12h1v4h1"></path>
                             </svg>
                         </span>
-                        <span>Usala antes de su vencimiento.</span>
+                        <span>{{ primary_recovery_credit_card.discoverability_message }}</span>
                     </div>
 
                     <div class="empty-actions">
-                        <a href="{% url 'use-recovery' credit.id %}" class="button primary-action">Ver horarios</a>
+                        <a href="{% url 'use-recovery' credit.id %}" class="button primary-action">{{ primary_recovery_credit_card.cta_label }}</a>
                         <a href="{% url 'my-bookings' %}?credit_detail={{ credit.id }}" class="button-secondary">Ver detalle</a>
                     </div>
                 </div>
@@ -482,7 +496,7 @@
                         <path d="M16 2v4M8 2v4M3 10h18"></path>
                     </svg>
                 </span>
-                <div class="detail-copy">Elegí un horario</div>
+                <div class="detail-copy">{% if primary_recovery_credit_card %}{{ primary_recovery_credit_card.usage_steps_label }}{% else %}Elegí un horario{% endif %}</div>
             </div>
             <div class="step-row">
                 <span class="step-number">2</span>
@@ -518,7 +532,7 @@
             <div class="detail-handle" aria-hidden="true"></div>
             <h3>Detalle de la recuperación</h3>
             <div class="detail-grid">
-                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path><path d="m12 8 1.2 2.4 2.7.4-1.95 1.9.46 2.7L12 14.1l-2.41 1.3.46-2.7-1.95-1.9 2.7-.4L12 8z"></path></svg></span><span class="detail-label">Actividad</span><span class="detail-value">{{ detail_recovery_credit.section.name }}</span></div>
+                <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path><path d="m12 8 1.2 2.4 2.7.4-1.95 1.9.46 2.7L12 14.1l-2.41 1.3.46-2.7-1.95-1.9 2.7-.4L12 8z"></path></svg></span><span class="detail-label">{% if detail_recovery_compatibility %}{{ detail_recovery_compatibility.detail_label }}{% else %}Actividad{% endif %}</span><span class="detail-value">{% if detail_recovery_compatibility %}{{ detail_recovery_compatibility.compatibility_label }}{% else %}{{ detail_recovery_credit.section.name }}{% endif %}</span></div>
                 <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="detail-label">Vence</span><span class="detail-value">{{ detail_recovery_credit.expires_at|date:"d/m/Y" }}</span></div>
                 <div class="detail-row-sheet"><span class="detail-modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10V6a2 2 0 0 0-2-2h-4"></path><path d="m14 2 4 4-4 4"></path><path d="M4 14v4a2 2 0 0 0 2 2h4"></path><path d="m10 22-4-4 4-4"></path></svg></span><span class="detail-label">Origen</span><span class="detail-value">{% if detail_recovery_credit.origin_session %}Cancelación del {{ detail_recovery_credit.origin_session.date|date:"d/m" }}{% elif detail_recovery_credit.has_legacy_recoverableturn_context %}Importada del sistema anterior{% else %}Sin origen visible{% endif %}</span></div>
                 {% if detail_recovery_credit.has_legacy_recoverableturn_context %}
@@ -530,7 +544,7 @@
             </div>
             <div class="detail-actions">
                 {% if detail_recovery_credit.status == 'available' %}
-                    <a href="{% url 'use-recovery' detail_recovery_credit.id %}" class="button">Ver horarios</a>
+                    <a href="{% url 'use-recovery' detail_recovery_credit.id %}" class="button">{% if detail_recovery_compatibility %}{{ detail_recovery_compatibility.cta_label }}{% else %}Ver horarios{% endif %}</a>
                 {% endif %}
                 <a href="{{ detail_recovery_back_url }}" class="button-secondary">Cerrar</a>
             </div>

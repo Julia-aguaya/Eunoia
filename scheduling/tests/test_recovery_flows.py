@@ -48,10 +48,10 @@ class WebRecoveryFlowTests(TestCase):
             status=status,
         )
 
-    def create_available_credit(self, *, origin_session=None, expires_at=None, status=RecoveryCreditStatus.AVAILABLE):
+    def create_available_credit(self, *, origin_session=None, expires_at=None, status=RecoveryCreditStatus.AVAILABLE, section=None):
         return RecoveryCredit.objects.create(
             student=self.student,
-            section=self.section,
+            section=section or self.section,
             source=RecoveryCreditSource.TIMELY_CANCELLATION,
             status=status,
             origin_session=origin_session,
@@ -117,7 +117,11 @@ class WebRecoveryFlowTests(TestCase):
         self.assertContains(response, 'Día con horarios para recuperar')
         self.assertContains(response, '10:00')
         self.assertContains(response, 'Confirmar recuperación')
-        self.assertNotContains(response, self.other_section.name)
+        self.assertEqual(response.context['recovery_selected_activity'].code, self.section.code)
+        self.assertEqual(
+            [option['section'].code for option in response.context['recovery_activity_options']],
+            [self.section.code, self.other_section.code, 'reformer_abajo'],
+        )
         self.assertNotContains(response, '11:00 a 12:00')
         self.assertEqual(response.context['eligible_sessions_count'], 1)
         self.assertEqual(
@@ -125,6 +129,66 @@ class WebRecoveryFlowTests(TestCase):
             [eligible_session.pk],
         )
         self.assertNotIn(next_week_session.pk, [card['session'].pk for card in response.context['recovery_session_cards']])
+
+    def test_reformer_recovery_page_shows_activity_selector_and_filters_selected_activity(self):
+        reformer_downstairs = Section.objects.get(code='reformer_abajo')
+        self.student.primary_section = self.other_section
+        self.student.save(update_fields=['primary_section', 'updated_at'])
+        monday = self.today - timedelta(days=self.today.weekday())
+        thursday = monday + timedelta(days=3)
+        friday = monday + timedelta(days=4)
+        origin_session = self.create_session_on(monday, section=self.other_section, start_hour=8)
+        upstairs_session = self.create_session_on(thursday, section=self.other_section, start_hour=10)
+        downstairs_session = self.create_session_on(friday, section=reformer_downstairs, start_hour=11)
+        credit = self.create_available_credit(origin_session=origin_session, section=self.other_section)
+
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            response = self.client.get(
+                reverse('use-recovery', args=[credit.pk]),
+                {'section': reformer_downstairs.code, 'date': friday.isoformat()},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['recovery_requires_activity_selection'])
+        self.assertEqual(response.context['recovery_selected_activity'].code, reformer_downstairs.code)
+        self.assertContains(response, 'Elegí la actividad para ver su calendario')
+        self.assertContains(response, self.other_section.name)
+        self.assertContains(response, reformer_downstairs.name)
+        self.assertContains(response, '11:00')
+        self.assertNotContains(response, '10:00')
+        self.assertTrue(response.context['recovery_requires_activity_selection'])
+        self.assertContains(response, f'section={reformer_downstairs.code}&date={friday.isoformat()}&session={downstairs_session.pk}')
+        self.assertEqual(
+            [card['session'].pk for card in response.context['recovery_session_cards']],
+            [downstairs_session.pk],
+        )
+        self.assertNotIn(upstairs_session.pk, [card['session'].pk for card in response.context['recovery_session_cards']])
+        self.assertTrue(
+            all(
+                f'section={reformer_downstairs.code}' in day['select_url']
+                for week in response.context['recovery_calendar_weeks']
+                for day in week
+                if day['select_url']
+            )
+        )
+
+    def test_cadillac_recovery_page_lists_all_compatible_activities(self):
+        reformer_downstairs = Section.objects.get(code='reformer_abajo')
+        origin_session = self.create_session_on(self.today, start_hour=8)
+        credit = self.create_available_credit(origin_session=origin_session)
+
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            response = self.client.get(reverse('use-recovery', args=[credit.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [option['section'].code for option in response.context['recovery_activity_options']],
+            [self.section.code, self.other_section.code, reformer_downstairs.code],
+        )
 
     def test_recovery_page_allows_selecting_relevant_day_without_available_slots(self):
         monday_now = timezone.make_aware(datetime(2026, 6, 8, 9, 0))
@@ -346,7 +410,7 @@ class WebRecoveryFlowTests(TestCase):
             response = self.client.get(reverse('use-recovery', args=[credit.pk]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Elegí un día y un horario de esta semana para usar tu recuperación.')
+        self.assertTrue(response.context['recovery_requires_activity_selection'])
         self.assertContains(response, eligible_session.start_time.strftime('%H:%M'))
         self.assertFalse(response.context['recovery_workweek_is_next'])
         self.assertEqual(response.context['eligible_sessions_count'], 1)

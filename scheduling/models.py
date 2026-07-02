@@ -731,8 +731,14 @@ class RecoveryCredit(TimeStampedModel):
             ActivityType.REFORMER_UPSTAIRS,
             ActivityType.REFORMER_DOWNSTAIRS,
         }),
-        ActivityType.REFORMER_UPSTAIRS: frozenset({ActivityType.REFORMER_UPSTAIRS}),
-        ActivityType.REFORMER_DOWNSTAIRS: frozenset({ActivityType.REFORMER_DOWNSTAIRS}),
+        ActivityType.REFORMER_UPSTAIRS: frozenset({
+            ActivityType.REFORMER_UPSTAIRS,
+            ActivityType.REFORMER_DOWNSTAIRS,
+        }),
+        ActivityType.REFORMER_DOWNSTAIRS: frozenset({
+            ActivityType.REFORMER_UPSTAIRS,
+            ActivityType.REFORMER_DOWNSTAIRS,
+        }),
     }
     STATUS_TRANSITIONS = {
         RecoveryCreditStatus.AVAILABLE: frozenset({
@@ -1205,7 +1211,7 @@ class Booking(TimeStampedModel):
 
         if not effective_sections:
             add_error('student', 'Student must have an assigned activity before reserving.')
-        elif session.section_id not in {section.id for section in effective_sections}:
+        elif self.used_recovery_credit_id is None and session.section_id not in {section.id for section in effective_sections}:
             add_error('student', 'Student can only reserve sessions in their assigned activities.')
 
         if not student.has_operational_booking_access_for(session.date):
