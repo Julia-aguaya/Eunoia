@@ -323,25 +323,23 @@ def remove_makeup_booking(*, booking_id, actor=None, when=None, record_audit=Fal
         )
 
         recovery_credit.restore_to_available()
+        updated_source = BookingSource.MANUAL if booking.source == BookingSource.MAKEUP else booking.source
+        Booking.objects.filter(pk=booking.pk).update(
+            status=BookingStatus.CANCELLED,
+            used_recovery_credit=None,
+            source=updated_source,
+            cancelled_at=removal_time,
+            cancelled_by=actor,
+            cancellation_generates_recovery=False,
+            updated_at=removal_time,
+        )
+        booking.status = BookingStatus.CANCELLED
         booking.used_recovery_credit = None
-        if booking.source == BookingSource.MAKEUP:
-            booking.source = BookingSource.MANUAL
+        booking.source = updated_source
         booking.cancelled_at = removal_time
         booking.cancelled_by = actor
         booking.cancellation_generates_recovery = False
-        booking._transition_to(
-            BookingStatus.CANCELLED,
-            update_fields=[
-                'status',
-                'used_recovery_credit',
-                'source',
-                'cancelled_at',
-                'cancelled_by',
-                'cancellation_generates_recovery',
-                'updated_at',
-            ],
-            previous_status=booking.status,
-        )
+        booking.updated_at = removal_time
         recovery_credit.save(update_fields=['status', 'used_at', 'updated_at'])
 
     refreshed_booking = Booking.objects.select_related('student', 'session', 'session__section').get(pk=booking.pk)

@@ -698,6 +698,39 @@ class RemoveMakeupBookingUseCaseTests(TestCase):
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['recovery_credit_id'], recovery_credit.pk)
 
+    def test_remove_makeup_booking_skips_assigned_activity_validation_for_cancellation(self):
+        compatible_section = Section.objects.get(code='reformer_arriba')
+        compatible_session = ClassSession.objects.create(
+            section=compatible_section,
+            date=self.today + timedelta(days=4),
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=self.student,
+            section=self.section,
+            granted_by=self.staff_user,
+            reference_date=compatible_session.date,
+        )
+        booking = Booking.objects.create_booking(
+            session=compatible_session,
+            student=self.student,
+            used_recovery_credit=recovery_credit,
+        )
+
+        result = remove_makeup_booking(booking_id=booking.pk, actor=self.staff_user, record_audit=False)
+
+        booking.refresh_from_db()
+        recovery_credit.refresh_from_db()
+        self.assertEqual(result.booking.pk, booking.pk)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertIsNone(booking.used_recovery_credit)
+        self.assertEqual(booking.source, BookingSource.MANUAL)
+        self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
+        self.assertEqual(compatible_session.active_bookings().count(), 0)
+
 class HolidayClosureProcessingTests(TestCase):
     def setUp(self):
         self.section = Section.objects.get(code='cadillac')

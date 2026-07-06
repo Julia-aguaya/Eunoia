@@ -4251,6 +4251,42 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['recovery_credit_id'], recovery_credit.pk)
 
+    def test_staff_can_remove_cross_section_makeup_booking_without_assigned_activity_error(self):
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=self.active_student,
+            section=self.section,
+            granted_by=self.staff_user,
+            reference_date=self.other_upcoming_session.date,
+        )
+        booking = Booking.objects.create_booking(
+            session=self.other_upcoming_session,
+            student=self.active_student,
+            used_recovery_credit=recovery_credit,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-remove-class-session-makeup-booking', args=[self.other_upcoming_session.pk, booking.pk]),
+            {
+                'next': reverse('admin-class-session-detail', args=[self.other_upcoming_session.pk]),
+            },
+            follow=True,
+        )
+
+        booking.refresh_from_db()
+        recovery_credit.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertIsNone(booking.used_recovery_credit)
+        self.assertContains(response, 'Se elimino la recuperacion de Ada Lovelace en esta clase.')
+        self.assertNotContains(response, 'Esta clase corresponde a otra actividad.')
+        self.assertEqual(response.context['staff_session_active_bookings'], [])
+        self.assertEqual(response.context['staff_session_makeup_bookings'], [])
+        self.assertEqual(
+            [recent_booking.pk for recent_booking in response.context['staff_session_recent_booking_events']],
+            [booking.pk],
+        )
+
     def test_staff_cannot_remove_regular_booking_from_makeup_action(self):
         regular_booking = Booking.objects.get(session=self.upcoming_session, student=self.active_student)
         self.client.force_login(self.staff_user)
