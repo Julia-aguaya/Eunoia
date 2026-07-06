@@ -669,7 +669,7 @@ class RemoveMakeupBookingUseCaseTests(TestCase):
             status=SessionStatus.SCHEDULED,
         )
 
-    def test_remove_makeup_booking_keeps_booking_active_and_restores_credit(self):
+    def test_remove_makeup_booking_cancels_booking_and_restores_credit(self):
         recovery_credit = RecoveryCredit.objects.grant_manual_credit(
             student=self.student,
             section=self.section,
@@ -687,11 +687,13 @@ class RemoveMakeupBookingUseCaseTests(TestCase):
         booking.refresh_from_db()
         recovery_credit.refresh_from_db()
         self.assertEqual(result.booking.pk, booking.pk)
-        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
         self.assertIsNone(booking.used_recovery_credit)
         self.assertEqual(booking.source, BookingSource.MANUAL)
+        self.assertEqual(booking.cancelled_by, self.staff_user)
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
         self.assertIsNone(recovery_credit.used_at)
+        self.assertEqual(self.session.active_bookings().count(), 0)
         audit_log = AuditLog.objects.get(entity_type='Booking', entity_id=booking.pk, action=AuditAction.UPDATE)
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['recovery_credit_id'], recovery_credit.pk)

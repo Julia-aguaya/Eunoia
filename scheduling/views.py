@@ -5,6 +5,7 @@ from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -12,7 +13,7 @@ from django.db.models import Count, Prefetch, Q
 from django.http import Http404
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import Resolver404, resolve, reverse
+from django.urls import Resolver404, resolve, reverse, reverse_lazy
 from django.utils.http import urlencode, url_has_allowed_host_and_scheme
 from django.utils import timezone
 
@@ -21,6 +22,8 @@ from .application.onboarding import create_student_self_signup
 from .forms import (
     AccountProfileForm,
     EmailAuthenticationForm,
+    EunoiaPasswordResetForm,
+    EunoiaSetPasswordForm,
     RequiredPasswordChangeForm,
     StaffStudentMonthlyPlanForm,
     StudentSelfSignupForm,
@@ -97,6 +100,28 @@ STAFF_PLAN_WEEKDAY_LABELS = {
     Weekday.SUNDAY: 'Domingo',
 }
 RECOVERY_ACTIVITY_ORDER = ('cadillac', 'reformer_arriba', 'reformer_abajo')
+
+
+class EunoiaPasswordResetView(auth_views.PasswordResetView):
+    form_class = EunoiaPasswordResetForm
+    template_name = 'scheduling/password_reset_form.html'
+    email_template_name = 'scheduling/password_reset_email.txt'
+    subject_template_name = 'scheduling/password_reset_subject.txt'
+    success_url = reverse_lazy('password_reset_done')
+
+
+class EunoiaPasswordResetDoneView(auth_views.PasswordResetDoneView):
+    template_name = 'scheduling/password_reset_done.html'
+
+
+class EunoiaPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    form_class = EunoiaSetPasswordForm
+    template_name = 'scheduling/password_reset_confirm.html'
+    success_url = reverse_lazy('password_reset_complete')
+
+
+class EunoiaPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = 'scheduling/password_reset_complete.html'
 
 BOOKING_ERROR_MESSAGES = {
     'Student must have a primary section before reserving.': 'Todavía no tenés una actividad principal configurada. Escribinos para habilitar tu agenda.',
@@ -2612,7 +2637,7 @@ def admin_remove_class_session_makeup_booking_view(request, session_id, booking_
             request,
             (
                 f'Se elimino la recuperacion de {student_label} en esta clase. '
-                f'La reserva quedo regular y el credito volvio a quedar disponible hasta el {result.recovery_credit.expires_at:%d/%m/%Y}.'
+                f'La reserva se dio de baja y el credito volvio a quedar disponible hasta el {result.recovery_credit.expires_at:%d/%m/%Y}.'
             ),
         )
 

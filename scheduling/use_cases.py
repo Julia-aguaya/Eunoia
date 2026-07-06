@@ -301,6 +301,8 @@ def cancel_class_session(*, session_id, actor=None, when=None, record_audit=Fals
 
 
 def remove_makeup_booking(*, booking_id, actor=None, when=None, record_audit=False):
+    removal_time = when or timezone.now()
+
     with transaction.atomic():
         booking = (
             Booking.objects.select_for_update()
@@ -324,8 +326,22 @@ def remove_makeup_booking(*, booking_id, actor=None, when=None, record_audit=Fal
         booking.used_recovery_credit = None
         if booking.source == BookingSource.MAKEUP:
             booking.source = BookingSource.MANUAL
-
-        booking.save(update_fields=['used_recovery_credit', 'source', 'updated_at'])
+        booking.cancelled_at = removal_time
+        booking.cancelled_by = actor
+        booking.cancellation_generates_recovery = False
+        booking._transition_to(
+            BookingStatus.CANCELLED,
+            update_fields=[
+                'status',
+                'used_recovery_credit',
+                'source',
+                'cancelled_at',
+                'cancelled_by',
+                'cancellation_generates_recovery',
+                'updated_at',
+            ],
+            previous_status=booking.status,
+        )
         recovery_credit.save(update_fields=['status', 'used_at', 'updated_at'])
 
     refreshed_booking = Booking.objects.select_related('student', 'session', 'session__section').get(pk=booking.pk)

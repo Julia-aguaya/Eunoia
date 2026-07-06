@@ -618,7 +618,7 @@
                         <div class="panel-head">
                             <div>
                                 <h3>Alumnas que recuperan</h3>
-                                <p class="tiny-copy">Si quitás la recuperación, la reserva queda regular y el crédito vuelve a quedar disponible.</p>
+                                <p class="tiny-copy">Si quitás la recuperación, la reserva se da de baja y el crédito vuelve a quedar disponible.</p>
                             </div>
                             <span class="status-badge warning">{{ staff_session_makeup_bookings_count }} con recuperación</span>
                         </div>
@@ -640,7 +640,7 @@
                                         </div>
                                     </div>
                                     <div class="booking-actions">
-                                        <form method="post" action="{% url 'admin-remove-class-session-makeup-booking' staff_session.pk booking.pk %}" onsubmit="return confirm('Esto va a quitar la recuperación de esta clase, dejar la reserva como regular y devolver el crédito para volver a usarlo. ¿Querés continuar?');">
+                                        <form method="post" action="{% url 'admin-remove-class-session-makeup-booking' staff_session.pk booking.pk %}" onsubmit="return confirm('Esto va a quitar la recuperación de esta clase, dar de baja la reserva y devolver el crédito para volver a usarlo. ¿Querés continuar?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="next" value="{{ staff_session_detail_url }}">
                                             <button type="submit" class="button-secondary">Quitar recuperación</button>

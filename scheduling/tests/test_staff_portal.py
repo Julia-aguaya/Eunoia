@@ -4191,7 +4191,7 @@ class AdminPortalViewTests(TestCase):
             f'{reverse("admin-class-agenda")}?date={self.today.isoformat()}&amp;section={self.section.pk}',
         )
 
-    def test_staff_can_remove_makeup_booking_and_restore_credit_from_class_detail(self):
+    def test_staff_can_remove_makeup_booking_and_hide_student_from_active_list(self):
         makeup_student = User.objects.create_user(
             email='remove-makeup@example.com',
             password='StudentPass2026!',
@@ -4230,15 +4230,23 @@ class AdminPortalViewTests(TestCase):
         booking.refresh_from_db()
         recovery_credit.refresh_from_db()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
         self.assertIsNone(booking.used_recovery_credit)
         self.assertEqual(booking.source, BookingSource.MANUAL)
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
         self.assertIsNone(recovery_credit.used_at)
         self.assertEqual(response.context['staff_session_makeup_bookings'], [])
+        self.assertEqual(
+            [active_booking.pk for active_booking in response.context['staff_session_active_bookings']],
+            [Booking.objects.get(session=self.upcoming_session, student=self.active_student).pk],
+        )
+        self.assertEqual(
+            [recent_booking.pk for recent_booking in response.context['staff_session_recent_booking_events']],
+            [booking.pk],
+        )
         self.assertContains(response, 'Se elimino la recuperacion de Katherine Johnson en esta clase.')
-        self.assertContains(response, 'La reserva quedo regular y el credito volvio a quedar disponible')
-        self.assertContains(response, '2 regulares')
+        self.assertContains(response, 'La reserva se dio de baja y el credito volvio a quedar disponible')
+        self.assertContains(response, '1 regulares')
         audit_log = AuditLog.objects.get(entity_type='Booking', entity_id=booking.pk, action=AuditAction.UPDATE)
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['recovery_credit_id'], recovery_credit.pk)
