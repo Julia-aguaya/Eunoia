@@ -26,10 +26,6 @@ services:
         value: "True"
       - key: DJANGO_SECURE_SSL_REDIRECT
         value: "True"
-      - key: DJANGO_USE_X_FORWARDED_HOST
-        value: "True"
-      - key: DJANGO_COOKIE_DOMAIN
-        sync: false
       - key: DJANGO_DB_SSL_CA
         sync: false
       - key: DJANGO_DB_SSL_CERT
