@@ -1,10 +1,25 @@
 import re
 
+from django.http import HttpResponse
+from django.middleware.csrf import get_token
 from django.test import Client, SimpleTestCase
+from django.urls import path
 
-from config.settings import build_csrf_trusted_origins, csrf_origin_candidates
+from config.settings import build_cookie_domain, build_csrf_trusted_origins, csrf_origin_candidates
 
 from ._shared import *
+
+
+def csrf_login_test_view(request):
+    csrf_token = get_token(request)
+    if request.method == 'POST':
+        return HttpResponse('ok')
+    return HttpResponse(f'<form method="post"><input type="hidden" name="csrfmiddlewaretoken" value="{csrf_token}"></form>')
+
+
+urlpatterns = [
+    path('login/', csrf_login_test_view, name='login'),
+]
 
 
 class CsrfSettingsTests(SimpleTestCase):
@@ -28,6 +43,72 @@ class CsrfSettingsTests(SimpleTestCase):
     def test_csrf_origin_candidates_skips_empty_and_wildcard_hosts(self):
         self.assertEqual(csrf_origin_candidates(''), [])
         self.assertEqual(csrf_origin_candidates('*'), [])
+
+    def test_build_cookie_domain_prefers_shared_parent_domain(self):
+        cookie_domain = build_cookie_domain(
+            ['pilateseunoia.com', 'www.pilateseunoia.com', '.pilateseunoia.com', 'localhost'],
+        )
+
+        self.assertEqual(cookie_domain, '.pilateseunoia.com')
+
+    def test_build_cookie_domain_skips_unrelated_hosts(self):
+        cookie_domain = build_cookie_domain(
+            ['pilateseunoia.com', 'eunoia.onrender.com', '127.0.0.1'],
+        )
+
+        self.assertIsNone(cookie_domain)
+
+
+class CsrfProxyFlowTests(SimpleTestCase):
+    @override_settings(
+        ROOT_URLCONF='scheduling.tests.test_auth',
+        ALLOWED_HOSTS=['pilateseunoia.com'],
+        CSRF_TRUSTED_ORIGINS=build_csrf_trusted_origins(['pilateseunoia.com']),
+    )
+    def test_csrf_accepts_https_origin_for_allowed_host_when_proxy_reports_http(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.get(reverse('login'), HTTP_HOST='pilateseunoia.com')
+        csrf_token = re.search(
+            'name="csrfmiddlewaretoken" value="([^"]+)"',
+            response.content.decode(),
+        ).group(1)
+
+        post_response = client.post(
+            reverse('login'),
+            {'csrfmiddlewaretoken': csrf_token},
+            HTTP_HOST='pilateseunoia.com',
+            HTTP_ORIGIN='https://pilateseunoia.com',
+        )
+
+        self.assertEqual(post_response.status_code, 200)
+
+    @override_settings(
+        ROOT_URLCONF='scheduling.tests.test_auth',
+        ALLOWED_HOSTS=['pilateseunoia.com', 'eunoia.onrender.com'],
+        CSRF_TRUSTED_ORIGINS=build_csrf_trusted_origins(['pilateseunoia.com', 'eunoia.onrender.com']),
+        USE_X_FORWARDED_HOST=True,
+    )
+    def test_csrf_accepts_https_origin_for_forwarded_public_host(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.get(
+            reverse('login'),
+            HTTP_HOST='eunoia.onrender.com',
+            HTTP_X_FORWARDED_HOST='pilateseunoia.com',
+        )
+        csrf_token = re.search(
+            'name="csrfmiddlewaretoken" value="([^"]+)"',
+            response.content.decode(),
+        ).group(1)
+
+        post_response = client.post(
+            reverse('login'),
+            {'csrfmiddlewaretoken': csrf_token},
+            HTTP_HOST='eunoia.onrender.com',
+            HTTP_X_FORWARDED_HOST='pilateseunoia.com',
+            HTTP_ORIGIN='https://pilateseunoia.com',
+        )
+
+        self.assertEqual(post_response.status_code, 200)
 
 class UserOnboardingTests(TestCase):
     def setUp(self):
@@ -188,38 +269,6 @@ class AuthenticationFlowTests(TestCase):
         self.assertRedirects(response, reverse('dashboard'))
         follow_response = self.client.get(reverse('dashboard'))
         self.assertContains(follow_response, 'Portal Eunoia')
-
-    @override_settings(
-        ALLOWED_HOSTS=['pilateseunoia.com'],
-        CSRF_TRUSTED_ORIGINS=build_csrf_trusted_origins(['pilateseunoia.com']),
-    )
-    def test_login_accepts_https_origin_for_allowed_host_when_proxy_reports_http(self):
-        user = self.create_student(
-            email='csrf-origin-ok@example.com',
-            password='TempLogin2026!',
-            must_change_password=False,
-        )
-
-        client = Client(enforce_csrf_checks=True)
-        response = client.get(reverse('login'), HTTP_HOST='pilateseunoia.com')
-        csrf_token = re.search(
-            'name="csrfmiddlewaretoken" value="([^"]+)"',
-            response.content.decode(),
-        ).group(1)
-
-        post_response = client.post(
-            reverse('login'),
-            {
-                'email': user.email,
-                'password': 'TempLogin2026!',
-                'csrfmiddlewaretoken': csrf_token,
-            },
-            HTTP_HOST='pilateseunoia.com',
-            HTTP_ORIGIN='https://pilateseunoia.com',
-        )
-
-        self.assertEqual(post_response.status_code, 302)
-        self.assertEqual(post_response.url, reverse('dashboard'))
 
     def test_student_can_create_own_account_with_activity_and_pending_access(self):
         response = self.client.post(

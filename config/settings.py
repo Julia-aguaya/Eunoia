@@ -1,4 +1,5 @@
 import os
+from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlparse
 
@@ -63,6 +64,73 @@ def build_csrf_trusted_origins(allowed_hosts, configured_origins=None):
                 seen.add(origin)
 
     return trusted_origins
+
+
+def _normalized_host_pattern(host):
+    normalized_host = host.strip().split(':', 1)[0]
+    if not normalized_host or normalized_host == '*':
+        return ''
+
+    if normalized_host.startswith('*.'):
+        normalized_host = normalized_host[2:]
+    elif normalized_host.startswith('.'):
+        normalized_host = normalized_host[1:]
+
+    return normalized_host.strip().lower()
+
+
+def _is_ip_address(value):
+    try:
+        ip_address(value.strip('[]'))
+    except ValueError:
+        return False
+    return True
+
+
+def normalize_cookie_domain(domain):
+    normalized_domain = domain.strip().lower()
+    if not normalized_domain:
+        return None
+    if normalized_domain.startswith('*.'):
+        normalized_domain = normalized_domain[1:]
+    if not normalized_domain.startswith('.'):
+        normalized_domain = f'.{normalized_domain}'
+    return normalized_domain
+
+
+def build_cookie_domain(allowed_hosts, configured_domain=''):
+    if configured_domain:
+        return normalize_cookie_domain(configured_domain)
+
+    domain_hosts = []
+    wildcard_domains = []
+    seen_hosts = set()
+    for host in allowed_hosts or []:
+        normalized_host = _normalized_host_pattern(host)
+        if (
+            not normalized_host
+            or normalized_host == 'localhost'
+            or '.' not in normalized_host
+            or _is_ip_address(normalized_host)
+        ):
+            continue
+        if normalized_host not in seen_hosts:
+            domain_hosts.append(normalized_host)
+            seen_hosts.add(normalized_host)
+        if host.strip().startswith(('*.', '.')):
+            wildcard_domains.append(normalize_cookie_domain(normalized_host))
+
+    if wildcard_domains:
+        return sorted(set(wildcard_domains), key=len)[0]
+
+    if not domain_hosts:
+        return None
+
+    candidate = min(domain_hosts, key=len)
+    if all(host == candidate or host.endswith(f'.{candidate}') for host in domain_hosts):
+        return normalize_cookie_domain(candidate)
+
+    return None
 
 
 def env_int(name, default=0):
@@ -218,11 +286,13 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-dev-only-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', default=True)
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 configured_csrf_trusted_origins = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', default=[])
+configured_cookie_domain = os.getenv('DJANGO_COOKIE_DOMAIN', '').strip()
 
 render_external_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
 if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_external_hostname)
 CSRF_TRUSTED_ORIGINS = build_csrf_trusted_origins(ALLOWED_HOSTS, configured_csrf_trusted_origins)
+COOKIE_DOMAIN = build_cookie_domain(ALLOWED_HOSTS, configured_cookie_domain)
 
 
 # Application definition
@@ -324,8 +394,11 @@ STORAGES = {
 }
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = env_bool('DJANGO_USE_X_FORWARDED_HOST', default=bool(render_external_hostname))
 SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_DOMAIN = COOKIE_DOMAIN
 CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_DOMAIN = COOKIE_DOMAIN
 SECURE_CONTENT_TYPE_NOSNIFF = not DEBUG
 SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', default=False)
 SECURE_REFERRER_POLICY = os.getenv('DJANGO_SECURE_REFERRER_POLICY', 'strict-origin-when-cross-origin')

@@ -31,6 +31,7 @@ Definir manualmente:
 - `DJANGO_DB_CONN_MAX_AGE=60`
 - `DJANGO_DB_CONN_HEALTH_CHECKS=True`
 - `DJANGO_SECURE_SSL_REDIRECT=True`
+- `DJANGO_USE_X_FORWARDED_HOST=True`
 - `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`
 - `EUNOIA_ADMIN_EMAIL`
 - `EUNOIA_ADMIN_PASSWORD`
@@ -39,8 +40,13 @@ Segun host final:
 
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
+- `DJANGO_COOKIE_DOMAIN` si queres compartir cookies entre dominio raiz y subdominios (por ejemplo `.pilateseunoia.com`)
 
-Nota: si el host expone `RENDER_EXTERNAL_HOSTNAME`, `config/settings.py` lo agrega solo a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
+Notas:
+
+- si el host expone `RENDER_EXTERNAL_HOSTNAME`, `config/settings.py` lo agrega solo a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`
+- `DJANGO_USE_X_FORWARDED_HOST=True` deja que Django valide CSRF contra el host publico enviado por el proxy, en lugar del host interno
+- si `DJANGO_ALLOWED_HOSTS` incluye un dominio raiz y sus subdominios compatibles, `config/settings.py` ahora puede derivar automaticamente `SESSION_COOKIE_DOMAIN` y `CSRF_COOKIE_DOMAIN`; para casos mas raros conviene fijar `DJANGO_COOKIE_DOMAIN` a mano
 
 SQLite queda solo para local/demo. Si alguien realmente quiere deployar con SQLite, ahora tiene que hacerlo de forma explicita con `DJANGO_USE_SQLITE=True` y asumir el costo operativo.
 
