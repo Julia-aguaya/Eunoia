@@ -149,6 +149,11 @@ class AuthenticationFlowTests(TestCase):
         self.section = Section.objects.get(code='cadillac')
         self.today = timezone.localdate()
 
+    def assert_never_cache_headers(self, response):
+        cache_control = response.headers['Cache-Control']
+        for directive in ('max-age=0', 'no-cache', 'no-store', 'must-revalidate', 'private'):
+            self.assertIn(directive, cache_control)
+
     def create_student(self, *, email, password, must_change_password):
         user = User.objects.create_user(
             email=email,
@@ -320,6 +325,26 @@ class AuthenticationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Esta cuenta esta inactiva. Contacta al staff para reactivarla.')
         self.assertFalse('_auth_user_id' in self.client.session)
+
+    def test_auth_forms_disable_cache_when_rendering_csrf_tokens(self):
+        password_change_user = self.create_student(
+            email='must-change-cache@example.com',
+            password='TempCache2026!',
+            must_change_password=True,
+        )
+
+        responses = {
+            'login': self.client.get(reverse('login')),
+            'register': self.client.get(reverse('register')),
+        }
+
+        self.client.force_login(password_change_user)
+        responses['change_password_required'] = self.client.get(reverse('change-password-required'))
+
+        for name, response in responses.items():
+            with self.subTest(view=name):
+                self.assertEqual(response.status_code, 200)
+                self.assert_never_cache_headers(response)
 
     def test_login_redirects_to_password_change_when_required(self):
         user = self.create_student(

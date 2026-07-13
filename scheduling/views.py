@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import Resolver404, resolve, reverse
 from django.utils.http import urlencode, url_has_allowed_host_and_scheme
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 
 from .application.recovery_credits import expire_recovery_credit
 from .application.onboarding import create_student_self_signup
@@ -2140,6 +2141,7 @@ def _get_safe_redirect_url(request, default_name='agenda'):
     return reverse(default_name)
 
 
+@never_cache
 def login_view(request):
     if request.user.is_authenticated:
         if request.user.must_change_password:
@@ -2164,6 +2166,7 @@ def login_view(request):
     return render(request, 'scheduling/login.html', {'form': form, 'next': next_url})
 
 
+@never_cache
 def register_view(request):
     if request.user.is_authenticated:
         if request.user.must_change_password:
@@ -2197,6 +2200,7 @@ def logout_view(request):
     return redirect('login')
 
 
+@never_cache
 @login_required
 def change_password_required_view(request):
     if not request.user.must_change_password:
