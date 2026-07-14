@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from django import forms
 from django.contrib.auth import authenticate, get_user_model, password_validation
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.utils import timezone
 
 from .models import (
@@ -356,7 +358,27 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         queryset = WeeklyClassSlot.objects.none()
         help_text = 'Elegí una actividad para ver y guardar los horarios del plan mensual.'
         if self.selected_section is not None:
-            queryset = WeeklyClassSlot.objects.filter(section=self.selected_section, is_active=True).order_by('weekday', 'start_time')
+            plan_slot_ids = []
+            if self.effective_plan is not None and self.effective_plan.section_id == self.selected_section.pk:
+                plan_slot_ids = list(self.effective_plan.plan_slots.values_list('weekly_class_slot_id', flat=True))
+
+            month_end = self.month.replace(day=28) + timedelta(days=4)
+            month_end = month_end.replace(day=1) - timedelta(days=1)
+            scheduled_slot_ids = list(
+                ClassSession.objects.filter(
+                    section=self.selected_section,
+                    date__range=(self.month, month_end),
+                    slot_id__isnull=False,
+                )
+                .values_list('slot_id', flat=True)
+                .distinct()
+            )
+
+            queryset = (
+                WeeklyClassSlot.objects.filter(section=self.selected_section)
+                .filter(Q(is_active=True) | Q(pk__in=plan_slot_ids) | Q(pk__in=scheduled_slot_ids))
+                .order_by('weekday', 'start_time')
+            )
             help_text = 'Elegí uno o mas horarios semanales de la actividad seleccionada para armar el plan del mes.'
         self.fields['slot_ids'].queryset = queryset
         self.fields['slot_ids'].help_text = help_text

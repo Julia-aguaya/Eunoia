@@ -2908,6 +2908,61 @@ class AdminPortalViewTests(TestCase):
         )
         self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
 
+    def test_staff_monthly_plan_picker_keeps_inactive_slots_with_scheduled_sessions_visible(self):
+        monday_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.MONDAY,
+            start_time=time(17, 0),
+            end_time=time(18, 0),
+            is_active=False,
+        )
+        wednesday_slot = WeeklyClassSlot.objects.create(
+            section=self.other_section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(17, 0),
+            end_time=time(18, 0),
+            is_active=False,
+        )
+        monday_date = self._first_weekday_in_month(self.current_month, Weekday.MONDAY)
+        if monday_date < self.today:
+            monday_date += timedelta(days=7)
+        wednesday_date = self._first_weekday_in_month(self.current_month, Weekday.WEDNESDAY)
+        if wednesday_date < self.today:
+            wednesday_date += timedelta(days=7)
+
+        ClassSession.objects.create(
+            slot=monday_slot,
+            section=self.other_section,
+            date=monday_date,
+            start_time=monday_slot.start_time,
+            end_time=monday_slot.end_time,
+            capacity=4,
+            status=SessionStatus.SCHEDULED,
+        )
+        ClassSession.objects.create(
+            slot=wednesday_slot,
+            section=self.other_section,
+            date=wednesday_date,
+            start_time=wednesday_slot.start_time,
+            end_time=wednesday_slot.end_time,
+            capacity=4,
+            status=SessionStatus.SCHEDULED,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(
+            reverse('admin-student-detail', args=[self.active_student.pk]),
+            {'q': 'ada', 'section': self.other_section.pk, 'month': self.current_month.strftime('%Y-%m')},
+        )
+
+        picker = response.context['admin_detail_monthly_plan_picker']
+        visible_slot_ids = [slot['id'] for day in picker['days'] for slot in day['slots']]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(monday_slot.pk, visible_slot_ids)
+        self.assertIn(wednesday_slot.pk, visible_slot_ids)
+        self.assertContains(response, '17:00 - 18:00')
+
     def test_staff_can_refresh_new_section_and_save_over_existing_monthly_plan(self):
         old_slot = WeeklyClassSlot.objects.create(
             section=self.section,
