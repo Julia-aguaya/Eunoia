@@ -1542,6 +1542,17 @@ def _get_current_workweek_window(reference_date):
     return week_start, week_end, False
 
 
+def _get_recovery_workweek_window(reference_date):
+    days_since_saturday = (reference_date.weekday() - 5) % 7
+    week_start = reference_date - timedelta(days=days_since_saturday)
+    week_end = week_start + timedelta(days=6)
+    return week_start, week_end, False
+
+
+def _should_sync_portal_sessions_on_get(reference_date):
+    return reference_date.weekday() >= 5
+
+
 def _build_monthly_plan_summary(plan):
     if plan is None:
         return None
@@ -2275,7 +2286,7 @@ def agenda_view(request):
     context = _get_student_portal_context(
         request.user,
         sync_end_date=visible_range_end,
-        ensure_portal_sessions=True,
+        ensure_portal_sessions=_should_sync_portal_sessions_on_get(today),
     )
     context.update(_build_agenda_calendar_context(user=request.user, context=context, month_start=month_start))
     context.update(_build_booking_detail_modal_context(request=request, context=context))
@@ -2357,7 +2368,7 @@ def use_recovery_view(request, recovery_credit_id):
     context = _get_student_portal_context(
         request.user,
         sync_end_date=visible_range_end,
-        ensure_portal_sessions=True,
+        ensure_portal_sessions=_should_sync_portal_sessions_on_get(today),
     )
     credit = get_object_or_404(
         RecoveryCredit.objects.select_related('section', 'origin_session'),
@@ -2373,7 +2384,7 @@ def use_recovery_view(request, recovery_credit_id):
         return redirect('my-bookings')
 
     now = timezone.localtime()
-    week_start, week_end, recovery_week_is_next = _get_current_workweek_window(today)
+    week_start, week_end, recovery_week_is_next = _get_recovery_workweek_window(today)
     month_end = date(month_start.year, month_start.month, calendar.monthrange(month_start.year, month_start.month)[1])
     activity_sections = _build_recovery_activity_sections(credit)
     selected_section_code = request.GET.get('section')
