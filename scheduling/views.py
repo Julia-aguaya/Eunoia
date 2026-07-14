@@ -1254,12 +1254,19 @@ def _reconcile_fixed_plan_bookings(
     }
 
 
-def _get_student_portal_context(user, *, reconcile_fixed_bookings=True, sync_end_date=None):
+def _get_student_portal_context(
+    user,
+    *,
+    reconcile_fixed_bookings=True,
+    sync_end_date=None,
+    ensure_portal_sessions=False,
+):
     now = timezone.now()
     today = timezone.localdate()
     current_week_start, current_week_end, current_week_is_next = _get_current_workweek_window(today)
     portal_range_end = _resolve_student_portal_sync_end(reference_date=today, requested_end_date=sync_end_date)
-    _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
+    if ensure_portal_sessions:
+        _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
     if reconcile_fixed_bookings:
         _ensure_fixed_plan_bookings(user, start_date=today, end_date=portal_range_end)
     portal_sections = user.get_effective_portal_sections_for(today) or user.get_effective_portal_sections_for(current_week_start)
@@ -2237,7 +2244,11 @@ def agenda_view(request):
     month_start = _parse_agenda_month(request.GET.get('month'), today)
     agenda_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
     visible_range_end = agenda_calendar[-1][-1]
-    context = _get_student_portal_context(request.user, sync_end_date=visible_range_end)
+    context = _get_student_portal_context(
+        request.user,
+        sync_end_date=visible_range_end,
+        ensure_portal_sessions=True,
+    )
     context.update(_build_agenda_calendar_context(user=request.user, context=context, month_start=month_start))
     context.update(_build_booking_detail_modal_context(request=request, context=context))
     context['detail_back_url'] = f"{reverse('agenda')}?{urlencode({'month': month_start.strftime('%Y-%m')})}"
@@ -2315,7 +2326,11 @@ def use_recovery_view(request, recovery_credit_id):
     month_start = _parse_agenda_month(request.GET.get('month'), today)
     recovery_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
     visible_range_end = recovery_calendar[-1][-1]
-    context = _get_student_portal_context(request.user, sync_end_date=visible_range_end)
+    context = _get_student_portal_context(
+        request.user,
+        sync_end_date=visible_range_end,
+        ensure_portal_sessions=True,
+    )
     credit = get_object_or_404(
         RecoveryCredit.objects.select_related('section', 'origin_session'),
         pk=recovery_credit_id,
