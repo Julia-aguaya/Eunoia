@@ -704,6 +704,174 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, carried_session.start_time.strftime('%H:%M'))
         self.assertContains(response, 'Clase confirmada')
 
+    def test_agenda_auto_generates_and_books_next_week_monthly_plan_sessions(self):
+        Booking.objects.filter(student=self.student).delete()
+        next_month_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        next_month_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            section=self.section,
+        )
+        next_month_plan.assign_weekly_slots([next_month_slot])
+        saturday = date(2026, 6, 27)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+        MonthlyAccessStatus.objects.get_or_create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+
+        response = self.get_portal_page(reverse('agenda'), fixed_now=saturday_now, today=saturday)
+
+        generated_session = ClassSession.objects.get(
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(18, 0),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            Booking.objects.filter(
+                session=generated_session,
+                student=self.student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertTrue(
+            any(
+                card['booking'].session_id == generated_session.id
+                for card in response.context['agenda_visible_booking_cards']
+            )
+        )
+
+    def test_agenda_projects_fixed_plan_into_future_month_until_another_plan_replaces_it(self):
+        Booking.objects.filter(student=self.student).delete()
+        carried_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 6, 1),
+            section=self.section,
+            notes='Plan que sigue vigente hasta nuevo aviso',
+        )
+        june_plan.assign_weekly_slots([carried_slot])
+        saturday = date(2026, 6, 27)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+        MonthlyAccessStatus.objects.get_or_create(
+            student=self.student,
+            month=date(2026, 7, 1),
+            defaults={
+                'status': MonthlyAccessStatusType.ACTIVE,
+                'booking_enabled': True,
+            },
+        )
+
+        response = self.get_portal_page(
+            f"{reverse('agenda')}?month=2026-07",
+            fixed_now=saturday_now,
+            today=saturday,
+        )
+
+        generated_session = ClassSession.objects.get(
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(18, 0),
+        )
+        booking = Booking.objects.get(session=generated_session, student=self.student)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertTrue(
+            any(
+                card['booking'].session_id == generated_session.id
+                for card in response.context['agenda_visible_booking_cards']
+            )
+        )
+
+    def test_agenda_switches_to_new_fixed_schedule_from_future_plan_change(self):
+        Booking.objects.filter(student=self.student).delete()
+        old_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            is_active=True,
+        )
+        new_slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.FRIDAY,
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            is_active=True,
+        )
+        june_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 6, 1),
+            section=self.section,
+            notes='Horario vigente hasta agosto',
+        )
+        june_plan.assign_weekly_slots([old_slot])
+        august_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 8, 1),
+            section=self.section,
+            notes='Nuevo horario desde agosto',
+        )
+        august_plan.assign_weekly_slots([new_slot])
+        saturday = date(2026, 6, 27)
+        saturday_now = timezone.make_aware(datetime(2026, 6, 27, 12, 0))
+        for month_start in [date(2026, 7, 1), date(2026, 8, 1)]:
+            MonthlyAccessStatus.objects.get_or_create(
+                student=self.student,
+                month=month_start,
+                defaults={
+                    'status': MonthlyAccessStatusType.ACTIVE,
+                    'booking_enabled': True,
+                },
+            )
+
+        response = self.get_portal_page(
+            f"{reverse('agenda')}?month=2026-08",
+            fixed_now=saturday_now,
+            today=saturday,
+        )
+
+        august_booking = Booking.objects.get(
+            student=self.student,
+            session__section=self.section,
+            session__date=date(2026, 8, 7),
+            session__start_time=time(19, 0),
+            status=BookingStatus.BOOKED,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            Booking.objects.filter(
+                student=self.student,
+                session__section=self.section,
+                session__date=date(2026, 8, 5),
+                session__start_time=time(18, 0),
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertTrue(
+            any(
+                card['booking'].session_id == august_booking.session_id
+                for card in response.context['agenda_visible_booking_cards']
+            )
+        )
+
     def test_agenda_blocks_actions_when_operational_access_is_not_available(self):
         access = self.student.get_monthly_access_for(self.today)
         access.mark_pending_payment()

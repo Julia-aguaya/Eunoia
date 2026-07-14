@@ -852,6 +852,14 @@ def _ensure_fixed_plan_bookings(user, *, start_date, end_date):
     _reconcile_fixed_plan_bookings(user, start_date=start_date, end_date=end_date)
 
 
+def _resolve_student_portal_sync_end(*, reference_date, requested_end_date=None):
+    _, current_week_end, _ = _get_current_workweek_window(reference_date)
+    sync_end = _shift_month(normalize_month_start(current_week_end), 1) - timedelta(days=1)
+    if requested_end_date is not None and requested_end_date > sync_end:
+        return requested_end_date
+    return sync_end
+
+
 def _resolve_admin_monthly_plan_sync_end(*, plan_month, reference_date):
     month_end = _shift_month(plan_month, 1) - timedelta(days=1)
     if plan_month != normalize_month_start(reference_date):
@@ -1246,11 +1254,12 @@ def _reconcile_fixed_plan_bookings(
     }
 
 
-def _get_student_portal_context(user, *, reconcile_fixed_bookings=True):
+def _get_student_portal_context(user, *, reconcile_fixed_bookings=True, sync_end_date=None):
     now = timezone.now()
     today = timezone.localdate()
     current_week_start, current_week_end, current_week_is_next = _get_current_workweek_window(today)
-    portal_range_end = _shift_month(normalize_month_start(current_week_end), 1) - timedelta(days=1)
+    portal_range_end = _resolve_student_portal_sync_end(reference_date=today, requested_end_date=sync_end_date)
+    _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
     if reconcile_fixed_bookings:
         _ensure_fixed_plan_bookings(user, start_date=today, end_date=portal_range_end)
     portal_sections = user.get_effective_portal_sections_for(today) or user.get_effective_portal_sections_for(current_week_start)
@@ -2226,7 +2235,9 @@ def dashboard_view(request):
 def agenda_view(request):
     today = timezone.localdate()
     month_start = _parse_agenda_month(request.GET.get('month'), today)
-    context = _get_student_portal_context(request.user, reconcile_fixed_bookings=False)
+    agenda_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
+    visible_range_end = agenda_calendar[-1][-1]
+    context = _get_student_portal_context(request.user, sync_end_date=visible_range_end)
     context.update(_build_agenda_calendar_context(user=request.user, context=context, month_start=month_start))
     context.update(_build_booking_detail_modal_context(request=request, context=context))
     context['detail_back_url'] = f"{reverse('agenda')}?{urlencode({'month': month_start.strftime('%Y-%m')})}"
@@ -2300,7 +2311,11 @@ def create_booking_view(request, session_id):
 
 @student_portal_required
 def use_recovery_view(request, recovery_credit_id):
-    context = _get_student_portal_context(request.user, reconcile_fixed_bookings=False)
+    today = timezone.localdate()
+    month_start = _parse_agenda_month(request.GET.get('month'), today)
+    recovery_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
+    visible_range_end = recovery_calendar[-1][-1]
+    context = _get_student_portal_context(request.user, sync_end_date=visible_range_end)
     credit = get_object_or_404(
         RecoveryCredit.objects.select_related('section', 'origin_session'),
         pk=recovery_credit_id,
@@ -2316,7 +2331,6 @@ def use_recovery_view(request, recovery_credit_id):
 
     now = timezone.localtime()
     week_start, week_end, recovery_week_is_next = _get_current_workweek_window(today)
-    month_start = _parse_agenda_month(request.GET.get('month'), today)
     month_end = date(month_start.year, month_start.month, calendar.monthrange(month_start.year, month_start.month)[1])
     activity_sections = _build_recovery_activity_sections(credit)
     selected_section_code = request.GET.get('section')
