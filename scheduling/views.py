@@ -1062,6 +1062,28 @@ def _has_blocking_fixed_plan_history(*, session, historical_bookings_by_session_
     return bool(historical_bookings_by_session_id.get(session.id))
 
 
+def _can_recreate_fixed_booking_over_history(*, session, student, historical_bookings_by_session_id):
+    historical_bookings = historical_bookings_by_session_id.get(session.id, [])
+    if not historical_bookings:
+        return False
+
+    for booking in historical_bookings:
+        if booking.status != BookingStatus.CANCELLED:
+            return False
+        if booking.source != BookingSource.FIXED_SLOT:
+            return False
+        if booking.used_recovery_credit_id is not None:
+            return False
+        if booking.moved_from_booking_id is not None or booking.moved_to_session_id is not None:
+            return False
+        if booking.cancellation_generates_recovery:
+            return False
+        if booking.cancelled_by_id == student.pk:
+            return False
+
+    return True
+
+
 def _collect_validation_error_messages(exc):
     if hasattr(exc, 'message_dict'):
         messages = []
@@ -1188,6 +1210,11 @@ def _reconcile_fixed_plan_bookings(
 
                 if (
                     not allow_new_booking_over_history
+                    and not _can_recreate_fixed_booking_over_history(
+                        session=session,
+                        student=user,
+                        historical_bookings_by_session_id=historical_bookings_by_session_id,
+                    )
                     and _has_blocking_fixed_plan_history(
                         session=session,
                         historical_bookings_by_session_id=historical_bookings_by_session_id,
