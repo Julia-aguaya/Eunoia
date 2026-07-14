@@ -119,6 +119,66 @@ class StudentPortalViewTests(TestCase):
         self.assertContains(response, self.other_section.name)
         self.assertFalse(Booking.objects.filter(session=self.other_session, student=self.student, status=BookingStatus.BOOKED).exists())
 
+    def test_agenda_backfills_missing_reformer_abajo_plan_before_generating_future_sessions(self):
+        reformer_abajo = Section.objects.get(code='reformer_abajo')
+        existing_slot = WeeklyClassSlot.objects.create(
+            section=reformer_abajo,
+            weekday=Weekday.WEDNESDAY,
+            start_time=time(19, 0),
+            end_time=time(20, 0),
+            is_active=True,
+        )
+        existing_session = ClassSession.objects.create(
+            section=reformer_abajo,
+            slot=existing_slot,
+            date=date(2026, 6, 10),
+            start_time=existing_slot.start_time,
+            end_time=existing_slot.end_time,
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
+        temporary_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 6, 1),
+            section=reformer_abajo,
+        )
+        temporary_plan.assign_weekly_slots([existing_slot])
+        existing_booking = Booking.objects.create_booking(session=existing_session, student=self.student)
+        Booking.objects.filter(pk=existing_booking.pk).update(source=BookingSource.FIXED_SLOT)
+        StudentMonthlyPlan.objects.filter(pk=temporary_plan.pk).delete()
+
+        response = self.get_portal_page(reverse('agenda'))
+
+        existing_booking.refresh_from_db()
+        generated_session = ClassSession.objects.get(
+            section=reformer_abajo,
+            date=date(2026, 6, 17),
+            start_time=existing_slot.start_time,
+        )
+        generated_booking = Booking.objects.get(
+            session=generated_session,
+            student=self.student,
+            status=BookingStatus.BOOKED,
+        )
+        backfilled_plan = StudentMonthlyPlan.objects.get(
+            student=self.student,
+            month=date(2026, 6, 1),
+            section=reformer_abajo,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(existing_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(generated_session.slot_id, existing_slot.pk)
+        self.assertEqual(generated_booking.source, BookingSource.FIXED_SLOT)
+        self.assertEqual(backfilled_plan.get_weekly_slots(), [existing_slot])
+        self.assertTrue(
+            any(
+                card['booking'].session_id == generated_session.id
+                for card in response.context['agenda_visible_booking_cards']
+            )
+        )
+        self.assertContains(response, 'Reformer Abajo')
+
     def test_my_bookings_shows_active_booking_and_recovery_credit(self):
         response = self.get_portal_page(reverse('my-bookings'))
 

@@ -1293,6 +1293,7 @@ def _get_student_portal_context(
     current_week_start, current_week_end, current_week_is_next = _get_current_workweek_window(today)
     portal_range_end = _resolve_student_portal_sync_end(reference_date=today, requested_end_date=sync_end_date)
     if ensure_portal_sessions:
+        _backfill_missing_monthly_plans_from_fixed_bookings(user, start_date=today, end_date=portal_range_end)
         _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
     if reconcile_fixed_bookings:
         _ensure_fixed_plan_bookings(user, start_date=today, end_date=portal_range_end)
