@@ -433,6 +433,20 @@ class AuthenticationFlowTests(TestCase):
 
         self.assertRedirects(response, reverse('agenda'))
 
+    def test_student_login_ignores_staff_portal_next_url(self):
+        user = self.create_student(
+            email='student-next-staff@example.com',
+            password='StudentNext2026!',
+            must_change_password=False,
+        )
+
+        response = self.client.post(
+            reverse('login'),
+            {'email': user.email, 'password': 'StudentNext2026!', 'next': reverse('admin-student-list')},
+        )
+
+        self.assertRedirects(response, reverse('dashboard'))
+
     def test_staff_login_ignores_student_portal_next_url(self):
         staff_user = User.objects.create_user(
             email='staff-next-student@example.com',

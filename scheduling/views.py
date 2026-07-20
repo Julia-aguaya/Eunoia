@@ -169,18 +169,47 @@ STUDENT_PORTAL_URL_NAMES = {
 }
 
 
-def _is_student_portal_url(next_url):
+STAFF_PORTAL_URL_NAMES = {
+    'admin-student-list',
+    'admin-class-agenda',
+    'admin-create-class-session',
+    'admin-cancel-class-session',
+    'admin-remove-class-session-makeup-booking',
+    'admin-update-class-session',
+    'admin-delete-class-session',
+    'admin-class-session-detail',
+    'admin-create-holiday-closure',
+    'admin-student-detail',
+    'admin-update-student-monthly-plan',
+    'admin-grant-manual-recovery',
+    'admin-expire-recovery-credit',
+    'admin-mark-student-paid',
+    'admin-toggle-student-access',
+}
+
+
+def _resolve_url_name(next_url):
     path = urlsplit(next_url).path
     if not path:
-        return False
+        return None
 
     try:
-        return resolve(path).url_name in STUDENT_PORTAL_URL_NAMES
+        return resolve(path).url_name
     except Resolver404:
-        return False
+        return None
+
+
+def _is_student_portal_url(next_url):
+    return _resolve_url_name(next_url) in STUDENT_PORTAL_URL_NAMES
+
+
+def _is_staff_portal_url(next_url):
+    return _resolve_url_name(next_url) in STAFF_PORTAL_URL_NAMES
 
 
 def _get_post_login_redirect_url(*, user, next_url=''):
+    if not user.is_staff and next_url and _is_staff_portal_url(next_url):
+        return _get_default_portal_url(user)
     if user.is_staff and next_url and _is_student_portal_url(next_url):
         return _get_default_portal_url(user)
     return next_url or _get_default_portal_url(user)
