@@ -214,10 +214,18 @@ def _is_staff_portal_url(next_url):
     return _resolve_url_name(next_url) in STAFF_PORTAL_URL_NAMES
 
 
+def _is_allowed_portal_redirect_for_user(*, user, next_url):
+    if not next_url:
+        return False
+    if not user.is_staff and _is_staff_portal_url(next_url):
+        return False
+    if user.is_staff and _is_student_portal_url(next_url):
+        return False
+    return True
+
+
 def _get_post_login_redirect_url(*, user, next_url=''):
-    if not user.is_staff and next_url and _is_staff_portal_url(next_url):
-        return _get_default_portal_url(user)
-    if user.is_staff and next_url and _is_student_portal_url(next_url):
+    if next_url and not _is_allowed_portal_redirect_for_user(user=user, next_url=next_url):
         return _get_default_portal_url(user)
     return next_url or _get_default_portal_url(user)
 
@@ -2227,7 +2235,11 @@ def _get_class_session_management_error_message(exc):
 
 def _get_safe_redirect_url(request, default_name='agenda'):
     next_url = request.POST.get('next') or request.GET.get('next')
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if (
+        next_url
+        and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()})
+        and _is_allowed_portal_redirect_for_user(user=request.user, next_url=next_url)
+    ):
         return next_url
     return reverse(default_name)
 
@@ -2694,7 +2706,11 @@ def admin_remove_class_session_makeup_booking_view(request, session_id, booking_
     session = get_object_or_404(ClassSession.objects.select_related('section', 'holiday_closure'), pk=session_id)
     requested_next_url = request.POST.get('next', '').strip()
     redirect_url = requested_next_url
-    if not redirect_url or not url_has_allowed_host_and_scheme(redirect_url, allowed_hosts={request.get_host()}):
+    if (
+        not redirect_url
+        or not url_has_allowed_host_and_scheme(redirect_url, allowed_hosts={request.get_host()})
+        or not _is_allowed_portal_redirect_for_user(user=request.user, next_url=redirect_url)
+    ):
         redirect_url = _build_staff_class_session_detail_url(session.pk)
 
     if request.method != 'POST':

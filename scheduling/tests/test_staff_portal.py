@@ -4342,6 +4342,41 @@ class AdminPortalViewTests(TestCase):
             [booking.pk],
         )
 
+    def test_staff_makeup_removal_ignores_student_portal_next_url(self):
+        makeup_student = User.objects.create_user(
+            email='makeup-next-redirect@example.com',
+            password='StudentPass2026!',
+            first_name='Dorothy',
+            last_name='Vaughan',
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=makeup_student,
+            month=normalize_month_start(self.upcoming_session.date),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        recovery_credit = RecoveryCredit.objects.grant_manual_credit(
+            student=makeup_student,
+            section=self.section,
+            granted_by=self.staff_user,
+            reference_date=self.upcoming_session.date,
+        )
+        booking = Booking.objects.create_booking(
+            session=self.upcoming_session,
+            student=makeup_student,
+            used_recovery_credit=recovery_credit,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-remove-class-session-makeup-booking', args=[self.upcoming_session.pk, booking.pk]),
+            {'next': '/agenda'},
+        )
+
+        self.assertRedirects(response, reverse('admin-class-session-detail', args=[self.upcoming_session.pk]))
+
     def test_staff_cannot_remove_regular_booking_from_makeup_action(self):
         regular_booking = Booking.objects.get(session=self.upcoming_session, student=self.active_student)
         self.client.force_login(self.staff_user)

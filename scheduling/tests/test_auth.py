@@ -463,6 +463,22 @@ class AuthenticationFlowTests(TestCase):
 
                 self.assertRedirects(response, reverse('dashboard'))
 
+    def test_student_login_ignores_staff_portal_next_url_with_querystring(self):
+        user = self.create_student(
+            email='student-next-staff-query@example.com',
+            password='StudentNextQuery2026!',
+            must_change_password=False,
+        )
+
+        for next_url in ('/staff?status=inactive', '/staff/clases?date=2026-07-23'):
+            with self.subTest(next_url=next_url):
+                response = self.client.post(
+                    reverse('login'),
+                    {'email': user.email, 'password': 'StudentNextQuery2026!', 'next': next_url},
+                )
+
+                self.assertRedirects(response, reverse('dashboard'))
+
     def test_staff_login_ignores_student_portal_next_url(self):
         staff_user = User.objects.create_user(
             email='staff-next-student@example.com',
@@ -503,6 +519,28 @@ class AuthenticationFlowTests(TestCase):
 
         self.assertRedirects(response, reverse('admin-student-list'))
 
+    def test_staff_login_ignores_student_portal_next_url_with_querystring(self):
+        staff_user = User.objects.create_user(
+            email='staff-next-student-query@example.com',
+            password='StaffNextQuery2026!',
+            first_name='Edsger',
+            last_name='Dijkstra',
+            role='admin',
+            is_staff=True,
+            must_change_password=False,
+        )
+        staff_user.temporary_password_set_at = None
+        staff_user.save(update_fields=['temporary_password_set_at', 'updated_at'])
+
+        for next_url in ('/?month=2026-07', '/agenda?month=2026-07'):
+            with self.subTest(next_url=next_url):
+                response = self.client.post(
+                    reverse('login'),
+                    {'email': staff_user.email, 'password': 'StaffNextQuery2026!', 'next': next_url},
+                )
+
+                self.assertRedirects(response, reverse('admin-student-list'))
+
     def test_staff_is_redirected_away_from_student_portal_views(self):
         staff_user = User.objects.create_user(
             email='staff-student-portal@example.com',
@@ -524,6 +562,56 @@ class AuthenticationFlowTests(TestCase):
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertRedirects(response, reverse('admin-student-list'))
+
+    def test_student_post_actions_ignore_staff_portal_next_url(self):
+        user = self.create_student(
+            email='student-booking-next-staff@example.com',
+            password='StudentBooking2026!',
+            must_change_password=False,
+        )
+        session = self.create_future_session()
+        MonthlyAccessStatus.objects.create(
+            student=user,
+            month=normalize_month_start(session.date),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse('create-booking', args=[session.pk]),
+            {'next': '/staff'},
+        )
+
+        self.assertRedirects(response, reverse('agenda'))
+        self.assertTrue(Booking.objects.filter(session=session, student=user).exists())
+
+    def test_staff_post_actions_ignore_student_portal_next_url(self):
+        student = self.create_student(
+            email='student-mark-paid@example.com',
+            password='StudentPaid2026!',
+            must_change_password=False,
+        )
+        staff_user = User.objects.create_user(
+            email='staff-mark-paid@example.com',
+            password='StaffPaid2026!',
+            first_name='Joan',
+            last_name='Clarke',
+            role='admin',
+            is_staff=True,
+            primary_section=self.section,
+            must_change_password=False,
+        )
+        staff_user.temporary_password_set_at = None
+        staff_user.save(update_fields=['temporary_password_set_at', 'updated_at'])
+        self.client.force_login(staff_user)
+
+        response = self.client.post(
+            reverse('admin-mark-student-paid', args=[student.pk]),
+            {'next': '/agenda'},
+        )
+
+        self.assertRedirects(response, reverse('admin-student-list'))
 
     def test_login_ignores_unsafe_next_url(self):
         user = self.create_student(
