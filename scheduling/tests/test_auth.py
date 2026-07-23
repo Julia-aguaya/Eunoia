@@ -447,6 +447,22 @@ class AuthenticationFlowTests(TestCase):
 
         self.assertRedirects(response, reverse('dashboard'))
 
+    def test_student_login_ignores_staff_portal_next_url_without_trailing_slash(self):
+        user = self.create_student(
+            email='student-next-staff-noslash@example.com',
+            password='StudentNextNoSlash2026!',
+            must_change_password=False,
+        )
+
+        for next_url in ('/staff', '/staff/clases'):
+            with self.subTest(next_url=next_url):
+                response = self.client.post(
+                    reverse('login'),
+                    {'email': user.email, 'password': 'StudentNextNoSlash2026!', 'next': next_url},
+                )
+
+                self.assertRedirects(response, reverse('dashboard'))
+
     def test_staff_login_ignores_student_portal_next_url(self):
         staff_user = User.objects.create_user(
             email='staff-next-student@example.com',
@@ -463,6 +479,26 @@ class AuthenticationFlowTests(TestCase):
         response = self.client.post(
             reverse('login'),
             {'email': staff_user.email, 'password': 'StaffNext2026!', 'next': reverse('dashboard')},
+        )
+
+        self.assertRedirects(response, reverse('admin-student-list'))
+
+    def test_staff_login_ignores_student_portal_next_url_without_trailing_slash(self):
+        staff_user = User.objects.create_user(
+            email='staff-next-student-noslash@example.com',
+            password='StaffNextNoSlash2026!',
+            first_name='Barbara',
+            last_name='Liskov',
+            role='admin',
+            is_staff=True,
+            must_change_password=False,
+        )
+        staff_user.temporary_password_set_at = None
+        staff_user.save(update_fields=['temporary_password_set_at', 'updated_at'])
+
+        response = self.client.post(
+            reverse('login'),
+            {'email': staff_user.email, 'password': 'StaffNextNoSlash2026!', 'next': '/agenda'},
         )
 
         self.assertRedirects(response, reverse('admin-student-list'))

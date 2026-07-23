@@ -193,10 +193,17 @@ def _resolve_url_name(next_url):
     if not path:
         return None
 
-    try:
-        return resolve(path).url_name
-    except Resolver404:
-        return None
+    candidate_paths = [path]
+    if not path.endswith('/'):
+        candidate_paths.append(f'{path}/')
+
+    for candidate_path in candidate_paths:
+        try:
+            return resolve(candidate_path).url_name
+        except Resolver404:
+            continue
+
+    return None
 
 
 def _is_student_portal_url(next_url):
