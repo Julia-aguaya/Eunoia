@@ -381,7 +381,7 @@ class AuthenticationFlowTests(TestCase):
         self.assertIsNone(user.temporary_password_set_at)
         self.assertTrue(user.check_password('DefinitivaSegura2026!'))
         dashboard_response = self.client.get(reverse('dashboard'))
-        self.assertContains(dashboard_response, 'Tus clases')
+        self.assertContains(dashboard_response, 'Turnos de la semana')
 
     def test_change_password_view_redirects_when_reset_is_no_longer_required(self):
         user = self.create_student(
