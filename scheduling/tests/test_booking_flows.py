@@ -402,6 +402,26 @@ class StudentPortalViewTests(TestCase):
         self.assertTrue(self.student.check_password('NuevaSegura2026!'))
         self.assertContains(response, 'Actualizamos tus datos de la cuenta.')
 
+    def test_account_page_does_not_change_password_without_current_password(self):
+        response = self.client.post(
+            reverse('account'),
+            {
+                'first_name': self.student.first_name,
+                'last_name': self.student.last_name,
+                'email': self.student.email,
+                'phone': self.student.phone,
+                'current_password': '',
+                'new_password1': 'NuevaSegura2026!',
+                'new_password2': 'NuevaSegura2026!',
+            },
+        )
+
+        self.student.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ingresa tu contrasena actual para cambiarla.')
+        self.assertTrue(self.student.check_password('PortalPass2026!'))
+        self.assertFalse(self.student.check_password('NuevaSegura2026!'))
+
     def test_dashboard_shows_only_current_week_bookings(self):
         next_week_session = ClassSession.objects.create(
             section=self.section,

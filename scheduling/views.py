@@ -2351,6 +2351,9 @@ def my_bookings_view(request):
 
 @student_portal_required
 def account_view(request):
+    if request.user.must_change_password:
+        return redirect('change-password-required')
+
     context = _get_student_portal_context(request.user)
     is_editing = request.method == 'POST' or request.GET.get('edit') == '1'
     form = AccountProfileForm(request.user, request.POST or None)

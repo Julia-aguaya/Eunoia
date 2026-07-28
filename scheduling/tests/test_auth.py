@@ -362,6 +362,18 @@ class AuthenticationFlowTests(TestCase):
         dashboard_response = self.client.get(reverse('dashboard'))
         self.assertRedirects(dashboard_response, reverse('change-password-required'))
 
+    def test_account_redirects_to_required_password_change_when_required(self):
+        user = self.create_student(
+            email='must-change-account@example.com',
+            password='TempAccount2026!',
+            must_change_password=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('account'))
+
+        self.assertRedirects(response, reverse('change-password-required'))
+
     def test_password_change_clears_required_reset_flag(self):
         user = self.create_student(
             email='change-ok@example.com',
