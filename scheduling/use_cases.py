@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -19,8 +19,10 @@ from .audit import (
     log_staff_manual_recovery_granted,
     log_staff_monthly_access_change,
 )
+from .fixed_booking_history import restore_recreatable_fixed_booking
 from .models import (
     Booking,
+    BookingCancellationReason,
     BookingSource,
     BookingStatus,
     ClassSession,
@@ -29,6 +31,8 @@ from .models import (
     MonthlyAccessStatusType,
     RecoveryCredit,
     SessionStatus,
+    User,
+    UserRole,
     WeeklyClassSlot,
     add_months,
     normalize_month_start,
@@ -53,6 +57,22 @@ class MonthlyAccessChange:
     access: MonthlyAccessStatus
     created: bool
     changed: bool
+
+
+@dataclass(frozen=True)
+class MonthlyAccessRollover:
+    month: date
+    evaluated_count: int
+    created_count: int
+    skipped_existing_count: int
+    skipped_inactive_count: int
+    failures: tuple['MonthlyAccessRolloverFailure', ...]
+
+
+@dataclass(frozen=True)
+class MonthlyAccessRolloverFailure:
+    student_id: int
+    error: str
 
 
 @dataclass(frozen=True)
@@ -124,6 +144,7 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
             month__in=candidate_access_months,
             status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
+            student__is_active=True,
         )
         .order_by('student_id', 'month')
     )
@@ -171,23 +192,62 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
     if not candidate_pairs:
         return 0
 
-    existing_pairs = set(
-        Booking.objects.filter(
-            session_id__in=sessions_by_id.keys(),
-            student_id__in=candidate_student_ids,
-        ).values_list('session_id', 'student_id')
-    )
+    bookings_by_pair = {}
+    for booking in Booking.objects.filter(
+        session_id__in=sessions_by_id.keys(),
+        student_id__in=candidate_student_ids,
+    ).order_by('pk'):
+        bookings_by_pair.setdefault((booking.session_id, booking.student_id), []).append(booking)
 
     created_count = 0
     for session_id, student_id in candidate_pairs:
         pair = (session_id, student_id)
-        if pair in existing_pairs:
+        bookings = bookings_by_pair.get(pair, [])
+        if any(booking.status == BookingStatus.BOOKED for booking in bookings):
             continue
 
         session = sessions_by_id[session_id]
         student = students_by_id[student_id]
+        if bookings:
+            # Lock the session and its history before restoring an eligible fixed booking.
+            with transaction.atomic():
+                locked_student = User.objects.select_for_update().get(pk=student_id)
+                if not locked_student.is_active:
+                    continue
+                session_ids = list(ClassSession.objects.filter(pk=session_id).order_by('pk').values_list('pk', flat=True))
+                locked_session = ClassSession.objects.select_for_update().get(pk=session_ids[0])
+                access_ids = list(
+                    MonthlyAccessStatus.objects.filter(student_id=locked_student.pk)
+                    .order_by('pk').values_list('pk', flat=True)
+                )
+                list(
+                    MonthlyAccessStatus.objects.select_for_update()
+                    .filter(pk__in=access_ids).order_by('pk')
+                )
+                booking_ids = list(
+                    Booking.objects.filter(session_id=locked_session.pk, student_id=locked_student.pk)
+                    .order_by('pk').values_list('pk', flat=True)
+                )
+                credit_ids = list(
+                    Booking.objects.filter(pk__in=booking_ids, used_recovery_credit_id__isnull=False)
+                    .order_by('used_recovery_credit_id').values_list('used_recovery_credit_id', flat=True)
+                )
+                list(RecoveryCredit.objects.select_for_update().filter(pk__in=credit_ids).order_by('pk'))
+                locked_bookings = list(
+                    Booking.objects.select_for_update()
+                    .filter(pk__in=booking_ids).order_by('pk')
+                )
+                if any(booking.status == BookingStatus.BOOKED for booking in locked_bookings):
+                    continue
+                restore_recreatable_fixed_booking(
+                    session=locked_session,
+                    student=locked_student,
+                    historical_bookings_by_session_id={session_id: locked_bookings},
+                )
+            continue
+
         try:
-            Booking.objects.create_booking(
+            booking = Booking.objects.create_booking(
                 session=session,
                 student=student,
                 source=BookingSource.FIXED_SLOT,
@@ -195,31 +255,26 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
         except ValidationError:
             continue
 
-        existing_pairs.add(pair)
+        bookings_by_pair[pair] = [Booking.objects.get(pk=booking.pk)]
         created_count += 1
 
     return created_count
 
 
 def create_booking(*, session_id, student, used_recovery_credit_id=None, source=BookingSource.FIXED_SLOT):
-    session = ClassSession.objects.select_related('section').get(pk=session_id)
+    session = ClassSession.objects.get(pk=session_id)
     recovery_credit = None
-
     if used_recovery_credit_id:
-        recovery_credit = (
-            RecoveryCredit.objects.select_related('section', 'origin_session')
-            .filter(pk=used_recovery_credit_id, student=student)
-            .first()
-        )
+        recovery_credit = RecoveryCredit.objects.filter(pk=used_recovery_credit_id, student_id=student.pk).first()
         if recovery_credit is None:
             raise ValidationError({'used_recovery_credit': ['Recovery credit is not available for this student.']})
-
-    booking = Booking.objects.create_booking(
-        session=session,
-        student=student,
-        source=source,
-        used_recovery_credit=recovery_credit,
-    )
+    with transaction.atomic():
+        booking = Booking.objects.create_booking(
+            session=session,
+            student=student,
+            source=source,
+            used_recovery_credit=recovery_credit,
+        )
     return CreateBookingResult(
         booking=booking,
         session=booking.session,
@@ -240,7 +295,6 @@ def cancel_class_session(*, session_id, actor=None, when=None, record_audit=Fals
     with transaction.atomic():
         session = (
             ClassSession.objects.select_for_update()
-            .select_related('section', 'holiday_closure')
             .get(pk=session_id)
         )
 
@@ -506,24 +560,37 @@ def _set_student_auth_active(*, student, is_active):
 def _cancel_future_active_bookings_for_student(*, student, actor=None, when=None):
     cancellation_time = when or timezone.now()
     cancelled_count = 0
-    active_future_bookings = list(
-        Booking.objects.select_for_update()
-        .select_related('session')
-        .filter(
-            student=student,
+    booking_ids = list(
+        Booking.objects.filter(
+            student_id=student.pk,
             status__in=Booking.active_statuses(),
             session__date__gte=timezone.localdate(cancellation_time),
-        )
-        .order_by('session__date', 'session__start_time', 'pk')
+        ).order_by('pk').values_list('pk', flat=True)
     )
+    session_ids = list(
+        Booking.objects.filter(pk__in=booking_ids).order_by('session_id').values_list('session_id', flat=True).distinct()
+    )
+    locked_sessions = {
+        session.pk: session
+        for session in ClassSession.objects.select_for_update().filter(pk__in=session_ids).order_by('pk')
+    }
+    access_ids = list(MonthlyAccessStatus.objects.filter(student_id=student.pk).order_by('pk').values_list('pk', flat=True))
+    list(MonthlyAccessStatus.objects.select_for_update().filter(pk__in=access_ids).order_by('pk'))
+    credit_ids = list(
+        Booking.objects.filter(pk__in=booking_ids, used_recovery_credit_id__isnull=False)
+        .order_by('used_recovery_credit_id').values_list('used_recovery_credit_id', flat=True)
+    )
+    list(RecoveryCredit.objects.select_for_update().filter(pk__in=credit_ids).order_by('pk'))
+    active_future_bookings = list(Booking.objects.select_for_update().filter(pk__in=booking_ids).order_by('pk'))
 
     for booking in active_future_bookings:
-        if booking.session.starts_at() <= cancellation_time:
+        if locked_sessions[booking.session_id].starts_at() <= cancellation_time:
             continue
 
         booking.cancelled_at = cancellation_time
         booking.cancelled_by = actor
         booking.cancellation_generates_recovery = False
+        booking.cancellation_reason = BookingCancellationReason.GLOBAL_DEACTIVATION
         booking._transition_to(
             BookingStatus.CANCELLED,
             update_fields=[
@@ -531,6 +598,7 @@ def _cancel_future_active_bookings_for_student(*, student, actor=None, when=None
                 'cancelled_at',
                 'cancelled_by',
                 'cancellation_generates_recovery',
+                'cancellation_reason',
                 'updated_at',
             ],
             previous_status=booking.status,
@@ -540,16 +608,60 @@ def _cancel_future_active_bookings_for_student(*, student, actor=None, when=None
     return cancelled_count
 
 
+def rollover_monthly_access_statuses(*, month):
+    target_month = normalize_month_start(month)
+    created_count = 0
+    skipped_existing_count = 0
+    skipped_inactive_count = 0
+    failures = []
+    student_ids = list(User.objects.filter(role=UserRole.STUDENT).values_list('pk', flat=True))
+
+    for student_id in student_ids:
+        try:
+            with transaction.atomic():
+                student = User.objects.select_for_update().get(pk=student_id)
+                if not student.is_active:
+                    skipped_inactive_count += 1
+                    continue
+
+                access = (
+                    MonthlyAccessStatus.objects.select_for_update()
+                    .filter(student=student, month=target_month)
+                    .first()
+                )
+                if access is not None:
+                    skipped_existing_count += 1
+                    continue
+
+                MonthlyAccessStatus.objects.create(
+                    student=student,
+                    month=target_month,
+                    status=MonthlyAccessStatusType.ACTIVE,
+                    booking_enabled=True,
+                )
+                created_count += 1
+        except Exception as exc:
+            failures.append(MonthlyAccessRolloverFailure(student_id=student_id, error=str(exc)))
+
+    return MonthlyAccessRollover(
+        month=target_month,
+        evaluated_count=len(student_ids),
+        created_count=created_count,
+        skipped_existing_count=skipped_existing_count,
+        skipped_inactive_count=skipped_inactive_count,
+        failures=tuple(failures),
+    )
+
+
 def activate_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
     access, created = _get_or_create_monthly_access(student=student, month=month)
     changed = not access.grants_operational_booking_access()
     access.activate_by_payment(actor=actor)
-    auth_changed = _set_student_auth_active(student=student, is_active=True)
 
-    if record_audit and (changed or auth_changed):
+    if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)
 
-    return MonthlyAccessChange(access=access, created=created, changed=changed or auth_changed)
+    return MonthlyAccessChange(access=access, created=created, changed=changed)
 
 
 def suspend_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
@@ -559,19 +671,34 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
         access, created = _get_or_create_monthly_access(student=student, month=month)
         access_changed = access.status != MonthlyAccessStatusType.SUSPENDED or access.booking_enabled
         access.suspend_operational_access(when=suspension_time)
-        auth_changed = _set_student_auth_active(student=student, is_active=False)
-        cancelled_future_bookings = _cancel_future_active_bookings_for_student(
-            student=student,
-            actor=actor,
-            when=suspension_time,
-        )
 
-    changed = access_changed or auth_changed or cancelled_future_bookings > 0
+    changed = access_changed
 
-    if record_audit and (changed or auth_changed):
+    if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)
 
-    return MonthlyAccessChange(access=access, created=created, changed=changed or auth_changed)
+    return MonthlyAccessChange(access=access, created=created, changed=changed)
+
+
+def deactivate_student_globally(*, student, actor=None, when=None):
+    deactivation_time = when or timezone.now()
+
+    with transaction.atomic():
+        locked_student = User.objects.select_for_update().get(pk=student.pk)
+        auth_changed = _set_student_auth_active(student=locked_student, is_active=False)
+        cancelled_future_bookings = _cancel_future_active_bookings_for_student(
+            student=locked_student,
+            actor=actor,
+            when=deactivation_time,
+        )
+
+    return auth_changed or cancelled_future_bookings > 0
+
+
+def reactivate_student_globally(*, student):
+    with transaction.atomic():
+        locked_student = User.objects.select_for_update().get(pk=student.pk)
+        return _set_student_auth_active(student=locked_student, is_active=True)
 
 
 def toggle_student_monthly_access(*, student, actor=None, month=None, record_audit=False):

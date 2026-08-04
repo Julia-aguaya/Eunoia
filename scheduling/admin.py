@@ -25,6 +25,7 @@ from .models import (
     RecoveryCreditStatus,
     Section,
     User,
+    UserRole,
     WeeklyClassSlot,
 )
 from .use_cases import (
@@ -34,6 +35,8 @@ from .use_cases import (
     grant_manual_recovery_credit,
     mark_booking_attended,
     mark_booking_no_show,
+    deactivate_student_globally,
+    reactivate_student_globally,
     suspend_student_monthly_access,
 )
 class UserCreationAdminForm(forms.ModelForm):
@@ -54,7 +57,6 @@ class UserCreationAdminForm(forms.ModelForm):
             'phone',
             'notes',
             'must_change_password',
-            'is_active',
             'is_staff',
             'is_superuser',
             'groups',
@@ -92,7 +94,7 @@ class UserCreationAdminForm(forms.ModelForm):
             notes=self.cleaned_data.get('notes', ''),
             temporary_password=self.cleaned_data.get('temporary_password'),
             must_change_password=self.cleaned_data.get('must_change_password', True),
-            is_active=self.cleaned_data.get('is_active', True),
+            is_active=True,
             is_staff=self.cleaned_data.get('is_staff', False),
             is_superuser=self.cleaned_data.get('is_superuser', False),
             groups=self.cleaned_data.get('groups') or (),
@@ -131,6 +133,11 @@ class UserChangeAdminForm(forms.ModelForm):
         if temporary_password:
             user.set_temporary_password(temporary_password)
         if commit:
+            previous_user = User.objects.get(pk=user.pk)
+            is_student_change = previous_user.role == UserRole.STUDENT or user.role == UserRole.STUDENT
+            if is_student_change:
+                # Student activation is exclusively owned by the explicit global actions below.
+                user.is_active = previous_user.is_active
             user.save()
             self.save_m2m()
         return user
@@ -345,6 +352,22 @@ def reset_temporary_passwords(modeladmin, request, queryset):
     )
 
 
+@admin.action(description='Desactivar alumnas globalmente')
+def deactivate_students_globally(modeladmin, request, queryset):
+    changed = 0
+    for student in queryset.filter(role=UserRole.STUDENT).order_by('pk'):
+        changed += deactivate_student_globally(student=student, actor=request.user)
+    modeladmin.message_user(request, f'Se desactivaron globalmente {changed} alumnas.')
+
+
+@admin.action(description='Reactivar alumnas globalmente')
+def reactivate_students_globally(modeladmin, request, queryset):
+    changed = 0
+    for student in queryset.filter(role=UserRole.STUDENT).order_by('pk'):
+        changed += reactivate_student_globally(student=student)
+    modeladmin.message_user(request, f'Se reactivaron globalmente {changed} alumnas.')
+
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     add_form = UserCreationAdminForm
@@ -355,7 +378,7 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('email', 'first_name', 'last_name', 'primary_section__name')
     list_select_related = ('primary_section',)
     autocomplete_fields = ('primary_section',)
-    actions = (reset_temporary_passwords,)
+    actions = (reset_temporary_passwords, deactivate_students_globally, reactivate_students_globally)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'primary_section', 'phone', 'notes')}),
@@ -378,7 +401,6 @@ class UserAdmin(BaseUserAdmin):
                     'notes',
                     'temporary_password',
                     'must_change_password',
-                    'is_active',
                     'is_staff',
                     'is_superuser',
                 ),
@@ -386,6 +408,12 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
     readonly_fields = ('last_login', 'created_at', 'updated_at', 'temporary_password_set_at')
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj is not None and obj.role == UserRole.STUDENT:
+            return (*readonly_fields, 'is_active')
+        return readonly_fields
 
 
 @admin.register(Section)

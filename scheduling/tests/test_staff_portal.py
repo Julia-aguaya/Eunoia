@@ -52,6 +52,25 @@ class MonthlyAccessAdminActionTests(TestCase):
             ['Se activaron 1 accesos mensuales. Sin cambios: 0.'],
         )
 
+    def test_activate_access_action_does_not_reactivate_globally_deactivated_student(self):
+        access = MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=self.month,
+            status=MonthlyAccessStatusType.PENDING_PAYMENT,
+            booking_enabled=False,
+        )
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+        request = HttpRequest()
+        request.user = self.staff_user
+
+        activate_access_by_payment(self.model_admin, request, MonthlyAccessStatus.objects.filter(pk=access.pk))
+
+        self.student.refresh_from_db()
+        access.refresh_from_db()
+        self.assertFalse(self.student.is_active)
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(access.booking_enabled)
+
     def test_suspend_access_action_uses_monthly_access_use_case_and_records_audit(self):
         access = MonthlyAccessStatus.objects.create(
             student=self.student,
@@ -1041,6 +1060,166 @@ class AdminPortalViewTests(TestCase):
         )
         self.assertEqual(session_row['booked_count'], 1)
         self.assertEqual(session_row['attendees'], [{'full_name': 'Ada Lovelace', 'is_makeup': False}])
+
+    def test_staff_monthly_plan_update_preserves_student_cancellation_with_recovery(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=self.section,
+            notes='Plan fijo vigente',
+        )
+        plan.assign_weekly_slots([slot])
+        sessions = [
+            ClassSession.objects.create(
+                slot=slot,
+                section=self.section,
+                date=session_date,
+                start_time=slot.start_time,
+                end_time=slot.end_time,
+                capacity=6,
+                status=SessionStatus.SCHEDULED,
+            )
+            for session_date in self._all_weekdays_in_month(next_month, Weekday.MONDAY)
+        ]
+        cancelled_booking = Booking.objects.create_booking(session=sessions[0], student=self.active_student)
+        cancelled_booking.cancel_by_student(
+            actor=self.active_student,
+            when=sessions[0].starts_at() - timedelta(days=1),
+        )
+        future_bookings = [
+            Booking.objects.create_booking(session=session, student=self.active_student)
+            for session in sessions[1:]
+        ]
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [slot.pk],
+                'notes': 'Plan fijo vigente',
+            },
+            follow=True,
+        )
+
+        cancelled_booking.refresh_from_db()
+        plan.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(cancelled_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(cancelled_booking.cancelled_by_id, self.active_student.pk)
+        self.assertTrue(cancelled_booking.cancellation_generates_recovery)
+        self.assertTrue(
+            RecoveryCredit.objects.filter(
+                student=self.active_student,
+                origin_session=sessions[0],
+                source=RecoveryCreditSource.TIMELY_CANCELLATION,
+            ).exists()
+        )
+        self.assertFalse(
+            Booking.objects.filter(
+                session=sessions[0],
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertEqual(Booking.objects.filter(session=sessions[0], student=self.active_student).count(), 1)
+        self.assertEqual(plan.get_weekly_slots(), [slot])
+        for booking in future_bookings:
+            booking.refresh_from_db()
+            self.assertEqual(booking.status, BookingStatus.BOOKED)
+
+    def test_staff_monthly_plan_update_preserves_student_cancellation_without_recovery(self):
+        next_month = normalize_month_start(self.current_month + timedelta(days=32))
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student,
+            month=next_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.MONDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_active=True,
+        )
+        plan = StudentMonthlyPlan.objects.create(
+            student=self.active_student,
+            month=next_month,
+            section=self.section,
+            notes='Plan fijo vigente',
+        )
+        plan.assign_weekly_slots([slot])
+        sessions = [
+            ClassSession.objects.create(
+                slot=slot,
+                section=self.section,
+                date=session_date,
+                start_time=slot.start_time,
+                end_time=slot.end_time,
+                capacity=6,
+                status=SessionStatus.SCHEDULED,
+            )
+            for session_date in self._all_weekdays_in_month(next_month, Weekday.MONDAY)
+        ]
+        cancelled_booking = Booking.objects.create_booking(session=sessions[0], student=self.active_student)
+        Booking.objects.filter(pk=cancelled_booking.pk).update(
+            status=BookingStatus.CANCELLED,
+            cancelled_at=timezone.now(),
+            cancelled_by=self.active_student,
+            cancellation_generates_recovery=False,
+        )
+        future_bookings = [
+            Booking.objects.create_booking(session=session, student=self.active_student)
+            for session in sessions[1:]
+        ]
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': next_month.strftime('%Y-%m'),
+                'section': self.section.pk,
+                'slot_ids': [slot.pk],
+                'notes': 'Plan fijo vigente',
+            },
+            follow=True,
+        )
+
+        cancelled_booking.refresh_from_db()
+        plan.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(cancelled_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(cancelled_booking.cancelled_by_id, self.active_student.pk)
+        self.assertFalse(cancelled_booking.cancellation_generates_recovery)
+        self.assertFalse(RecoveryCredit.objects.filter(origin_session=sessions[0]).exists())
+        self.assertFalse(
+            Booking.objects.filter(
+                session=sessions[0],
+                student=self.active_student,
+                status=BookingStatus.BOOKED,
+            ).exists()
+        )
+        self.assertEqual(Booking.objects.filter(session=sessions[0], student=self.active_student).count(), 1)
+        self.assertEqual(plan.get_weekly_slots(), [slot])
+        for booking in future_bookings:
+            booking.refresh_from_db()
+            self.assertEqual(booking.status, BookingStatus.BOOKED)
 
     def test_admin_detail_does_not_recreate_self_cancelled_fixed_booking_on_get(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
@@ -3079,8 +3258,8 @@ class AdminPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(new_booking)
-        self.assertEqual(booking.status, BookingStatus.BOOKED)
-        self.assertContains(response, 'Siguen activas reservas fijas en Cadillac')
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertNotContains(response, 'Siguen activas reservas fijas en Cadillac')
 
     def test_staff_cadillac_plan_update_recreates_obsolete_fixed_booking_when_slot_returns(self):
         old_slot = WeeklyClassSlot.objects.create(
@@ -3183,13 +3362,12 @@ class AdminPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
-        self.assertFalse(
-            StudentMonthlyPlan.objects.filter(
-                student=self.active_student,
-                month=normalize_month_start(self.other_upcoming_session.date),
-                section=self.other_section,
-            ).exists()
+        plan = StudentMonthlyPlan.objects.get(
+            student=self.active_student,
+            month=normalize_month_start(self.other_upcoming_session.date),
+            section=self.other_section,
         )
+        self.assertEqual(plan.get_weekly_slots(), [])
 
     def test_non_staff_user_cannot_update_monthly_plan(self):
         slot = WeeklyClassSlot.objects.create(
@@ -3685,7 +3863,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
-        self.assertFalse(self.active_student.is_active)
+        self.assertTrue(self.active_student.is_active)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk, action=AuditAction.STATUS_CHANGE)
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['student_id'], self.active_student.pk)
@@ -3693,7 +3871,6 @@ class AdminPortalViewTests(TestCase):
         self.assertFalse(audit_log.payload['booking_enabled'])
         self.assertEqual(response.request['PATH_INFO'], reverse('admin-student-detail', args=[self.active_student.pk]))
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
-        self.assertContains(response, 'Bloqueado')
 
     def test_staff_can_suspend_current_month_access(self):
         self.client.force_login(self.staff_user)
@@ -3709,11 +3886,11 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
-        self.assertFalse(self.active_student.is_active)
+        self.assertTrue(self.active_student.is_active)
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
-        self.assertEqual(response.context['admin_students'], [])
+        self.assertEqual(response.context['admin_students'][0]['student'], self.active_student)
 
-    def test_staff_suspension_cancels_future_booking_and_removes_student_from_class_detail(self):
+    def test_staff_suspension_preserves_future_booking(self):
         self.client.force_login(self.staff_user)
 
         response = self.client.post(
@@ -3732,11 +3909,9 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(booking.status, BookingStatus.CANCELLED)
-        self.assertEqual(booking.cancelled_by, self.staff_user)
-        self.assertFalse(booking.cancellation_generates_recovery)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
         self.assertEqual(detail_response.status_code, 200)
-        self.assertEqual(detail_response.context['staff_session_active_bookings'], [])
+        self.assertEqual(detail_response.context['staff_session_active_bookings'][0].student, self.active_student)
         self.assertContains(detail_response, 'Ada Lovelace')
 
     def test_staff_can_activate_student_without_current_month_access(self):
@@ -3770,7 +3945,7 @@ class AdminPortalViewTests(TestCase):
         self.assertTrue(audit_log.payload['booking_enabled'])
         self.assertContains(response, 'Se activo el acceso operativo de Katherine Johnson')
 
-    def test_staff_can_reactivate_suspended_inactive_student_from_detail(self):
+    def test_staff_monthly_activation_does_not_reactivate_globally_inactive_student(self):
         access = self.active_student.get_monthly_access_for(self.current_month)
         access.suspend_operational_access()
         self.active_student.is_active = False
@@ -3788,7 +3963,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
-        self.assertTrue(self.active_student.is_active)
+        self.assertFalse(self.active_student.is_active)
         self.assertContains(response, 'Se activo el acceso operativo de Ada Lovelace')
 
     def test_staff_can_mark_student_paid_and_activate_access(self):

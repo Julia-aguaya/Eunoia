@@ -54,6 +54,10 @@ class BookingSource(models.TextChoices):
     MANUAL = 'manual', 'Manual'
 
 
+class BookingCancellationReason(models.TextChoices):
+    GLOBAL_DEACTIVATION = 'global_deactivation', 'Global Deactivation'
+
+
 class SessionStatus(models.TextChoices):
     SCHEDULED = 'scheduled', 'Scheduled'
     CANCELLED = 'cancelled', 'Cancelled'
@@ -369,11 +373,14 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         return self.get_effective_monthly_plan_slot_for_session(session) is not None
 
     def get_operational_monthly_access_for(self, target_date):
+        if not self.is_active:
+            return None
+
         access = self.get_monthly_access_for(target_date)
         if access is not None:
             return access
 
-        if not self.is_active or target_date.day > 10:
+        if target_date.day > 10:
             return None
 
         previous_month = add_months(normalize_month_start(target_date), -1)
@@ -1004,6 +1011,35 @@ class RecoveryCredit(TimeStampedModel):
 
 
 class BookingManager(models.Manager):
+    def create_fixed_booking_while_locked(
+        self,
+        *,
+        session,
+        student,
+        context_is_eligible,
+        locked_bookings,
+    ):
+        """Insert a repaired fixed booking after the caller has revalidated locked rows."""
+        if not context_is_eligible:
+            raise ValidationError({'student': ['Student is no longer eligible for this fixed booking.']})
+        if any(booking.status == BookingStatus.BOOKED for booking in locked_bookings):
+            raise ValidationError({'student': ['Student already has an active booking for this session.']})
+        if locked_bookings:
+            raise ValidationError({'student': ['Student already has booking history for this fixed plan session.']})
+        if self.filter(session_id=session.pk, status=BookingStatus.BOOKED).count() >= session.capacity:
+            raise ValidationError({'session': ['This session has reached its capacity.']})
+
+        booking = self.model(
+            session_id=session.pk,
+            student_id=student.pk,
+            status=BookingStatus.BOOKED,
+            source=BookingSource.FIXED_SLOT,
+        )
+        # The caller holds the canonical rows and performed the equivalent
+        # direct-ID validation, so persist without the model lifecycle hook.
+        booking.save_base(force_insert=True, using=self.db)
+        return booking
+
     def create_booking(
         self,
         *,
@@ -1014,16 +1050,39 @@ class BookingManager(models.Manager):
         **extra_fields,
     ):
         with transaction.atomic():
-            locked_session = ClassSession.objects.select_for_update().select_related('section').get(pk=session.pk)
+            locked_student = User.objects.select_for_update().get(pk=student.pk)
+            if not locked_student.is_active:
+                raise ValidationError({'student': ['Inactive students cannot hold active bookings.']})
+            session_ids = list(ClassSession.objects.filter(pk=session.pk).order_by('pk').values_list('pk', flat=True))
+            locked_session = ClassSession.objects.select_for_update().get(pk=session_ids[0])
+            # Booking validation reads monthly access; lock it before any credit or
+            # booking row so all booking writers follow the global protocol.
+            access_ids = list(
+                MonthlyAccessStatus.objects.filter(student_id=locked_student.pk)
+                .order_by('pk').values_list('pk', flat=True)
+            )
+            list(
+                MonthlyAccessStatus.objects.select_for_update()
+                .filter(pk__in=access_ids).order_by('pk')
+            )
             recovery_credit = extra_fields.pop('used_recovery_credit', None)
             locked_credit = None
             if recovery_credit is not None:
-                locked_credit = RecoveryCredit.objects.select_for_update().get(pk=recovery_credit.pk)
+                credit_ids = list(RecoveryCredit.objects.filter(pk=recovery_credit.pk).order_by('pk').values_list('pk', flat=True))
+                locked_credit = RecoveryCredit.objects.select_for_update().get(pk=credit_ids[0])
                 if source == BookingSource.FIXED_SLOT:
                     source = BookingSource.MAKEUP
+            booking_ids = list(
+                self.filter(session_id=locked_session.pk, student_id=locked_student.pk)
+                .order_by('pk').values_list('pk', flat=True)
+            )
+            list(
+                self.select_for_update()
+                .filter(pk__in=booking_ids).order_by('pk')
+            )
             booking = self.model(
                 session=locked_session,
-                student=student,
+                student=locked_student,
                 status=BookingStatus.BOOKED,
                 source=source,
                 used_recovery_credit=locked_credit,
@@ -1032,7 +1091,7 @@ class BookingManager(models.Manager):
             booking._allow_fixed_plan_history = allow_fixed_plan_history
             booking.save(force_insert=True)
             if locked_credit is not None:
-                locked_credit.mark_as_used(student=student, session=locked_session)
+                locked_credit.mark_as_used(student=locked_student, session=locked_session)
                 locked_credit.save(update_fields=['status', 'used_at', 'updated_at'])
             return booking
 
@@ -1088,6 +1147,12 @@ class Booking(TimeStampedModel):
         related_name='cancelled_bookings',
     )
     cancellation_generates_recovery = models.BooleanField(default=False)
+    cancellation_reason = models.CharField(
+        max_length=32,
+        choices=BookingCancellationReason.choices,
+        null=True,
+        blank=True,
+    )
     attendance_marked_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
@@ -1149,6 +1214,30 @@ class Booking(TimeStampedModel):
         self.save(update_fields=update_fields)
         return self
 
+    def restore_technical_fixed_booking(self):
+        """Restore an audited technical fixed-slot cancellation in place."""
+        if self.status != BookingStatus.CANCELLED:
+            raise ValidationError('Only cancelled bookings can be technically restored.')
+
+        self._allow_technical_fixed_restore = True
+        try:
+            self.status = BookingStatus.BOOKED
+            self.cancelled_at = None
+            self.cancelled_by = None
+            self.cancellation_generates_recovery = False
+            self.cancellation_reason = None
+            self.save(update_fields=[
+                'status',
+                'cancelled_at',
+                'cancelled_by',
+                'cancellation_generates_recovery',
+                'cancellation_reason',
+                'updated_at',
+            ])
+        finally:
+            self.__dict__.pop('_allow_technical_fixed_restore', None)
+        return self
+
     def clean(self):
         super().clean()
 
@@ -1158,7 +1247,7 @@ class Booking(TimeStampedModel):
             errors.setdefault(field, []).append(message)
 
         previous_status = self._stored_status()
-        if previous_status is not None:
+        if previous_status is not None and not getattr(self, '_allow_technical_fixed_restore', False):
             try:
                 self.validate_status_transition(self.status, previous_status=previous_status)
             except ValidationError as exc:
@@ -1206,6 +1295,9 @@ class Booking(TimeStampedModel):
 
         student = self.student
         session = self.session
+
+        if not student.is_active:
+            add_error('student', 'Inactive students cannot hold active bookings.')
 
         effective_sections = student.get_effective_portal_sections_for(session.date)
 
@@ -1277,7 +1369,6 @@ class Booking(TimeStampedModel):
         with transaction.atomic():
             booking = (
                 Booking.objects.select_for_update()
-                .select_related('session', 'session__holiday_closure')
                 .get(pk=self.pk)
             )
 
@@ -1312,10 +1403,9 @@ class Booking(TimeStampedModel):
         with transaction.atomic():
             booking = (
                 Booking.objects.select_for_update()
-                .select_related('student', 'session', 'session__section', 'used_recovery_credit')
                 .get(pk=self.pk)
             )
-            locked_target_session = ClassSession.objects.select_for_update().select_related('section').get(pk=target_session.pk)
+            locked_target_session = ClassSession.objects.select_for_update().get(pk=target_session.pk)
 
             if not booking.is_active_reservation():
                 raise ValidationError('Only active bookings can be moved.')
@@ -1377,7 +1467,6 @@ class Booking(TimeStampedModel):
         with transaction.atomic():
             booking = (
                 Booking.objects.select_for_update()
-                .select_related('session', 'session__section', 'student')
                 .get(pk=self.pk)
             )
 

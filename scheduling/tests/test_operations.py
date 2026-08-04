@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, cast
 
 from ._shared import *
+from scheduling.views import _reconcile_fixed_plan_bookings
 
 class DatabaseConfigTests(TestCase):
     def test_parse_database_url_supports_mysql_without_breaking_sqlite_default(self):
@@ -196,6 +197,37 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         session = ClassSession.objects.get(section=self.section, date=date(2026, 4, 6), start_time=time(9, 0))
         self.assertFalse(Booking.objects.filter(session=session, student=student).exists())
 
+    def test_sync_does_not_recreate_booking_for_globally_inactive_student(self):
+        student = User.objects.create_user(
+            email='inactive-sync-student@example.com', password='StudentPlan2026!', first_name='Ada', last_name='Lovelace',
+            primary_section=self.section, is_active=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student, month=date(2026, 4, 1), status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        StudentMonthlyPlan.objects.create(student=student, month=date(2026, 4, 1), section=self.section).assign_weekly_slots([self.slot])
+
+        generate_class_sessions(start_date=date(2026, 4, 6), end_date=date(2026, 4, 6))
+
+        self.assertFalse(Booking.objects.filter(student=student).exists())
+
+    def test_reconcile_does_not_recreate_booking_for_globally_inactive_student(self):
+        student = User.objects.create_user(
+            email='inactive-reconcile-student@example.com', password='StudentPlan2026!', first_name='Ada', last_name='Lovelace',
+            primary_section=self.section, is_active=False,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student, month=date(2026, 4, 1), status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        StudentMonthlyPlan.objects.create(student=student, month=date(2026, 4, 1), section=self.section).assign_weekly_slots([self.slot])
+        session = self.slot.build_session_for_date(date(2026, 4, 6))
+        session.save()
+
+        result = _reconcile_fixed_plan_bookings(student, start_date=session.date, end_date=session.date)
+
+        self.assertEqual(result['created_count'], 0)
+        self.assertFalse(Booking.objects.filter(student=student).exists())
+
     def test_use_case_does_not_duplicate_manual_booking_for_matching_plan_session(self):
         student = User.objects.create_user(
             email='manual-booking-student@example.com',
@@ -377,6 +409,141 @@ class GenerateClassSessionsUseCaseTests(TestCase):
         tuesday_session = ClassSession.objects.get(section=other_section, date=date(2026, 4, 7), start_time=time(11, 0))
         self.assertTrue(Booking.objects.filter(session=monday_session, student=student, status=BookingStatus.BOOKED).exists())
         self.assertTrue(Booking.objects.filter(session=tuesday_session, student=student, status=BookingStatus.BOOKED).exists())
+
+    def _monthly_plan_candidate(self, label):
+        student = User.objects.create_user(
+            email=f'{label}@example.com', password='StudentPlan2026!', first_name='Ada', last_name='Lovelace',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=student, month=date(2026, 4, 1), status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=student, month=date(2026, 4, 1), section=self.section,
+        ).assign_weekly_slots([self.slot])
+        session, _ = ClassSession.objects.get_or_create(
+            section=self.section,
+            date=date(2026, 4, 6),
+            start_time=time(9, 0),
+            defaults={
+                'slot': self.slot,
+                'end_time': time(10, 0),
+                'capacity': 8,
+                'status': SessionStatus.SCHEDULED,
+            },
+        )
+        return student, session
+
+    def _sync_published_session(self):
+        generate_class_sessions(start_date=date(2026, 4, 6), end_date=date(2026, 4, 6))
+
+    def test_use_case_restores_safe_technical_fixed_slot_history_preserving_booking_identity(self):
+        student, session = self._monthly_plan_candidate('technical-history-student')
+        booking = Booking.objects.create_booking(session=session, student=student)
+        Booking.objects.filter(pk=booking.pk).update(status=BookingStatus.CANCELLED, cancelled_at=timezone.now())
+
+        self._sync_published_session()
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(Booking.objects.get(session=session, student=student).pk, booking.pk)
+
+    def test_use_case_restores_safe_staff_fixed_slot_history_preserving_booking_identity(self):
+        student, session = self._monthly_plan_candidate('staff-history-student')
+        staff = User.objects.create_user(
+            email='staff-history@example.com', password='StaffPlan2026!', first_name='Grace', last_name='Hopper',
+        )
+        booking = Booking.objects.create_booking(session=session, student=student)
+        Booking.objects.filter(pk=booking.pk).update(
+            status=BookingStatus.CANCELLED, cancelled_at=timezone.now(), cancelled_by=staff,
+        )
+
+        self._sync_published_session()
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(Booking.objects.get(session=session, student=student).pk, booking.pk)
+
+    def test_use_case_respects_student_cancelled_fixed_slot_history_with_or_without_recovery(self):
+        for generates_recovery in (False, True):
+            with self.subTest(generates_recovery=generates_recovery):
+                student, session = self._monthly_plan_candidate(f'self-cancelled-{generates_recovery}-student')
+                booking = Booking.objects.create_booking(session=session, student=student)
+                Booking.objects.filter(pk=booking.pk).update(
+                    status=BookingStatus.CANCELLED,
+                    cancelled_at=timezone.now(),
+                    cancelled_by=student,
+                    cancellation_generates_recovery=generates_recovery,
+                )
+
+                self._sync_published_session()
+
+                self.assertFalse(Booking.objects.filter(session=session, student=student, status=BookingStatus.BOOKED).exists())
+
+    def test_sync_and_reconcile_never_restore_global_deactivation_history(self):
+        student, session = self._monthly_plan_candidate('global-deactivation-history-student')
+        booking = Booking.objects.create_booking(session=session, student=student)
+        Booking.objects.filter(pk=booking.pk).update(
+            status=BookingStatus.CANCELLED,
+            cancelled_at=timezone.now(),
+            cancellation_reason=BookingCancellationReason.GLOBAL_DEACTIVATION,
+        )
+
+        self._sync_published_session()
+        result = _reconcile_fixed_plan_bookings(student, start_date=session.date, end_date=session.date)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(result['created_count'], 0)
+        self.assertEqual(result['restored_count'], 0)
+
+    def test_use_case_omits_non_restorable_history(self):
+        for variant in ('manual', 'makeup', 'recovery', 'moved', 'attended', 'no_show', 'ambiguous'):
+            with self.subTest(variant=variant):
+                student, session = self._monthly_plan_candidate(f'{variant}-history-student')
+                booking = Booking.objects.create_booking(
+                    session=session,
+                    student=student,
+                    source=BookingSource.MANUAL if variant == 'manual' else BookingSource.FIXED_SLOT,
+                )
+                changes = {'status': BookingStatus.CANCELLED, 'cancelled_at': timezone.now()}
+                if variant == 'makeup':
+                    changes['source'] = BookingSource.MAKEUP
+                elif variant == 'recovery':
+                    changes['cancellation_generates_recovery'] = True
+                elif variant == 'moved':
+                    changes['status'] = BookingStatus.MOVED
+                    changes['moved_to_session'] = ClassSession.objects.create(
+                        section=self.section, date=date(2026, 4, 13), start_time=time(11), end_time=time(12),
+                        capacity=8, status=SessionStatus.SCHEDULED,
+                    )
+                elif variant in {'attended', 'no_show'}:
+                    changes['status'] = BookingStatus.ATTENDED if variant == 'attended' else BookingStatus.NO_SHOW
+                    changes['cancelled_at'] = None
+                    changes['attendance_marked_at'] = timezone.now()
+                elif variant == 'ambiguous':
+                    changes['cancelled_at'] = None
+                Booking.objects.filter(pk=booking.pk).update(**changes)
+
+                self._sync_published_session()
+
+                self.assertFalse(Booking.objects.filter(session=session, student=student, status=BookingStatus.BOOKED).exists())
+
+    def test_use_case_creates_fixed_slot_booking_without_history(self):
+        student, session = self._monthly_plan_candidate('no-history-student')
+
+        self._sync_published_session()
+
+        self.assertTrue(Booking.objects.filter(session=session, student=student, status=BookingStatus.BOOKED).exists())
+
+    def test_use_case_keeps_active_booking_without_duplicate(self):
+        student, session = self._monthly_plan_candidate('active-history-student')
+        booking = Booking.objects.create_booking(session=session, student=student)
+
+        self._sync_published_session()
+
+        self.assertEqual(Booking.objects.filter(session=session, student=student).count(), 1)
+        self.assertEqual(Booking.objects.get(session=session, student=student).pk, booking.pk)
 
 
 class StudentMonthlyPlanModelTests(TestCase):
@@ -644,6 +811,29 @@ class StudentCsvImportTests(TestCase):
         self.assertEqual(user.password, original_password_hash)
         self.assertTrue(user.check_password('ExistingPass2026!'))
         self.assertFalse(user.must_change_password)
+
+    def test_import_global_deactivation_cancels_future_bookings(self):
+        user = User.objects.create_user(
+            email='import-deactivate@example.com', password='ExistingPass2026!', first_name='Grace', last_name='Hopper',
+            primary_section=self.section,
+        )
+        session = ClassSession.objects.create(
+            section=self.section, date=timezone.localdate() + timedelta(days=1), start_time=time(9), end_time=time(10),
+            capacity=4, status=SessionStatus.SCHEDULED,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=user, month=normalize_month_start(session.date), status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        booking = Booking.objects.create_booking(session=session, student=user)
+        csv_content = StringIO(
+            'email,first_name,last_name,primary_section,role,is_active,must_change_password,temporary_password,phone,notes\n'
+            'import-deactivate@example.com,Grace,Hopper,cadillac,student,false,,,,\n'
+        )
+
+        import_students_from_csv(csv_content)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
 
     def test_import_rejects_invalid_email_section_role_and_boolean(self):
         csv_content = StringIO(

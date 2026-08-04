@@ -11,6 +11,7 @@ from .application.onboarding import (
     resolve_temporary_password,
 )
 from .models import Section, User, UserRole
+from .use_cases import deactivate_student_globally, reactivate_student_globally
 
 
 EXPECTED_STUDENT_IMPORT_COLUMNS = (
@@ -85,9 +86,9 @@ def import_students_from_csv(file_obj):
 
     with transaction.atomic():
         for row in rows:
-            user = existing_users.get(row.email)
-            is_new_user = user is None
-            role = row.role or (user.role if user is not None else UserRole.STUDENT)
+            existing_user = existing_users.get(row.email)
+            is_new_user = existing_user is None
+            role = row.role or (existing_user.role if existing_user is not None else UserRole.STUDENT)
             require_password_change = row.must_change_password if row.must_change_password is not None else True
             if is_new_user:
                 user = create_student_onboarding(
@@ -107,15 +108,29 @@ def import_students_from_csv(file_obj):
                 existing_users[user.email] = user
                 continue
 
-            assert user is not None
+            # The validation snapshot may be stale. Lock and re-read before any update.
+            user = User.objects.select_for_update().get(email=row.email)
+            previous_role = user.role
+            previous_is_active = user.is_active
+            role = row.role or user.role
+            target_is_active = row.is_active
+            is_student_change = previous_role == UserRole.STUDENT or role == UserRole.STUDENT
+            active_state_changed = target_is_active is not None and previous_is_active != target_is_active
+            if is_student_change and active_state_changed:
+                if target_is_active:
+                    reactivate_student_globally(student=user)
+                else:
+                    deactivate_student_globally(student=user)
+                user.refresh_from_db()
+
             user.first_name = row.first_name
             user.last_name = row.last_name
             user.primary_section = row.primary_section
             user.role = role
             user.phone = row.phone
             user.notes = row.notes
-            if row.is_active is not None:
-                user.is_active = row.is_active
+            if target_is_active is not None and not is_student_change:
+                user.is_active = target_is_active
 
             if user.role == UserRole.ADMIN:
                 user.is_staff = True

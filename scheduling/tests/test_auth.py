@@ -334,6 +334,57 @@ class AuthenticationFlowTests(TestCase):
         )
 
         responses = {
+    def test_global_deactivation_blocks_login(self):
+        user = self.create_student(
+            email='login-global-deactivation@example.com',
+            password='TempInactive2026!',
+            must_change_password=False,
+        )
+
+        deactivate_student_globally(student=user)
+        response = self.client.post(
+            reverse('login'),
+            {'email': user.email, 'password': 'TempInactive2026!'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Esta cuenta esta inactiva. Contacta al staff para reactivarla.')
+        self.assertFalse('_auth_user_id' in self.client.session)
+
+    def test_monthly_activation_cannot_restore_login_after_global_deactivation(self):
+        user = self.create_student(
+            email='login-monthly-activation@example.com',
+            password='TempInactive2026!',
+            must_change_password=False,
+        )
+        deactivate_student_globally(student=user)
+        activate_student_monthly_access(student=user)
+
+        response = self.client.post(
+            reverse('login'),
+            {'email': user.email, 'password': 'TempInactive2026!'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Esta cuenta esta inactiva. Contacta al staff para reactivarla.')
+        self.assertFalse('_auth_user_id' in self.client.session)
+
+    def test_explicit_global_reactivation_restores_login(self):
+        user = self.create_student(
+            email='login-global-reactivation@example.com',
+            password='TempInactive2026!',
+            must_change_password=False,
+        )
+        deactivate_student_globally(student=user)
+        reactivate_student_globally(student=user)
+
+        response = self.client.post(
+            reverse('login'),
+            {'email': user.email, 'password': 'TempInactive2026!'},
+        )
+
+        self.assertRedirects(response, reverse('dashboard'))
+
             'login': self.client.get(reverse('login')),
             'register': self.client.get(reverse('register')),
         }

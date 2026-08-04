@@ -29,6 +29,13 @@ from .forms import (
     StaffHolidayClosureForm,
     StaffManualRecoveryCreditForm,
 )
+from .fixed_booking_history import (
+    can_recreate_fixed_booking_over_history as _can_recreate_fixed_booking_over_history,
+    has_blocking_fixed_plan_history as _has_blocking_fixed_plan_history,
+    has_global_deactivation_history as _has_global_deactivation_history,
+    has_student_cancelled_fixed_booking as _has_student_cancelled_fixed_booking,
+    restore_obsolete_fixed_booking as _restore_obsolete_fixed_booking,
+)
 from .models import (
     AuditLog,
     Booking,
@@ -1044,90 +1051,6 @@ def _get_future_explicit_monthly_plan_months(user, *, section, after_month, thro
     return months
 
 
-def _can_restore_obsolete_fixed_booking(*, booking, session, student):
-    if booking.status != BookingStatus.CANCELLED:
-        return False
-    if booking.source != BookingSource.FIXED_SLOT:
-        return False
-    if booking.cancelled_at is None:
-        return False
-    if booking.cancelled_by_id is not None:
-        return False
-    if booking.cancellation_generates_recovery:
-        return False
-    if booking.used_recovery_credit_id is not None:
-        return False
-    if booking.moved_from_booking_id is not None or booking.moved_to_session_id is not None:
-        return False
-    if session.status != SessionStatus.SCHEDULED:
-        return False
-    if not student.has_operational_booking_access_for(session.date):
-        return False
-
-    effective_section_ids = {section.id for section in student.get_effective_portal_sections_for(session.date)}
-    if session.section_id not in effective_section_ids:
-        return False
-
-    active_bookings = session.active_bookings().exclude(pk=booking.pk)
-    if active_bookings.count() >= session.capacity:
-        return False
-    if active_bookings.filter(student_id=student.pk).exists():
-        return False
-    return True
-
-
-def _restore_obsolete_fixed_booking(*, session, student, historical_bookings_by_session_id):
-    historical_booking = next(
-        (
-            booking
-            for booking in historical_bookings_by_session_id.get(session.id, [])
-            if _can_restore_obsolete_fixed_booking(booking=booking, session=session, student=student)
-        ),
-        None,
-    )
-    if historical_booking is None:
-        return False
-
-    Booking.objects.filter(pk=historical_booking.pk).update(
-        status=BookingStatus.BOOKED,
-        cancelled_at=None,
-        cancelled_by=None,
-        cancellation_generates_recovery=False,
-        updated_at=timezone.now(),
-    )
-    historical_booking.status = BookingStatus.BOOKED
-    historical_booking.cancelled_at = None
-    historical_booking.cancelled_by_id = None
-    historical_booking.cancellation_generates_recovery = False
-    return True
-
-
-def _has_blocking_fixed_plan_history(*, session, historical_bookings_by_session_id):
-    return bool(historical_bookings_by_session_id.get(session.id))
-
-
-def _can_recreate_fixed_booking_over_history(*, session, student, historical_bookings_by_session_id):
-    historical_bookings = historical_bookings_by_session_id.get(session.id, [])
-    if not historical_bookings:
-        return False
-
-    for booking in historical_bookings:
-        if booking.status != BookingStatus.CANCELLED:
-            return False
-        if booking.source != BookingSource.FIXED_SLOT:
-            return False
-        if booking.used_recovery_credit_id is not None:
-            return False
-        if booking.moved_from_booking_id is not None or booking.moved_to_session_id is not None:
-            return False
-        if booking.cancellation_generates_recovery:
-            return False
-        if booking.cancelled_by_id == student.pk:
-            return False
-
-    return True
-
-
 def _collect_validation_error_messages(exc):
     if hasattr(exc, 'message_dict'):
         messages = []
@@ -1159,7 +1082,7 @@ def _reconcile_fixed_plan_bookings(
     backfill_end_date=None,
     allow_new_booking_over_history=False,
 ):
-    if end_date < start_date:
+    if not user.is_active or end_date < start_date:
         return {
             'created_count': 0,
             'restored_count': 0,
@@ -1243,6 +1166,12 @@ def _reconcile_fixed_plan_bookings(
                 if session.id in existing_bookings_by_session_id:
                     continue
 
+                if _has_global_deactivation_history(
+                    session=session,
+                    historical_bookings_by_session_id=historical_bookings_by_session_id,
+                ):
+                    continue
+
                 if _restore_obsolete_fixed_booking(
                     session=session,
                     student=user,
@@ -1250,6 +1179,13 @@ def _reconcile_fixed_plan_bookings(
                 ):
                     existing_bookings_by_session_id.add(session.id)
                     restored_count += 1
+                    continue
+
+                if _has_student_cancelled_fixed_booking(
+                    session=session,
+                    student=user,
+                    historical_bookings_by_session_id=historical_bookings_by_session_id,
+                ):
                     continue
 
                 if (

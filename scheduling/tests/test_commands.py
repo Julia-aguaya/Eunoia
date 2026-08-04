@@ -42,6 +42,153 @@ class GenerateClassSessionsCommandTests(TestCase):
         self.assertEqual(session.holiday_closure, holiday)
         self.assertEqual(session.status, SessionStatus.HOLIDAY_CLOSED)
 
+
+class RolloverMonthlyAccessStatusesCommandTests(TestCase):
+    def setUp(self):
+        self.section = Section.objects.get(code='cadillac')
+        self.slot = WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=Weekday.TUESDAY,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            starts_on=date(2026, 8, 1),
+        )
+        self.student = User.objects.create_user(
+            email='rollover-student@example.com',
+            password='StudentPass2026!',
+            first_name='Ada',
+            last_name='Lovelace',
+            primary_section=self.section,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=date(2026, 8, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        self.plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=date(2026, 8, 1),
+            section=self.section,
+        )
+        self.plan.assign_weekly_slots([self.slot])
+
+    def test_command_rolls_august_access_into_september_without_touching_plans_or_slots(self):
+        out = StringIO()
+
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
+
+        access = self.student.get_monthly_access_for(date(2026, 9, 1))
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(access.booking_enabled)
+        self.assertEqual(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).count(), 1)
+        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.student).count(), 1)
+        self.assertEqual(self.plan.plan_slots.count(), 1)
+        self.assertIn(
+            'month=2026-09; students evaluated=1; accesses created=1; '
+            'existing accesses=0; skipped due to global deactivation=0; errors/failures=0',
+            out.getvalue(),
+        )
+        self.assertIn(
+            'month=2026-09; students evaluated=1; accesses created=0; '
+            'existing accesses=1; skipped due to global deactivation=0; errors/failures=0',
+            out.getvalue(),
+        )
+
+    def test_command_creates_access_for_active_student_without_prior_access(self):
+        student = User.objects.create_user(
+            email='rollover-no-prior@example.com', password='StudentPass2026!', first_name='Grace', last_name='Hopper',
+            primary_section=self.section,
+        )
+
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09')
+
+        access = student.get_monthly_access_for(date(2026, 9, 1))
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(access.booking_enabled)
+
+    def test_command_is_idempotent_and_preserves_manually_suspended_target_access(self):
+        target_access = MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=date(2026, 9, 1),
+            status=MonthlyAccessStatusType.SUSPENDED,
+            booking_enabled=False,
+        )
+        out = StringIO()
+
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
+
+        target_access.refresh_from_db()
+        self.assertEqual(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).count(), 1)
+        self.assertEqual(target_access.status, MonthlyAccessStatusType.SUSPENDED)
+        self.assertFalse(target_access.booking_enabled)
+        self.assertIn('accesses created=0; existing accesses=1', out.getvalue())
+
+    def test_command_reenables_next_month_after_monthly_nonpayment_and_generates_booking(self):
+        august_access = self.student.get_monthly_access_for(date(2026, 8, 1))
+        august_access.suspend_operational_access()
+
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09')
+        generate_class_sessions(start_date=date(2026, 9, 1), end_date=date(2026, 9, 1))
+
+        session = ClassSession.objects.get(date=date(2026, 9, 1), start_time=time(9, 0))
+        self.assertTrue(Booking.objects.filter(session=session, student=self.student, status=BookingStatus.BOOKED).exists())
+
+    def test_command_does_not_roll_over_globally_deactivated_student(self):
+        deactivate_student_globally(student=self.student)
+        out = StringIO()
+
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
+
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.is_active)
+        self.assertFalse(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
+        self.assertIn(
+            'students evaluated=1; accesses created=0; existing accesses=0; '
+            'skipped due to global deactivation=1; errors/failures=0',
+            out.getvalue(),
+        )
+
+    def test_command_reports_individual_partial_failures_and_exits_nonzero(self):
+        failing_student = User.objects.create_user(
+            email='rollover-fails@example.com', password='StudentPass2026!', first_name='Grace', last_name='Hopper',
+            primary_section=self.section,
+        )
+        out = StringIO()
+        err = StringIO()
+        original_create = MonthlyAccessStatus.objects.create
+
+        def create_or_fail(**kwargs):
+            if kwargs['student'].pk == failing_student.pk:
+                raise RuntimeError('database unavailable')
+            return original_create(**kwargs)
+
+        with mock.patch(
+            'scheduling.use_cases.MonthlyAccessStatus.objects.create',
+            side_effect=create_or_fail,
+        ):
+            with self.assertRaisesMessage(CommandError, 'partial failures'):
+                call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out, stderr=err)
+
+        self.assertEqual(out.getvalue(), '')
+        self.assertIn(
+            f'month=2026-09; student_id={failing_student.pk}; error=database unavailable',
+            err.getvalue(),
+        )
+        self.assertIn(
+            'month=2026-09; students evaluated=2; accesses created=1; existing accesses=0; '
+            'skipped due to global deactivation=0; errors/failures=1. Rollover completed with failures.',
+            err.getvalue(),
+        )
+
+    def test_command_requires_valid_month(self):
+        with self.assertRaises(CommandError):
+            call_command('rollover_monthly_access_statuses')
+        with self.assertRaises(CommandError):
+            call_command('rollover_monthly_access_statuses', '--month', '2026-9')
+
 class TemporaryPasswordCommandTests(TestCase):
     @override_settings(EUNOIA_DEFAULT_TEMPORARY_PASSWORD='CommandTemp2026!')
     def test_command_updates_explicit_users_with_default_password(self):

@@ -259,6 +259,7 @@ class SchedulingUseCaseTests(TestCase):
             password='StaffPass2026!',
             first_name='Grace',
             last_name='Hopper',
+            role='admin',
             is_staff=True,
         )
         self.student = User.objects.create_user(
@@ -270,9 +271,6 @@ class SchedulingUseCaseTests(TestCase):
         )
 
     def test_activate_student_monthly_access_creates_and_activates_missing_status(self):
-        self.student.is_active = False
-        self.student.save(update_fields=['is_active', 'updated_at'])
-
         result = activate_student_monthly_access(student=self.student, actor=self.staff_user, record_audit=True)
 
         self.student.refresh_from_db()
@@ -285,7 +283,55 @@ class SchedulingUseCaseTests(TestCase):
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=result.access.pk)
         self.assertEqual(audit_log.actor, self.staff_user)
 
-    def test_suspend_student_monthly_access_suspends_pending_status(self):
+    def test_monthly_activation_does_not_reactivate_globally_deactivated_student(self):
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+
+        result = activate_student_monthly_access(student=self.student, actor=self.staff_user, record_audit=True)
+
+        self.student.refresh_from_db()
+        self.assertTrue(result.changed)
+        self.assertEqual(result.access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(result.access.booking_enabled)
+        self.assertFalse(self.student.is_active)
+
+    def test_inactive_student_has_no_operational_access_even_with_active_monthly_access(self):
+        access = MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=self.today,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        self.student.is_active = False
+        self.student.save(update_fields=['is_active', 'updated_at'])
+
+        self.assertIsNone(self.student.get_operational_monthly_access_for(self.today))
+        self.assertFalse(self.student.has_operational_booking_access_for(self.today))
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+
+    def test_booking_clean_rejects_active_booking_for_inactive_student(self):
+        session = ClassSession.objects.create(
+            section=self.section,
+            date=self.today + timedelta(days=1),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=4,
+            status=SessionStatus.SCHEDULED,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=normalize_month_start(session.date),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        self.student.is_active = False
+        self.student.save(update_fields=['is_active', 'updated_at'])
+
+        with self.assertRaises(ValidationError) as raised:
+            Booking(session=session, student=self.student, status=BookingStatus.BOOKED).full_clean()
+
+        self.assertIn('Inactive students cannot hold active bookings.', raised.exception.message_dict['student'])
+
+    def test_suspend_student_monthly_access_suspends_only_target_month(self):
         access = MonthlyAccessStatus.objects.create(
             student=self.student,
             month=self.today,
@@ -302,13 +348,13 @@ class SchedulingUseCaseTests(TestCase):
         self.assertEqual(result.access.pk, access.pk)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
-        self.assertFalse(self.student.is_active)
+        self.assertTrue(self.student.is_active)
         self.assertIsNotNone(access.deactivated_at)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk)
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['status'], MonthlyAccessStatusType.SUSPENDED)
 
-    def test_suspend_student_monthly_access_cancels_only_future_active_bookings(self):
+    def test_suspend_student_monthly_access_preserves_future_bookings(self):
         future_session = ClassSession.objects.create(
             section=self.section,
             date=self.today + timedelta(days=1),
@@ -348,7 +394,7 @@ class SchedulingUseCaseTests(TestCase):
         ]:
             MonthlyAccessStatus.objects.get_or_create(
                 student=student,
-                month=target_date,
+                month=normalize_month_start(target_date),
                 defaults={
                     'status': MonthlyAccessStatusType.ACTIVE,
                     'booking_enabled': True,
@@ -368,17 +414,48 @@ class SchedulingUseCaseTests(TestCase):
         other_booking.refresh_from_db()
         self.student.refresh_from_db()
 
-        self.assertEqual(future_booking.status, BookingStatus.CANCELLED)
-        self.assertEqual(future_booking.cancelled_by, self.staff_user)
-        self.assertIsNotNone(future_booking.cancelled_at)
-        self.assertFalse(future_booking.cancellation_generates_recovery)
-        self.assertEqual(later_booking.status, BookingStatus.CANCELLED)
-        self.assertEqual(later_booking.cancelled_by, self.staff_user)
+        self.assertEqual(future_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(later_booking.status, BookingStatus.BOOKED)
         self.assertEqual(past_booking.status, BookingStatus.BOOKED)
         self.assertEqual(other_booking.status, BookingStatus.BOOKED)
-        self.assertFalse(self.student.is_active)
+        self.assertTrue(self.student.is_active)
 
-    def test_suspend_student_monthly_access_counts_cancelled_future_bookings_as_change(self):
+    def test_suspend_student_monthly_access_is_idempotent_when_already_suspended(self):
+        access = MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=self.today,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+        access.suspend_operational_access()
+
+        result = suspend_student_monthly_access(student=self.student, actor=self.staff_user, month=self.today, record_audit=True)
+
+        access.refresh_from_db()
+        self.assertFalse(result.changed)
+        self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
+        self.assertFalse(AuditLog.objects.filter(entity_type='MonthlyAccessStatus', entity_id=access.pk).exists())
+
+    def test_monthly_suspension_does_not_block_next_month_for_active_student(self):
+        august = date(2026, 8, 1)
+        september = date(2026, 9, 1)
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=august,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
+
+        suspend_student_monthly_access(student=self.student, actor=self.staff_user, month=august)
+        result = rollover_monthly_access_statuses(month=september)
+
+        september_access = self.student.get_monthly_access_for(september)
+        self.assertTrue(self.student.is_active)
+        self.assertEqual(result.created_count, 1)
+        self.assertEqual(september_access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(september_access.booking_enabled)
+
+    def test_global_deactivation_blocks_login_and_cancels_future_bookings(self):
         access = MonthlyAccessStatus.objects.create(
             student=self.student,
             month=self.today,
@@ -393,20 +470,80 @@ class SchedulingUseCaseTests(TestCase):
             capacity=4,
             status=SessionStatus.SCHEDULED,
         )
-        Booking.objects.create_booking(session=future_session, student=self.student)
-        access.suspend_operational_access()
-        self.student.is_active = False
-        self.student.save(update_fields=['is_active', 'updated_at'])
+        booking = Booking.objects.create_booking(session=future_session, student=self.student)
 
-        result = suspend_student_monthly_access(student=self.student, actor=self.staff_user, month=self.today, record_audit=True)
+        changed = deactivate_student_globally(student=self.student, actor=self.staff_user)
 
+        self.student.refresh_from_db()
+        booking.refresh_from_db()
         access.refresh_from_db()
-        booking = Booking.objects.get(session=future_session, student=self.student)
-        self.assertTrue(result.changed)
-        self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
+        self.assertTrue(changed)
+        self.assertFalse(self.student.is_active)
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
-        audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk)
-        self.assertEqual(audit_log.actor, self.staff_user)
+        self.assertEqual(booking.cancelled_by, self.staff_user)
+        self.assertEqual(booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
+        self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
+
+    def test_global_deactivation_cancels_only_future_bookings_and_preserves_past(self):
+        for target_date in (self.today - timedelta(days=1), self.today + timedelta(days=1)):
+            MonthlyAccessStatus.objects.get_or_create(
+                student=self.student,
+                month=normalize_month_start(target_date),
+                defaults={'status': MonthlyAccessStatusType.ACTIVE, 'booking_enabled': True},
+            )
+        past_session = ClassSession.objects.create(
+            section=self.section, date=self.today - timedelta(days=1), start_time=time(9), end_time=time(10),
+            capacity=4, status=SessionStatus.SCHEDULED,
+        )
+        future_session = ClassSession.objects.create(
+            section=self.section, date=self.today + timedelta(days=1), start_time=time(9), end_time=time(10),
+            capacity=4, status=SessionStatus.SCHEDULED,
+        )
+        past_booking = Booking.objects.create_booking(session=past_session, student=self.student)
+        future_booking = Booking.objects.create_booking(session=future_session, student=self.student)
+
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+
+        past_booking.refresh_from_db()
+        future_booking.refresh_from_db()
+        self.assertEqual(past_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(future_booking.status, BookingStatus.CANCELLED)
+
+    def test_explicit_global_reactivation_restores_only_global_login_access(self):
+        access = MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=self.today,
+            status=MonthlyAccessStatusType.SUSPENDED,
+            booking_enabled=False,
+        )
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+
+        changed = reactivate_student_globally(student=self.student)
+
+        self.student.refresh_from_db()
+        access.refresh_from_db()
+        self.assertTrue(changed)
+        self.assertTrue(self.student.is_active)
+        self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
+        self.assertFalse(access.booking_enabled)
+
+    def test_global_reactivation_does_not_restore_globally_cancelled_booking(self):
+        future_session = ClassSession.objects.create(
+            section=self.section, date=self.today + timedelta(days=1), start_time=time(9), end_time=time(10),
+            capacity=4, status=SessionStatus.SCHEDULED,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.student, month=normalize_month_start(future_session.date),
+            status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        booking = Booking.objects.create_booking(session=future_session, student=self.student)
+
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+        reactivate_student_globally(student=self.student)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
 
     def test_toggle_student_monthly_access_wraps_explicit_transitions(self):
         result = toggle_student_monthly_access(student=self.student, actor=self.staff_user, record_audit=True)

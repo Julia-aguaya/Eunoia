@@ -12,6 +12,18 @@ Para handoff final usa estas guias primero:
 
 El resto del `README.md` mantiene contexto e historial de etapas. Para una entrega ejecutable, la ruta corta y actualizada es la de esos dos documentos.
 
+## Auditoria read-only de reservas fijas
+
+Para revisar pares esperados de alumna, plan fijo y sesion ya materializada sin alterar la base vigente:
+
+```bash
+.venv\Scripts\python.exe scripts\audit_expected_fixed_bookings.py --start-date 2026-08-01 --end-date 2026-08-31 > auditoria.csv
+```
+
+El script escribe CSV a stdout y errores a stderr. Solo considera sesiones `scheduled`, plan efectivo por seccion, slot activo/vigente que coincida en dia y horario, y `MonthlyAccessStatus` explicito `active` con `booking_enabled=True` para el mes de la sesion. No usa fallback de acceso ni llama reconciliadores, `create`, `update` o `delete`.
+
+La columna `clasificacion` es estable: `A_booked`, `B_cancelled_*`, `C_other_status_*`, `D_never_booked` o `E_*` para corrupcion de historial, como reservas activas duplicadas. Cada fila representa un par esperado, incluso si hay historial de varias reservas.
+
 ## Demo local operativa
 
 Si queres dejar el proyecto listo para mostrar sin mezclar bootstrap productivo con datos ficticios, usa el comando dedicado de demo:
@@ -98,6 +110,22 @@ Flujo pragmatico para una entrega minima:
 2. slots semanales: cargarlos desde Django admin o sembrarlos con `bootstrap_eunoia --with-demo-slots` si queres una base inicial rapida;
 3. sesiones concretas: materializarlas con `.venv\Scripts\python.exe manage.py generate_class_sessions 2026-04-01 2026-04-30` o, para un arranque corto, con `bootstrap_eunoia --generate-next-days 14`;
 4. acceso mensual: activarlo desde `/staff/` o Django admin segun el caso.
+
+## Rollover mensual de acceso
+
+El primer dia de cada mes, ejecuta el rollover para crear acceso `active` con reservas habilitadas para las alumnas continuantes que siguen globalmente activas. El comando es idempotente: nunca modifica un estado ya existente del mes objetivo, incluyendo suspensiones manuales, y no copia ni altera planes o slots.
+
+```bash
+.venv\Scripts\python.exe manage.py rollover_monthly_access_statuses --month 2026-09
+```
+
+Cron recomendado para el dia 1 (ajusta el path del proyecto y el virtualenv; no queda configurado por este cambio):
+
+```cron
+0 5 1 * * cd /path/to/Eunoia && /path/to/Eunoia/.venv/bin/python manage.py rollover_monthly_access_statuses --month "$(date +\%Y-\%m)"
+```
+
+El impago suspende solo el `MonthlyAccessStatus` de ese mes y conserva login y reservas futuras. Para una baja global, usa el caso de uso explicito `deactivate_student_globally(...)`, que desactiva `User.is_active` y cancela las reservas futuras.
 
 ## Handoff operativo rapido
 

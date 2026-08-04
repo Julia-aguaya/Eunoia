@@ -141,3 +141,40 @@ class UserAdminFormTests(TestCase):
         self.assertTrue(updated_user.check_password('ResetTemp2026!'))
         self.assertTrue(updated_user.must_change_password)
         self.assertIsNotNone(updated_user.temporary_password_set_at)
+
+    def test_change_form_does_not_directly_deactivate_student_or_cancel_bookings(self):
+        user = User.objects.create_user(
+            email='admin-deactivate@example.com', password='secret123', first_name='Grace', last_name='Hopper',
+            primary_section=self.section, must_change_password=False,
+        )
+        session = ClassSession.objects.create(
+            section=self.section, date=timezone.localdate() + timedelta(days=1), start_time=time(9), end_time=time(10),
+            capacity=2, status=SessionStatus.SCHEDULED,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=user, month=normalize_month_start(session.date), status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        booking = Booking.objects.create_booking(session=session, student=user)
+        form = UserChangeAdminForm(
+            data={
+                'email': user.email,
+                'password': user.password,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'role': user.role,
+                'primary_section': self.section.pk,
+                'phone': user.phone,
+                'notes': user.notes,
+                'must_change_password': '',
+                'is_active': '',
+            },
+            instance=user,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+
+        user.refresh_from_db()
+        booking.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
