@@ -4339,6 +4339,27 @@ class AdminPortalViewTests(TestCase):
             f'{reverse("admin-class-session-detail", args=[self.upcoming_session.pk])}?date={self.today.isoformat()}&amp;section={self.section.pk}',
         )
 
+    def test_staff_agenda_and_detail_exclude_bookings_for_globally_inactive_students(self):
+        User.objects.filter(pk=self.active_student.pk).update(is_active=False)
+        self.client.force_login(self.staff_user)
+
+        agenda_response = self.client.get(
+            reverse('admin-class-agenda'),
+            {'date': self.today.isoformat(), 'section': self.section.pk},
+        )
+        detail_response = self.client.get(reverse('admin-class-session-detail', args=[self.upcoming_session.pk]))
+
+        agenda_row = next(
+            row
+            for group in agenda_response.context['staff_agenda_groups']
+            for row in group['sessions']
+            if row['session'].pk == self.upcoming_session.pk
+        )
+        self.assertEqual(agenda_row['booked_count'], 0)
+        self.assertEqual(agenda_row['attendees'], [])
+        self.assertEqual(detail_response.context['staff_session_booked_count'], 0)
+        self.assertEqual(detail_response.context['staff_session_active_bookings'], [])
+
     def test_admin_class_session_detail_requires_login(self):
         response = self.client.get(reverse('admin-class-session-detail', args=[self.upcoming_session.pk]))
 

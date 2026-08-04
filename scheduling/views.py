@@ -508,13 +508,14 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
         .annotate(
             booked_count=Count(
                 'bookings',
-                filter=Q(bookings__status=BookingStatus.BOOKED),
+                filter=Q(bookings__status=BookingStatus.BOOKED, bookings__student__is_active=True),
                 distinct=True,
             ),
             makeup_bookings_count=Count(
                 'bookings',
                 filter=Q(
                     bookings__status=BookingStatus.BOOKED,
+                    bookings__student__is_active=True,
                     bookings__used_recovery_credit__isnull=False,
                 ),
                 distinct=True,
@@ -530,7 +531,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
     session_ids = [session.pk for session in sessions]
     agenda_bookings = list(
         Booking.objects.select_related('student', 'used_recovery_credit')
-        .filter(session_id__in=session_ids, status=BookingStatus.BOOKED)
+        .filter(session_id__in=session_ids, status=BookingStatus.BOOKED, student__is_active=True)
         .order_by('session__date', 'session__start_time', 'student__last_name', 'student__first_name', 'student__email')
     )
     attendee_rows_by_session = {}
@@ -595,6 +596,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
             'affected_bookings_count': Booking.objects.filter(
                 session__holiday_closure=closure_focus,
                 status__in=Booking.active_statuses(),
+                student__is_active=True,
             ).count(),
             'generated_recoveries_count': RecoveryCredit.objects.filter(
                 source=RecoveryCreditSource.HOLIDAY_CLOSURE,
@@ -629,7 +631,7 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
 
     active_bookings = list(
         Booking.objects.select_related('student', 'used_recovery_credit', 'used_recovery_credit__origin_session')
-        .filter(session=session, status=BookingStatus.BOOKED)
+        .filter(session=session, status=BookingStatus.BOOKED, student__is_active=True)
         .order_by('student__last_name', 'student__first_name', 'student__email')
     )
     recent_booking_events = list(
@@ -654,6 +656,7 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
         holiday_closure_affected_bookings_count = Booking.objects.filter(
             session=session,
             status__in=Booking.active_statuses(),
+            student__is_active=True,
         ).count()
 
     if session.status == SessionStatus.HOLIDAY_CLOSED:
@@ -2203,6 +2206,11 @@ def login_view(request):
         return redirect(_get_post_login_redirect_url(user=user, next_url=next_url))
 
     return render(request, 'scheduling/login.html', {'form': form, 'next': next_url})
+
+
+@never_cache
+def password_recovery_help_view(request):
+    return render(request, 'scheduling/password_recovery_help.html')
 
 
 @never_cache

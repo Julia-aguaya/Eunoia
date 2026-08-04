@@ -31,6 +31,8 @@ from .models import (
     MonthlyAccessStatusType,
     RecoveryCredit,
     SessionStatus,
+    StudentMonthlyPlan,
+    StudentMonthlyPlanSlot,
     User,
     UserRole,
     WeeklyClassSlot,
@@ -557,55 +559,110 @@ def _set_student_auth_active(*, student, is_active):
     return True
 
 
-def _cancel_future_active_bookings_for_student(*, student, actor=None, when=None):
+def cancel_booking_for_global_deactivation(*, booking, actor=None, when=None):
+    """Apply the canonical no-recovery cancellation used for global deactivation."""
     cancellation_time = when or timezone.now()
-    cancelled_count = 0
-    booking_ids = list(
-        Booking.objects.filter(
+    booking.cancelled_at = cancellation_time
+    booking.cancelled_by = actor
+    booking.cancellation_generates_recovery = False
+    booking.cancellation_reason = BookingCancellationReason.GLOBAL_DEACTIVATION
+    booking._transition_to(
+        BookingStatus.CANCELLED,
+        update_fields=[
+            'status',
+            'cancelled_at',
+            'cancelled_by',
+            'cancellation_generates_recovery',
+            'cancellation_reason',
+            'updated_at',
+        ],
+        previous_status=booking.status,
+    )
+
+
+def cleanup_global_deactivation(
+    *, student, booking_from_date, plan_reset_from, actor=None, when=None, only_not_started,
+    booking_ids=None, plan_ids=None,
+):
+    """Cancel bookings and remove plan assignments after a global deactivation.
+
+    The repair command supplies ``only_not_started=False`` so its documented
+    inclusive date policy remains distinct from an interactive deactivation.
+    The caller must hold the student row lock.
+    """
+    cancellation_time = when or timezone.now()
+    normalized_plan_reset_from = normalize_month_start(plan_reset_from)
+    existing_plan_reset_from = (
+        normalize_month_start(student.monthly_plan_reset_from)
+        if student.monthly_plan_reset_from is not None
+        else None
+    )
+    effective_plan_reset_from = min(
+        value for value in (existing_plan_reset_from, normalized_plan_reset_from) if value is not None
+    )
+    if student.monthly_plan_reset_from != effective_plan_reset_from:
+        student.monthly_plan_reset_from = effective_plan_reset_from
+        student.save(update_fields=['monthly_plan_reset_from', 'updated_at'])
+    booking_queryset = Booking.objects.filter(
             student_id=student.pk,
             status__in=Booking.active_statuses(),
-            session__date__gte=timezone.localdate(cancellation_time),
-        ).order_by('pk').values_list('pk', flat=True)
-    )
-    session_ids = list(
-        Booking.objects.filter(pk__in=booking_ids).order_by('session_id').values_list('session_id', flat=True).distinct()
-    )
-    locked_sessions = {
-        session.pk: session
-        for session in ClassSession.objects.select_for_update().filter(pk__in=session_ids).order_by('pk')
-    }
-    access_ids = list(MonthlyAccessStatus.objects.filter(student_id=student.pk).order_by('pk').values_list('pk', flat=True))
-    list(MonthlyAccessStatus.objects.select_for_update().filter(pk__in=access_ids).order_by('pk'))
-    credit_ids = list(
-        Booking.objects.filter(pk__in=booking_ids, used_recovery_credit_id__isnull=False)
-        .order_by('used_recovery_credit_id').values_list('used_recovery_credit_id', flat=True)
-    )
-    list(RecoveryCredit.objects.select_for_update().filter(pk__in=credit_ids).order_by('pk'))
-    active_future_bookings = list(Booking.objects.select_for_update().filter(pk__in=booking_ids).order_by('pk'))
+            session__date__gte=booking_from_date,
+        )
+    if booking_ids is not None:
+        booking_queryset = booking_queryset.filter(pk__in=booking_ids)
+    booking_ids = list(booking_queryset.order_by('pk').values_list('pk', flat=True))
+    locked_sessions = {}
+    if booking_ids:
+        session_ids = list(
+            Booking.objects.filter(pk__in=booking_ids).order_by('session_id').values_list('session_id', flat=True).distinct()
+        )
+        locked_sessions = {
+            session.pk: session
+            for session in ClassSession.objects.select_for_update().filter(pk__in=session_ids).order_by('pk')
+        }
+    if booking_ids:
+        access_ids = list(MonthlyAccessStatus.objects.filter(student_id=student.pk).order_by('pk').values_list('pk', flat=True))
+        list(MonthlyAccessStatus.objects.select_for_update().filter(pk__in=access_ids).order_by('pk'))
+        credit_ids = list(
+            Booking.objects.filter(pk__in=booking_ids, used_recovery_credit_id__isnull=False)
+            .order_by('used_recovery_credit_id').values_list('used_recovery_credit_id', flat=True)
+        )
+        list(RecoveryCredit.objects.select_for_update().filter(pk__in=credit_ids).order_by('pk'))
+        active_future_bookings = list(Booking.objects.select_for_update().filter(pk__in=booking_ids).order_by('pk'))
+    else:
+        active_future_bookings = []
 
+    cancelled_booking_ids = []
     for booking in active_future_bookings:
-        if locked_sessions[booking.session_id].starts_at() <= cancellation_time:
+        if only_not_started and locked_sessions[booking.session_id].starts_at() <= cancellation_time:
             continue
 
-        booking.cancelled_at = cancellation_time
-        booking.cancelled_by = actor
-        booking.cancellation_generates_recovery = False
-        booking.cancellation_reason = BookingCancellationReason.GLOBAL_DEACTIVATION
-        booking._transition_to(
-            BookingStatus.CANCELLED,
-            update_fields=[
-                'status',
-                'cancelled_at',
-                'cancelled_by',
-                'cancellation_generates_recovery',
-                'cancellation_reason',
-                'updated_at',
-            ],
-            previous_status=booking.status,
+        cancel_booking_for_global_deactivation(
+            booking=booking,
+            actor=actor,
+            when=cancellation_time,
         )
-        cancelled_count += 1
+        cancelled_booking_ids.append(booking.pk)
 
-    return cancelled_count
+    plan_queryset = StudentMonthlyPlan.objects.filter(
+        student_id=student.pk, month__gte=normalized_plan_reset_from,
+    )
+    if plan_ids is not None:
+        plan_queryset = plan_queryset.filter(pk__in=plan_ids)
+    plan_ids = list(plan_queryset.order_by('pk').values_list('pk', flat=True))
+    locked_plans = list(StudentMonthlyPlan.objects.select_for_update().filter(pk__in=plan_ids).order_by('pk'))
+    locked_plan_slots = list(
+        StudentMonthlyPlanSlot.objects.select_for_update()
+        .filter(monthly_plan_id__in=[plan.pk for plan in locked_plans])
+        .order_by('pk')
+    )
+    if locked_plan_slots:
+        StudentMonthlyPlanSlot.objects.filter(pk__in=[slot.pk for slot in locked_plan_slots]).delete()
+    deleted_plan_ids = [plan.pk for plan in locked_plans]
+    if deleted_plan_ids:
+        StudentMonthlyPlan.objects.filter(pk__in=deleted_plan_ids).delete()
+
+    return cancelled_booking_ids, deleted_plan_ids
 
 
 def rollover_monthly_access_statuses(*, month):
@@ -686,13 +743,17 @@ def deactivate_student_globally(*, student, actor=None, when=None):
     with transaction.atomic():
         locked_student = User.objects.select_for_update().get(pk=student.pk)
         auth_changed = _set_student_auth_active(student=locked_student, is_active=False)
-        cancelled_future_bookings = _cancel_future_active_bookings_for_student(
+        plan_reset_from = normalize_month_start(timezone.localdate(deactivation_time))
+        cancelled_booking_ids, deleted_plan_ids = cleanup_global_deactivation(
             student=locked_student,
             actor=actor,
             when=deactivation_time,
+            booking_from_date=timezone.localdate(deactivation_time),
+            plan_reset_from=plan_reset_from,
+            only_not_started=True,
         )
 
-    return auth_changed or cancelled_future_bookings > 0
+    return auth_changed or bool(cancelled_booking_ids) or bool(deleted_plan_ids)
 
 
 def reactivate_student_globally(*, student):

@@ -245,6 +245,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     temporary_password_set_at = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    monthly_plan_reset_from = models.DateField(null=True, blank=True)
 
     objects = UserManager()
 
@@ -302,6 +303,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
             .prefetch_related('plan_slots__weekly_class_slot')
             .filter(month__lte=target_month)
         )
+        if self.monthly_plan_reset_from is not None and target_month >= self.monthly_plan_reset_from:
+            queryset = queryset.filter(month__gte=self.monthly_plan_reset_from)
 
         if section is not None:
             section_id = section.pk if isinstance(section, Section) else section
@@ -315,10 +318,13 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
     def get_effective_monthly_plans_for(self, target_date):
         target_month = normalize_month_start(target_date)
+        queryset = self.monthly_plans.select_related('section').prefetch_related('plan_slots__weekly_class_slot').filter(
+            month__lte=target_month
+        )
+        if self.monthly_plan_reset_from is not None and target_month >= self.monthly_plan_reset_from:
+            queryset = queryset.filter(month__gte=self.monthly_plan_reset_from)
         plans = list(
-            self.monthly_plans.select_related('section')
-            .prefetch_related('plan_slots__weekly_class_slot')
-            .filter(month__lte=target_month)
+            queryset
             .order_by('-month', 'section__name', '-pk')
         )
         effective_by_section = {}

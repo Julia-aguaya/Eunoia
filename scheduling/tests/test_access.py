@@ -509,6 +509,55 @@ class SchedulingUseCaseTests(TestCase):
         self.assertEqual(past_booking.status, BookingStatus.BOOKED)
         self.assertEqual(future_booking.status, BookingStatus.CANCELLED)
 
+    def test_global_deactivation_sets_plan_barrier_and_removes_current_and_future_plans(self):
+        current_month = normalize_month_start(self.today)
+        historical_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=date(self.today.year - 1, 1, 1), section=self.section,
+        )
+        current_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=current_month, section=self.section,
+        )
+        future_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=date(self.today.year + 1, 1, 1), section=self.section,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.MONDAY, start_time=time(8), end_time=time(9),
+        )
+        for plan in (historical_plan, current_plan, future_plan):
+            plan.assign_weekly_slots([slot])
+
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.monthly_plan_reset_from, current_month)
+        self.assertTrue(StudentMonthlyPlan.objects.filter(pk=historical_plan.pk).exists())
+        self.assertFalse(StudentMonthlyPlan.objects.filter(pk=current_plan.pk).exists())
+        self.assertFalse(StudentMonthlyPlan.objects.filter(pk=future_plan.pk).exists())
+        self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan__student=self.student).count(), 1)
+
+    def test_plan_barrier_blocks_historical_inheritance_but_allows_post_barrier_assignment(self):
+        historical_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=date(self.today.year - 1, 1, 1), section=self.section,
+        )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.MONDAY, start_time=time(8), end_time=time(9),
+        )
+        historical_plan.assign_weekly_slots([slot])
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+        reactivate_student_globally(student=self.student)
+        target_month = date(self.today.year + 1, 1, 1)
+
+        self.student.refresh_from_db()
+        self.assertIsNone(self.student.get_effective_monthly_plan_for_section(target_month, self.section))
+        explicit_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=target_month, section=self.section,
+        )
+        explicit_plan.assign_weekly_slots([slot])
+
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.monthly_plan_reset_from, normalize_month_start(self.today))
+        self.assertEqual(self.student.get_effective_monthly_plan_for_section(target_month, self.section), explicit_plan)
+
     def test_explicit_global_reactivation_restores_only_global_login_access(self):
         access = MonthlyAccessStatus.objects.create(
             student=self.student,
