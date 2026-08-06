@@ -19,6 +19,17 @@ from .models import (
 )
 
 
+STAFF_WEEKDAY_CHOICES = (
+    (1, 'Lunes'),
+    (2, 'Martes'),
+    (3, 'Miércoles'),
+    (4, 'Jueves'),
+    (5, 'Viernes'),
+    (6, 'Sábado'),
+    (7, 'Domingo'),
+)
+
+
 class EmailAuthenticationForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(
@@ -538,3 +549,119 @@ class StaffClassSessionForm(forms.Form):
         session.capacity = self.cleaned_data['capacity']
         session.save(update_fields=['section', 'date', 'start_time', 'end_time', 'capacity', 'updated_at'])
         return session
+
+
+class StaffWeeklyClassSlotForm(forms.Form):
+    section = forms.ModelChoiceField(
+        queryset=Section.objects.none(),
+        label='Actividad',
+        empty_label=None,
+    )
+    weekday = forms.ChoiceField(
+        choices=STAFF_WEEKDAY_CHOICES,
+        label='Día de la semana',
+    )
+    start_time = forms.TimeField(
+        label='Hora de inicio',
+        widget=forms.TimeInput(attrs={'type': 'time'}),
+    )
+    end_time = forms.TimeField(
+        label='Hora de fin',
+        widget=forms.TimeInput(attrs={'type': 'time'}),
+    )
+    capacity = forms.IntegerField(
+        required=False,
+        min_value=1,
+        label='Cupo',
+        help_text='Opcional. Si lo dejás vacío, se usa el cupo predeterminado de la actividad.',
+    )
+    notes = forms.CharField(
+        required=False,
+        label='Notas operativas',
+        widget=forms.Textarea(attrs={'rows': 3}),
+    )
+
+    def __init__(self, *args, generation_start=None, generation_end=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.generation_start = generation_start or timezone.localdate()
+        self.generation_end = generation_end or self.generation_start
+        self.fields['section'].queryset = Section.objects.filter(is_active=True).order_by('name')
+        self.fields['weekday'].initial = self.generation_start.isoweekday()
+        self.fields['notes'].help_text = 'Opcional. Sirve para dejar contexto interno del horario.'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        section = cleaned_data.get('section')
+        weekday = cleaned_data.get('weekday')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_time and end_time and end_time <= start_time:
+            self.add_error('end_time', 'La hora de fin tiene que ser posterior al inicio.')
+            return cleaned_data
+
+        if not all((section, weekday, start_time, end_time)):
+            return cleaned_data
+
+        weekday = int(weekday)
+        existing_slots = WeeklyClassSlot.objects.filter(
+            section=section,
+            weekday=weekday,
+        )
+        overlapping_slot = next(
+            (
+                slot
+                for slot in existing_slots
+                if slot.start_time < end_time
+                and slot.end_time > start_time
+            ),
+            None,
+        )
+        if overlapping_slot is not None:
+            self.add_error(
+                'start_time',
+                'Ya existe un horario recurrente que se superpone para esta actividad y día.',
+            )
+            return cleaned_data
+
+        conflicting_session = self._find_conflicting_exceptional_session(
+            section=section,
+            weekday=weekday,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        if conflicting_session is not None:
+            self.add_error(
+                'start_time',
+                (
+                    'Ya existe una clase excepcional en este horario y fecha '
+                    f'({conflicting_session.date:%d/%m/%Y}). Revisala antes de crear el horario recurrente.'
+                ),
+            )
+
+        return cleaned_data
+
+    def _find_conflicting_exceptional_session(self, *, section, weekday, start_time, end_time):
+        sessions = ClassSession.objects.filter(
+            section=section,
+            slot__isnull=True,
+            date__range=(self.generation_start, self.generation_end),
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        ).order_by('date', 'start_time')
+        return next((session for session in sessions if session.date.isoweekday() == weekday), None)
+
+    def save(self):
+        slot = WeeklyClassSlot(
+            section=self.cleaned_data['section'],
+            weekday=int(self.cleaned_data['weekday']),
+            start_time=self.cleaned_data['start_time'],
+            end_time=self.cleaned_data['end_time'],
+            capacity=self.cleaned_data.get('capacity'),
+            starts_on=self.generation_start,
+            is_active=True,
+            notes=self.cleaned_data.get('notes', '').strip(),
+        )
+        slot.full_clean()
+        slot.save()
+        return slot

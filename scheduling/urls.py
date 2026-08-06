@@ -4,6 +4,7 @@ from .views import (
     admin_class_agenda_view,
     admin_cancel_class_session_view,
     admin_create_class_session_view,
+    admin_create_weekly_class_slot_view,
     admin_class_session_detail_view,
     admin_delete_class_session_view,
     admin_create_holiday_closure_view,
@@ -35,6 +36,7 @@ urlpatterns = [
     path('staff/', admin_student_list_view, name='admin-student-list'),
     path('staff/clases/', admin_class_agenda_view, name='admin-class-agenda'),
     path('staff/clases/crear/', admin_create_class_session_view, name='admin-create-class-session'),
+    path('staff/clases/horarios/crear/', admin_create_weekly_class_slot_view, name='admin-create-weekly-class-slot'),
     path('staff/clases/<int:session_id>/cancelar/', admin_cancel_class_session_view, name='admin-cancel-class-session'),
     path(
         'staff/clases/<int:session_id>/recuperaciones/<int:booking_id>/eliminar/',

@@ -42,6 +42,19 @@ class GenerateClassSessionsCommandTests(TestCase):
         self.assertEqual(session.holiday_closure, holiday)
         self.assertEqual(session.status, SessionStatus.HOLIDAY_CLOSED)
 
+    def test_command_generates_future_slot_sessions_idempotently_with_slot_association(self):
+        out = StringIO()
+
+        call_command('generate_class_sessions', '2026-04-06', '2026-04-20', stdout=out)
+        call_command('generate_class_sessions', '2026-04-06', '2026-04-20', stdout=out)
+
+        sessions = ClassSession.objects.filter(section=self.section, date__range=(date(2026, 4, 6), date(2026, 4, 20)))
+        self.assertEqual(sessions.count(), 3)
+        self.assertTrue(all(session.slot_id == self.slot.pk for session in sessions))
+        self.assertIn('Created 3 sessions', out.getvalue())
+        self.assertIn('Created 0 sessions', out.getvalue())
+        self.assertIn('Skipped duplicates: 3', out.getvalue())
+
 
 class RolloverMonthlyAccessStatusesCommandTests(TestCase):
     def setUp(self):

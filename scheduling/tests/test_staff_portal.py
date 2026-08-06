@@ -1,6 +1,8 @@
 from django.db import IntegrityError
 from django.template import engines
 
+from scheduling.forms import StaffStudentMonthlyPlanForm
+
 from ._shared import *
 
 class MonthlyAccessAdminActionTests(TestCase):
@@ -4197,6 +4199,107 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(session.status, SessionStatus.SCHEDULED)
         self.assertContains(response, 'Se creó la clase de')
         self.assertContains(response, '15:00 - 16:00')
+
+    def test_staff_can_create_recurrent_slot_available_for_monthly_plan_with_empty_agenda_session(self):
+        self.client.force_login(self.staff_user)
+        start_time = time(15, 0)
+
+        response = self.client.post(
+            reverse('admin-create-weekly-class-slot'),
+            {
+                'section': self.section.pk,
+                'weekday': self.today.isoweekday(),
+                'start_time': start_time.strftime('%H:%M'),
+                'end_time': '16:00',
+                'capacity': 7,
+                'section_filter': self.section.pk,
+            },
+            follow=True,
+        )
+
+        slot = WeeklyClassSlot.objects.get(section=self.section, weekday=self.today.isoweekday(), start_time=start_time)
+        session = ClassSession.objects.get(slot=slot, date=self.today)
+        plan_form = StaffStudentMonthlyPlanForm(
+            student=self.active_student,
+            month=self.current_month,
+            section=self.section,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(slot.starts_on, self.today)
+        self.assertIn(slot, plan_form.fields['slot_ids'].queryset)
+        self.assertEqual(session.capacity, 7)
+        agenda_row = next(
+            row
+            for group in response.context['staff_agenda_groups']
+            for row in group['sessions']
+            if row['session'].pk == session.pk
+        )
+        self.assertEqual(agenda_row['booked_count'], 0)
+        self.assertContains(response, 'Se creó el horario recurrente')
+
+    def test_staff_cannot_create_duplicate_or_overlapping_recurrent_slot(self):
+        WeeklyClassSlot.objects.create(
+            section=self.section,
+            weekday=self.today.isoweekday(),
+            start_time=time(15, 0),
+            end_time=time(16, 0),
+            starts_on=self.today,
+        )
+        self.client.force_login(self.staff_user)
+
+        duplicate_response = self.client.post(
+            reverse('admin-create-weekly-class-slot'),
+            {
+                'section': self.section.pk,
+                'weekday': self.today.isoweekday(),
+                'start_time': '15:00',
+                'end_time': '16:00',
+                'capacity': 7,
+            },
+        )
+        overlap_response = self.client.post(
+            reverse('admin-create-weekly-class-slot'),
+            {
+                'section': self.section.pk,
+                'weekday': self.today.isoweekday(),
+                'start_time': '15:30',
+                'end_time': '16:30',
+                'capacity': 7,
+            },
+        )
+
+        self.assertEqual(duplicate_response.status_code, 200)
+        self.assertEqual(overlap_response.status_code, 200)
+        self.assertEqual(WeeklyClassSlot.objects.filter(section=self.section).count(), 1)
+        self.assertContains(duplicate_response, 'Ya existe un horario recurrente que se superpone')
+        self.assertContains(overlap_response, 'Ya existe un horario recurrente que se superpone')
+
+    def test_staff_cannot_create_recurrent_slot_overlapping_future_exceptional_class(self):
+        exceptional_date = self.today + timedelta(days=1)
+        ClassSession.objects.create(
+            section=self.section,
+            date=exceptional_date,
+            start_time=time(15, 0),
+            end_time=time(16, 0),
+            capacity=7,
+        )
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-create-weekly-class-slot'),
+            {
+                'section': self.section.pk,
+                'weekday': exceptional_date.isoweekday(),
+                'start_time': '15:30',
+                'end_time': '16:30',
+                'capacity': 7,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(WeeklyClassSlot.objects.filter(section=self.section, start_time=time(15, 30)).exists())
+        self.assertContains(response, 'Ya existe una clase excepcional en este horario y fecha')
 
     def test_staff_cannot_create_duplicate_manual_class_session(self):
         self.client.force_login(self.staff_user)

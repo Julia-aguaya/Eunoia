@@ -456,6 +456,18 @@ class WeeklyClassSlot(TimeStampedModel):
     def __str__(self):
         return f'{self.section} - {self.get_weekday_display()} {self.start_time:%H:%M}'
 
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            errors['end_time'] = 'La hora de fin tiene que ser posterior al inicio.'
+        if self.starts_on and self.ends_on and self.ends_on < self.starts_on:
+            errors['ends_on'] = 'La vigencia final no puede ser anterior a la inicial.'
+
+        if errors:
+            raise ValidationError(errors)
+
     def is_effective_on(self, target_date):
         if not self.is_active:
             return False

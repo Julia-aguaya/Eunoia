@@ -28,6 +28,7 @@ from .forms import (
     StaffClassSessionForm,
     StaffHolidayClosureForm,
     StaffManualRecoveryCreditForm,
+    StaffWeeklyClassSlotForm,
 )
 from .fixed_booking_history import (
     can_recreate_fixed_booking_over_history as _can_recreate_fixed_booking_over_history,
@@ -489,7 +490,7 @@ def _parse_staff_agenda_date(raw_value):
         return timezone.localdate()
 
 
-def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_form=None):
+def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_form=None, weekly_slot_form=None):
     data = data or {}
     anchor_date = _parse_staff_agenda_date(data.get('date'))
     window_end = anchor_date + timedelta(days=STAFF_AGENDA_WINDOW_DAYS - 1)
@@ -584,6 +585,11 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
     recent_closures = list(HolidayClosure.objects.select_related('created_by').order_by('-date')[:5])
     closure_form = closure_form or StaffHolidayClosureForm(initial={'date': anchor_date})
     class_form = class_form or StaffClassSessionForm(initial={'date': anchor_date})
+    today = timezone.localdate()
+    weekly_slot_form = weekly_slot_form or StaffWeeklyClassSlotForm(
+        generation_start=today,
+        generation_end=_resolve_student_portal_sync_end(reference_date=today),
+    )
     closure_focus_date = closure_form['date'].value() or anchor_date
     closure_focus = HolidayClosure.objects.filter(date=_parse_staff_agenda_date(closure_focus_date)).first()
     closure_focus_summary = None
@@ -619,6 +625,7 @@ def _build_staff_class_agenda_context(*, data=None, closure_form=None, class_for
         'staff_recent_closures': recent_closures,
         'staff_holiday_closure_form': closure_form,
         'staff_class_session_form': class_form,
+        'staff_weekly_class_slot_form': weekly_slot_form,
         'staff_closure_focus_summary': closure_focus_summary,
     }
 
@@ -2756,6 +2763,50 @@ def admin_create_class_session_view(request):
             'section': requested_section,
         },
         class_form=form,
+    )
+    return render(request, 'scheduling/admin_class_agenda.html', context, status=200)
+
+
+@staff_required
+def admin_create_weekly_class_slot_view(request):
+    if request.method != 'POST':
+        return redirect('admin-class-agenda')
+
+    today = timezone.localdate()
+    generation_end = _resolve_student_portal_sync_end(reference_date=today)
+    form = StaffWeeklyClassSlotForm(
+        data=request.POST,
+        generation_start=today,
+        generation_end=generation_end,
+    )
+    requested_section = request.POST.get('section_filter', '').strip()
+
+    if form.is_valid():
+        with transaction.atomic():
+            slot = form.save()
+            generation = generate_class_sessions(
+                start_date=today,
+                end_date=generation_end,
+                section_code=slot.section.code,
+                sync_monthly_plan_bookings=False,
+            )
+        messages.success(
+            request,
+            (
+                f'Se creó el horario recurrente de {slot.section.name}: '
+                f'{STAFF_PLAN_WEEKDAY_LABELS[slot.weekday]} '
+                f'de {slot.start_time:%H:%M} a {slot.end_time:%H:%M}, vigente desde hoy. '
+                f'Sesiones futuras generadas: {generation.created_count}.'
+            ),
+        )
+        return redirect(_build_staff_class_agenda_url(date=today, section=slot.section_id))
+
+    context = _build_staff_class_agenda_context(
+        data={
+            'date': request.POST.get('date') or timezone.localdate().isoformat(),
+            'section': requested_section,
+        },
+        weekly_slot_form=form,
     )
     return render(request, 'scheduling/admin_class_agenda.html', context, status=200)
 

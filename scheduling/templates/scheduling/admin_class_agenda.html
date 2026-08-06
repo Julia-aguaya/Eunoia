@@ -347,8 +347,71 @@
             <section class="panel closure-panel">
                 <div class="panel-head" style="margin-bottom: 14px;">
                     <div>
-                        <h3>Nueva clase</h3>
-                        <p class="tiny-copy">Agregá una clase manual si ese horario todavía no existe.</p>
+                        <h3>Crear horario recurrente</h3>
+                        <p class="tiny-copy">Se repite cada semana, queda vigente desde hoy y genera las próximas sesiones.</p>
+                    </div>
+                </div>
+
+                <div class="tone-note" style="margin-bottom: 14px;">
+                    Este horario queda disponible de inmediato para incluirlo en los planes mensuales de la actividad.
+                </div>
+
+                <form method="post" action="{% url 'admin-create-weekly-class-slot' %}" class="day-stack">
+                    {% csrf_token %}
+                    <input type="hidden" name="section_filter" value="{{ staff_agenda_section_id }}">
+
+                    {% if staff_weekly_class_slot_form.non_field_errors %}
+                        <p class="field-errors">{{ staff_weekly_class_slot_form.non_field_errors|join:", " }}</p>
+                    {% endif %}
+
+                    <div class="field-stack">
+                        <label for="{{ staff_weekly_class_slot_form.section.id_for_label }}">{{ staff_weekly_class_slot_form.section.label }}</label>
+                        {{ staff_weekly_class_slot_form.section }}
+                        {% if staff_weekly_class_slot_form.section.errors %}<p class="field-errors">{{ staff_weekly_class_slot_form.section.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="field-stack">
+                        <label for="{{ staff_weekly_class_slot_form.weekday.id_for_label }}">{{ staff_weekly_class_slot_form.weekday.label }}</label>
+                        {{ staff_weekly_class_slot_form.weekday }}
+                        {% if staff_weekly_class_slot_form.weekday.errors %}<p class="field-errors">{{ staff_weekly_class_slot_form.weekday.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="filters-grid">
+                        <div class="field-stack">
+                            <label for="{{ staff_weekly_class_slot_form.start_time.id_for_label }}">{{ staff_weekly_class_slot_form.start_time.label }}</label>
+                            {{ staff_weekly_class_slot_form.start_time }}
+                            {% if staff_weekly_class_slot_form.start_time.errors %}<p class="field-errors">{{ staff_weekly_class_slot_form.start_time.errors|join:", " }}</p>{% endif %}
+                        </div>
+                        <div class="field-stack">
+                            <label for="{{ staff_weekly_class_slot_form.end_time.id_for_label }}">{{ staff_weekly_class_slot_form.end_time.label }}</label>
+                            {{ staff_weekly_class_slot_form.end_time }}
+                            {% if staff_weekly_class_slot_form.end_time.errors %}<p class="field-errors">{{ staff_weekly_class_slot_form.end_time.errors|join:", " }}</p>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="field-stack">
+                        <label for="{{ staff_weekly_class_slot_form.capacity.id_for_label }}">{{ staff_weekly_class_slot_form.capacity.label }}</label>
+                        {{ staff_weekly_class_slot_form.capacity }}
+                        {% if staff_weekly_class_slot_form.capacity.help_text %}<p class="tiny-copy">{{ staff_weekly_class_slot_form.capacity.help_text }}</p>{% endif %}
+                        {% if staff_weekly_class_slot_form.capacity.errors %}<p class="field-errors">{{ staff_weekly_class_slot_form.capacity.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <div class="field-stack">
+                        <label for="{{ staff_weekly_class_slot_form.notes.id_for_label }}">{{ staff_weekly_class_slot_form.notes.label }}</label>
+                        {{ staff_weekly_class_slot_form.notes }}
+                        {% if staff_weekly_class_slot_form.notes.help_text %}<p class="tiny-copy">{{ staff_weekly_class_slot_form.notes.help_text }}</p>{% endif %}
+                        {% if staff_weekly_class_slot_form.notes.errors %}<p class="field-errors">{{ staff_weekly_class_slot_form.notes.errors|join:", " }}</p>{% endif %}
+                    </div>
+
+                    <button type="submit" class="button-search">Crear horario recurrente</button>
+                </form>
+            </section>
+
+            <section class="panel closure-panel">
+                <div class="panel-head" style="margin-bottom: 14px;">
+                    <div>
+                        <h3>Agregar clase excepcional</h3>
+                        <p class="tiny-copy">Es una clase puntual: no crea un horario semanal ni aparece para los planes mensuales.</p>
                     </div>
                 </div>
 
@@ -391,7 +454,7 @@
                         {% if staff_class_session_form.capacity.errors %}<p class="field-errors">{{ staff_class_session_form.capacity.errors|join:", " }}</p>{% endif %}
                     </div>
 
-                    <button type="submit" class="button-search">Agregar clase</button>
+                    <button type="submit" class="button-secondary">Agregar clase excepcional</button>
                 </form>
             </section>
 
