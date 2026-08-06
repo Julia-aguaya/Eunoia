@@ -263,7 +263,17 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
     return created_count
 
 
-def create_booking(*, session_id, student, used_recovery_credit_id=None, source=BookingSource.FIXED_SLOT):
+def create_booking(
+    *,
+    session_id,
+    student,
+    used_recovery_credit_id=None,
+    use_compatible_available_recovery=False,
+    source=BookingSource.FIXED_SLOT,
+):
+    if use_compatible_available_recovery and used_recovery_credit_id:
+        raise ValueError('A booking cannot select both an explicit and a compatible recovery credit.')
+
     session = ClassSession.objects.get(pk=session_id)
     recovery_credit = None
     if used_recovery_credit_id:
@@ -276,6 +286,7 @@ def create_booking(*, session_id, student, used_recovery_credit_id=None, source=
             student=student,
             source=source,
             used_recovery_credit=recovery_credit,
+            use_compatible_available_recovery=use_compatible_available_recovery,
         )
     return CreateBookingResult(
         booking=booking,

@@ -574,7 +574,7 @@
             </div>
             <div class="summary-copy">
                 <strong>{{ available_recovery_credits|length }} recuperación{{ available_recovery_credits|length|pluralize:"es" }} disponible{{ available_recovery_credits|length|pluralize:"s" }}</strong>
-                <p>Vence el {{ recovery_focus_credit.expires_at|date:"d/m" }}</p>
+                <p>Se usará una recuperación compatible disponible.</p>
             </div>
             <div class="activity-chip">
                 <span>{{ recovery_selected_activity.name }}</span>
@@ -708,7 +708,7 @@
             <div class="picker-actions">
                 <form method="post" action="{% url 'create-booking' session.id %}" style="margin: 0;">
                     {% csrf_token %}
-                    <input type="hidden" name="used_recovery_credit_id" value="{{ recovery_focus_credit.id }}">
+                    <input type="hidden" name="use_compatible_available_recovery" value="1">
                     <input type="hidden" name="next" value="{% url 'dashboard' %}">
                     <button type="submit" class="button">Confirmar recuperación</button>
                 </form>

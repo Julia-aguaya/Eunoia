@@ -73,6 +73,21 @@ class WebRecoveryFlowTests(TestCase):
                 follow=True,
             )
 
+    def post_pooled_recovery_booking(self, session, *, next_url=None):
+        with patch('scheduling.models.timezone.localdate', return_value=self.today), patch(
+            'scheduling.models.timezone.now', return_value=self.fixed_now
+        ), patch('scheduling.views.timezone.localdate', return_value=self.today), patch(
+            'scheduling.views.timezone.now', return_value=self.fixed_now
+        ):
+            return self.client.post(
+                reverse('create-booking', args=[session.pk]),
+                {
+                    'use_compatible_available_recovery': '1',
+                    'next': next_url or reverse('my-bookings'),
+                },
+                follow=True,
+            )
+
     def test_recovery_page_shows_only_available_same_section_slots_in_visible_month(self):
         monday = self.today - timedelta(days=self.today.weekday())
         tuesday = monday + timedelta(days=1)
@@ -189,6 +204,43 @@ class WebRecoveryFlowTests(TestCase):
             [option['section'].code for option in response.context['recovery_activity_options']],
             [self.section.code, self.other_section.code, reformer_downstairs.code],
         )
+
+    def test_recovery_union_exposes_cadillac_and_consumes_cadillac_credit_when_reformer_expires_first(self):
+        reformer_downstairs = Section.objects.get(code='reformer_abajo')
+        target_session = self.create_session_on(self.today + timedelta(days=1), section=self.section, start_hour=18)
+        earlier_reformer_credit = self.create_available_credit(
+            section=reformer_downstairs,
+            expires_at=self.today + timedelta(days=5),
+        )
+        cadillac_credit = self.create_available_credit(
+            section=self.section,
+            expires_at=self.today + timedelta(days=30),
+        )
+
+        with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
+            'scheduling.views.timezone.localdate', return_value=self.today
+        ):
+            response = self.client.get(
+                reverse('use-recovery', args=[earlier_reformer_credit.pk]),
+                {'section': self.section.code, 'date': target_session.date.isoformat(), 'session': target_session.pk},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [option['section'].code for option in response.context['recovery_activity_options']],
+            [self.section.code, self.other_section.code, reformer_downstairs.code],
+        )
+        self.assertContains(response, 'name="use_compatible_available_recovery" value="1"')
+
+        booking_response = self.post_pooled_recovery_booking(target_session)
+
+        booking = Booking.objects.get(session=target_session, student=self.student)
+        earlier_reformer_credit.refresh_from_db()
+        cadillac_credit.refresh_from_db()
+        self.assertEqual(booking_response.status_code, 200)
+        self.assertEqual(booking.used_recovery_credit, cadillac_credit)
+        self.assertEqual(cadillac_credit.status, RecoveryCreditStatus.USED)
+        self.assertEqual(earlier_reformer_credit.status, RecoveryCreditStatus.AVAILABLE)
 
     def test_recovery_page_allows_selecting_relevant_day_without_available_slots(self):
         monday_now = timezone.make_aware(datetime(2026, 6, 8, 9, 0))

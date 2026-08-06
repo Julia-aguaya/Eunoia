@@ -122,6 +122,7 @@ BOOKING_ERROR_MESSAGES = {
     'Recovery credit is not available.': 'La recuperacion elegida ya no esta disponible para usar.',
     'Recovery credit is expired.': 'La recuperacion elegida esta vencida y ya no puede usarse.',
     'Recovery credit is not available for this student.': 'La recuperacion elegida ya no esta disponible en tu portal.',
+    'No compatible recovery credit is available.': 'No queda una recuperación compatible disponible para esta clase.',
 }
 
 CANCELLATION_ERROR_MESSAGES = {
@@ -1400,7 +1401,7 @@ def _get_student_portal_context(
     available_recovery_credit_ids_by_section = {}
     available_recovery_credit_map = {}
     for credit in available_recovery_credits:
-        activity_sections = _build_recovery_activity_sections(credit)
+        activity_sections = _build_recovery_activity_sections([credit])
         activity_names = [section.name for section in activity_sections]
         supports_multiple_activities = len(activity_sections) > 1
         compatibility_label = _join_labels_with_y(activity_names)
@@ -1991,12 +1992,12 @@ def _build_recovery_session_action(*, user, session, recovery_credit, now):
     return action
 
 
-def _build_recovery_activity_sections(credit):
-    compatible_codes = set(credit.compatible_section_codes())
-    ordered_codes = [credit.section.code]
-    ordered_codes.extend(
-        code for code in RECOVERY_ACTIVITY_ORDER if code in compatible_codes and code != credit.section.code
-    )
+def _build_recovery_activity_sections(credits):
+    compatible_codes = set()
+    for credit in credits:
+        compatible_codes.update(credit.compatible_section_codes())
+
+    ordered_codes = [code for code in RECOVERY_ACTIVITY_ORDER if code in compatible_codes]
     ordered_codes.extend(
         sorted(code for code in compatible_codes if code not in ordered_codes)
     )
@@ -2005,6 +2006,26 @@ def _build_recovery_activity_sections(credit):
         for section in Section.objects.filter(code__in=ordered_codes)
     }
     return [sections_by_code[code] for code in ordered_codes if code in sections_by_code]
+
+
+def _build_recovery_session_action_for_credits(*, user, session, recovery_credits, now):
+    compatible_actions = [
+        _build_recovery_session_action(user=user, session=session, recovery_credit=credit, now=now)
+        for credit in recovery_credits
+        if credit.is_session_compatible(session)
+    ]
+    for action in compatible_actions:
+        if action['can_book']:
+            return action
+    if compatible_actions:
+        return compatible_actions[0]
+    return {
+        'can_book': False,
+        'label': 'No disponible para esta recuperación',
+        'message': 'No queda una recuperación compatible disponible para esta clase.',
+        'tone': 'blocked',
+        'state': 'blocked',
+    }
 
 
 def _build_booking_detail_modal_context(*, request, context):
@@ -2331,12 +2352,14 @@ def create_booking_view(request, session_id):
 
     redirect_url = _get_safe_redirect_url(request)
     recovery_credit_id = request.POST.get('used_recovery_credit_id')
+    use_compatible_available_recovery = request.POST.get('use_compatible_available_recovery') == '1'
 
     try:
         reservation = create_booking(
             session_id=session_id,
             student=request.user,
             used_recovery_credit_id=recovery_credit_id,
+            use_compatible_available_recovery=use_compatible_available_recovery,
         )
     except ClassSession.DoesNotExist as exc:
         raise Http404 from exc
@@ -2388,7 +2411,8 @@ def use_recovery_view(request, recovery_credit_id):
     now = timezone.localtime()
     week_start, week_end, recovery_week_is_next = _get_recovery_workweek_window(today)
     month_end = date(month_start.year, month_start.month, calendar.monthrange(month_start.year, month_start.month)[1])
-    activity_sections = _build_recovery_activity_sections(credit)
+    available_recovery_credits = context['available_recovery_credits']
+    activity_sections = _build_recovery_activity_sections(available_recovery_credits)
     selected_section_code = request.GET.get('section')
     valid_activity_codes = {section.code for section in activity_sections}
     if selected_section_code not in valid_activity_codes and activity_sections:
@@ -2439,7 +2463,12 @@ def use_recovery_view(request, recovery_credit_id):
     recovery_session_cards = []
     recovery_day_cards = []
     for session in candidate_sessions:
-        action = _build_recovery_session_action(user=request.user, session=session, recovery_credit=credit, now=now)
+        action = _build_recovery_session_action_for_credits(
+            user=request.user,
+            session=session,
+            recovery_credits=available_recovery_credits,
+            now=now,
+        )
         if action['can_book']:
             display_label = f'{session.start_time:%H:%M}'
         elif action['state'] == 'full':
@@ -2504,6 +2533,7 @@ def use_recovery_view(request, recovery_credit_id):
     context.update(
         {
             'recovery_focus_credit': credit,
+            'recovery_available_credits': available_recovery_credits,
             'recovery_focus_credit_overdue': credit.is_expired(on_date=today),
             'recovery_selected_activity': selected_section,
             'recovery_activity_options': recovery_activity_options,

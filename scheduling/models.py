@@ -1065,6 +1065,7 @@ class BookingManager(models.Manager):
         student,
         source=BookingSource.FIXED_SLOT,
         allow_fixed_plan_history=False,
+        use_compatible_available_recovery=False,
         **extra_fields,
     ):
         with transaction.atomic():
@@ -1085,7 +1086,35 @@ class BookingManager(models.Manager):
             )
             recovery_credit = extra_fields.pop('used_recovery_credit', None)
             locked_credit = None
-            if recovery_credit is not None:
+            if use_compatible_available_recovery:
+                if recovery_credit is not None:
+                    raise ValueError('A booking cannot select both an explicit and a compatible recovery credit.')
+                credit_ids = list(
+                    RecoveryCredit.objects.filter(student_id=locked_student.pk)
+                    .order_by('pk')
+                    .values_list('pk', flat=True)
+                )
+                locked_credits = list(
+                    RecoveryCredit.objects.select_for_update()
+                    .filter(pk__in=credit_ids)
+                    .order_by('pk')
+                )
+                compatible_credits = [
+                    credit
+                    for credit in locked_credits
+                    if credit.status == RecoveryCreditStatus.AVAILABLE
+                    and not credit.is_expired(on_date=timezone.localdate())
+                    and credit.is_session_compatible(locked_session)
+                ]
+                if not compatible_credits:
+                    raise ValidationError({'used_recovery_credit': ['No compatible recovery credit is available.']})
+                locked_credit = min(
+                    compatible_credits,
+                    key=lambda credit: (credit.expires_at, credit.created_at, credit.pk),
+                )
+                if source == BookingSource.FIXED_SLOT:
+                    source = BookingSource.MAKEUP
+            elif recovery_credit is not None:
                 credit_ids = list(RecoveryCredit.objects.filter(pk=recovery_credit.pk).order_by('pk').values_list('pk', flat=True))
                 locked_credit = RecoveryCredit.objects.select_for_update().get(pk=credit_ids[0])
                 if source == BookingSource.FIXED_SLOT:

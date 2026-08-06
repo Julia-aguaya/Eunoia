@@ -1827,6 +1827,34 @@ class StudentBookingUseCaseTests(TestCase):
         self.assertEqual(reservation.recovery_credit.status, RecoveryCreditStatus.USED)
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.USED)
 
+    def test_create_booking_with_compatible_recovery_uses_earliest_expiring_credit(self):
+        earliest_credit = RecoveryCredit.objects.create(
+            student=self.student,
+            section=self.section,
+            source=RecoveryCreditSource.MANUAL,
+            status=RecoveryCreditStatus.AVAILABLE,
+            expires_at=date(2026, 9, 1),
+        )
+        later_credit = RecoveryCredit.objects.create(
+            student=self.student,
+            section=self.section,
+            source=RecoveryCreditSource.MANUAL,
+            status=RecoveryCreditStatus.AVAILABLE,
+            expires_at=date(2026, 10, 1),
+        )
+
+        reservation = create_booking(
+            session_id=self.session.pk,
+            student=self.student,
+            use_compatible_available_recovery=True,
+        )
+
+        earliest_credit.refresh_from_db()
+        later_credit.refresh_from_db()
+        self.assertEqual(reservation.recovery_credit, earliest_credit)
+        self.assertEqual(earliest_credit.status, RecoveryCreditStatus.USED)
+        self.assertEqual(later_credit.status, RecoveryCreditStatus.AVAILABLE)
+
     def test_create_booking_rejects_missing_student_recovery_credit(self):
         with self.assertRaisesMessage(ValidationError, 'Recovery credit is not available for this student.'):
             create_booking(session_id=self.session.pk, student=self.student, used_recovery_credit_id=999999)
