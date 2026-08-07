@@ -162,8 +162,8 @@
         }
 
         .recovery-shell {
-            padding: 24px;
-            gap: 18px;
+            padding: 18px;
+            gap: 12px;
             background: linear-gradient(180deg, rgba(250, 249, 245, 0.96), rgba(244, 241, 234, 0.94));
         }
 
@@ -191,6 +191,11 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .recovery-summary-grid {
+            grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.3fr);
+            align-items: stretch;
+        }
+
         .recovery-summary-card,
         .recovery-form-card,
         .recovery-list-card,
@@ -204,19 +209,19 @@
         .recovery-form-card,
         .recovery-list-card,
         .recovery-empty {
-            padding: 18px;
+            padding: 14px;
         }
 
         .recovery-count {
             display: inline-flex;
             align-items: center;
-            min-height: 36px;
-            padding: 0 14px;
+            min-height: 30px;
+            padding: 0 11px;
             border-radius: 999px;
             border: 1px solid rgba(111, 143, 127, 0.16);
             background: rgba(255, 255, 255, 0.92);
             color: var(--primary-strong);
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             font-weight: 600;
         }
 
@@ -240,12 +245,12 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            min-height: 34px;
-            padding: 0 12px;
+            min-height: 28px;
+            padding: 0 10px;
             border-radius: 999px;
             background: rgba(216, 229, 235, 0.58);
             color: var(--primary-strong);
-            font-size: 0.88rem;
+            font-size: 0.8rem;
         }
 
         .recovery-pill.warning {
@@ -255,7 +260,8 @@
 
         .recovery-form-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: minmax(150px, 1fr) minmax(90px, 0.42fr) minmax(180px, 1.25fr) auto;
+            gap: 10px;
             align-items: end;
         }
 
@@ -279,13 +285,13 @@
 
         .recovery-form-grid select,
         .recovery-form-grid input {
-            min-height: 56px;
-            padding: 0 18px;
+            min-height: 44px;
+            padding: 0 12px;
         }
 
         .recovery-form-grid textarea {
-            min-height: 84px;
-            padding: 12px 14px;
+            min-height: 44px;
+            padding: 10px 12px;
             resize: vertical;
         }
 
@@ -305,12 +311,14 @@
         }
 
         .recovery-form-grid .button {
-            width: 100%;
+            min-height: 44px;
+            padding: 0 16px;
+            white-space: nowrap;
         }
 
         .recovery-form-card {
             display: grid;
-            gap: 14px;
+            gap: 10px;
         }
 
         .recovery-form-card h4,
@@ -333,15 +341,15 @@
 
         .recovery-list {
             display: grid;
-            gap: 12px;
-            margin-top: 14px;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .recovery-item {
             display: grid;
-            gap: 10px;
-            padding: 14px;
-            border-radius: 16px;
+            gap: 6px;
+            padding: 10px 12px;
+            border-radius: 14px;
             border: 1px solid rgba(63, 85, 97, 0.1);
             background: rgba(248, 245, 238, 0.8);
         }
@@ -366,12 +374,32 @@
 
         .recovery-summary-card {
             display: grid;
-            gap: 8px;
+            gap: 6px;
         }
 
         .recovery-summary-card strong {
             color: var(--primary-strong);
-            font-size: 1rem;
+            font-size: 0.96rem;
+        }
+
+        .recovery-empty-compact {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .recovery-empty-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: rgba(95, 108, 115, 0.1);
+            color: var(--muted);
+            font-size: 0.9rem;
         }
 
         .panel-copy,
@@ -790,7 +818,7 @@
             }
 
             .recovery-form-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .weekday-grid {
@@ -800,7 +828,8 @@
 
         @media (max-width: 720px) {
             .hero,
-            .monthly-plan-shell {
+            .monthly-plan-shell,
+            .recovery-shell {
                 padding: 16px;
             }
 
@@ -817,6 +846,10 @@
             .recovery-item-head {
                 flex-direction: column;
                 align-items: stretch;
+            }
+
+            .recovery-form-grid {
+                grid-template-columns: 1fr;
             }
 
             .facts {
@@ -1110,7 +1143,6 @@
         <div class="plan-header recovery-header">
             <div class="plan-title-group">
                 <h3>Recuperaciones</h3>
-                <p class="recovery-list-copy">Vista operativa de créditos disponibles y carga manual, sin exponer metadata técnica en pantalla.</p>
             </div>
             <div class="plan-header-badges">
                 <span class="recovery-count{% if not admin_detail_summary.available_recoveries_count %} muted{% endif %}">
@@ -1125,7 +1157,6 @@
         <div class="recovery-summary-grid">
             <article class="recovery-summary-card">
                 <span class="overview-label">Disponibles ahora</span>
-                <strong>{{ admin_detail_summary.available_recoveries_count }} recuperacion{% if admin_detail_summary.available_recoveries_count != 1 %}es{% endif %}</strong>
                 {% if admin_detail_available_recovery_counts_by_section %}
                     <div class="recovery-chip-list">
                         {% for item in admin_detail_available_recovery_counts_by_section %}
@@ -1133,19 +1164,16 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="recovery-field-copy">Todavia no hay recuperaciones disponibles para esta alumna.</p>
+                    <p class="recovery-empty-compact"><span class="recovery-empty-icon" aria-hidden="true">✓</span>No hay recuperaciones disponibles.</p>
                 {% endif %}
             </article>
 
             <article class="recovery-form-card">
                 <div class="recovery-card-head">
                     <div>
-                        <span class="overview-label">Accion manual</span>
                         <h4>Agregar recuperacion</h4>
                     </div>
-                    <span class="recovery-pill">Actuales: {{ admin_detail_summary.available_recoveries_count }}</span>
                 </div>
-                <p class="recovery-field-copy">Usá este bloque solo para ajustes administrativos puntuales.</p>
                 {% if admin_detail_manual_recovery_form.non_field_errors %}
                     <p class="field-errors">{{ admin_detail_manual_recovery_form.non_field_errors|join:", " }}</p>
                 {% endif %}
@@ -1157,9 +1185,6 @@
                         <label for="{{ admin_detail_manual_recovery_form.section.id_for_label }}">
                             <span class="overview-label">Actividad</span>
                             {{ admin_detail_manual_recovery_form.section }}
-                            {% if admin_detail_manual_recovery_form.section.help_text %}
-                                <span class="recovery-field-copy">{{ admin_detail_manual_recovery_form.section.help_text }}</span>
-                            {% endif %}
                             {% if admin_detail_manual_recovery_form.section.errors %}
                                 <span class="field-errors">{{ admin_detail_manual_recovery_form.section.errors|join:", " }}</span>
                             {% endif %}
@@ -1167,7 +1192,6 @@
                         <label for="{{ admin_detail_manual_recovery_form.quantity.id_for_label }}">
                             <span class="overview-label">Cantidad</span>
                             {{ admin_detail_manual_recovery_form.quantity }}
-                            <span class="recovery-field-copy">{{ admin_detail_manual_recovery_form.quantity.help_text }}</span>
                             {% if admin_detail_manual_recovery_form.quantity.errors %}
                                 <span class="field-errors">{{ admin_detail_manual_recovery_form.quantity.errors|join:", " }}</span>
                             {% endif %}
@@ -1175,12 +1199,11 @@
                         <label for="{{ admin_detail_manual_recovery_form.notes.id_for_label }}">
                             <span class="overview-label">Motivo breve</span>
                             {{ admin_detail_manual_recovery_form.notes }}
-                            <span class="recovery-field-copy">{{ admin_detail_manual_recovery_form.notes.help_text }}</span>
                             {% if admin_detail_manual_recovery_form.notes.errors %}
                                 <span class="field-errors">{{ admin_detail_manual_recovery_form.notes.errors|join:", " }}</span>
                             {% endif %}
                         </label>
-                        <button type="submit" class="button">Agregar recuperacion</button>
+                        <button type="submit" class="button">Agregar</button>
                     </div>
                 </form>
             </article>
@@ -1191,7 +1214,7 @@
                 <div class="recovery-card-head">
                     <div>
                         <span class="overview-label">Disponibles</span>
-                        <h4>Para usar en nuevas reservas</h4>
+                        <h4>Créditos activos</h4>
                     </div>
                     <span class="recovery-pill">{{ admin_detail_summary.available_recoveries_count }}</span>
                 </div>
@@ -1227,12 +1250,12 @@
                     </div>
                 {% else %}
                     <div class="recovery-empty">
-                        <strong>No hay recuperaciones disponibles.</strong>
-                        <p>Si falta cargar alguna, podés agregarla manualmente desde esta misma vista.</p>
+                        <p class="recovery-empty-compact"><span class="recovery-empty-icon" aria-hidden="true">✓</span>No hay recuperaciones disponibles.</p>
                     </div>
                 {% endif %}
             </article>
 
+            {% if admin_detail_expired_recoveries %}
             <article class="recovery-list-card">
                 <div class="recovery-card-head">
                     <div>
@@ -1241,9 +1264,8 @@
                     </div>
                     <span class="recovery-pill warning">{{ admin_detail_summary.expired_recoveries_count }}</span>
                 </div>
-                {% if admin_detail_expired_recoveries %}
-                    <div class="recovery-list">
-                        {% for credit in admin_detail_expired_recoveries %}
+                <div class="recovery-list">
+                    {% for credit in admin_detail_expired_recoveries %}
                             <article class="recovery-item">
                                 <div class="recovery-card-stack">
                                     <strong>{{ credit.section.name }}</strong>
@@ -1258,15 +1280,10 @@
                                     {% endif %}
                                 {% endwith %}
                             </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="recovery-empty">
-                        <strong>No hay recuperaciones vencidas.</strong>
-                        <p>Todo lo disponible sigue utilizable desde el portal.</p>
-                    </div>
-                {% endif %}
+                    {% endfor %}
+                </div>
             </article>
+            {% endif %}
         </div>
     </section>
 

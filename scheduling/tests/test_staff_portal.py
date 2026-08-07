@@ -3742,7 +3742,6 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(form.fields['section'].initial, self.section.pk)
         self.assertEqual(ordered_names[:2], ['Cadillac', 'Reformer Arriba'])
-        self.assertContains(response, 'Se priorizan las actividades activas de la alumna: Cadillac, Reformer Arriba.')
 
     def test_staff_manual_recovery_ignores_unsafe_next_url(self):
         self.client.force_login(self.staff_user)
