@@ -146,7 +146,7 @@ class RepairGloballyInactiveBookingsCommandTests(TestCase):
         )
         rows = list(csv.DictReader(StringIO(stdout)))
         self.assertEqual(len(rows), 3)
-        self.assertEqual({row['action'] for row in rows}, {'WOULD_CANCEL', 'WOULD_DELETE_PLAN'})
+        self.assertEqual({row['action'] for row in rows}, {'WOULD_CANCEL', 'WOULD_MASK_PLAN'})
         self.assertEqual(
             {row['session_id'] for row in rows if row['record_type'] == 'BOOKING'},
             {str(self.included.session_id), str(self.same_day_past_class.session_id)},
@@ -197,11 +197,11 @@ class RepairGloballyInactiveBookingsCommandTests(TestCase):
         self.assertEqual(Booking.objects.get(pk=self.active.pk).status, BookingStatus.BOOKED)
         self.assertEqual(Booking.objects.get(pk=self.cancelled.pk).status, BookingStatus.CANCELLED)
         self.assertEqual(MonthlyAccessStatus.objects.count(), 2)
-        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.inactive_student).count(), 0)
-        self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan__student=self.inactive_student).count(), 0)
+        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.inactive_student, is_active=True).count(), 0)
+        self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan__student=self.inactive_student).count(), 1)
         self.assertEqual(RecoveryCredit.objects.count(), 1)
         self.assertEqual(first_stdout.count('CANCELLED'), 2)
-        self.assertEqual(first_stdout.count('DELETED_PLAN'), 1)
+        self.assertEqual(first_stdout.count('MASKED_PLAN'), 1)
         self.assertNotIn('mode=', first_stdout)
         self.assertEqual(
             first_stderr,
@@ -275,7 +275,7 @@ class RepairGloballyInactiveBookingsCommandTests(TestCase):
 
         def delete_target_plan(plan, *, action):
             row = original_plan_row(plan, action=action)
-            if action == 'WOULD_DELETE_PLAN' and plan.pk == target_plan.pk:
+            if action == 'WOULD_MASK_PLAN' and plan.pk == target_plan.pk:
                 StudentMonthlyPlan.objects.filter(pk=plan.pk).delete()
             return row
 
@@ -291,7 +291,7 @@ class RepairGloballyInactiveBookingsCommandTests(TestCase):
             'repair_globally_inactive_bookings mode=apply booking_candidates=2 plan_candidates=1 applied=2 skipped=1\n',
         )
 
-    def test_apply_deletes_inactive_current_and_future_plans_and_preserves_access_and_history(self):
+    def test_apply_masks_inactive_current_and_future_plans_and_preserves_access_and_history(self):
         prior_plan = StudentMonthlyPlan.objects.create(
             student=self.inactive_student,
             month=date(2026, 7, 1),
@@ -319,15 +319,15 @@ class RepairGloballyInactiveBookingsCommandTests(TestCase):
         rows = list(csv.DictReader(StringIO(stdout)))
         plan_row = next(row for row in rows if row['plan_id'] == str(target_plan.pk))
 
-        self.assertEqual(plan_row['action'], 'DELETED_PLAN')
+        self.assertEqual(plan_row['action'], 'MASKED_PLAN')
         self.assertEqual(plan_row['plan_month'], '2026-08-01')
         self.assertEqual(plan_row['plan_section'], self.section.name)
         self.assertEqual(plan_row['plan_slot_ids'], str(target_slot.pk))
         self.assertIn(f'{target_slot.pk}:weekly_slot={self.slot.pk}', plan_row['plan_slot_details'])
-        self.assertFalse(StudentMonthlyPlan.objects.filter(pk=target_plan.pk).exists())
-        self.assertFalse(StudentMonthlyPlanSlot.objects.filter(pk=target_slot.pk).exists())
+        self.assertTrue(StudentMonthlyPlan.objects.filter(pk=target_plan.pk, is_active=False).exists())
+        self.assertTrue(StudentMonthlyPlanSlot.objects.filter(pk=target_slot.pk).exists())
         self.assertTrue(StudentMonthlyPlan.objects.filter(pk=prior_plan.pk).exists())
-        self.assertFalse(StudentMonthlyPlan.objects.filter(pk=future_plan.pk).exists())
+        self.assertTrue(StudentMonthlyPlan.objects.filter(pk=future_plan.pk, is_active=False).exists())
         self.assertTrue(StudentMonthlyPlan.objects.filter(pk=active_plan.pk).exists())
         self.assertEqual(set(MonthlyAccessStatus.objects.values_list('pk', flat=True)), access_ids)
 

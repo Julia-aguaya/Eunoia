@@ -99,13 +99,16 @@ def can_restore_obsolete_fixed_booking(
 
 def _has_restorable_fixed_booking_context(
     *, booking, session, student, context_is_eligible=None, locked_session_bookings=None,
+    active_booking_count=None,
 ):
     if context_is_eligible is None:
         context_is_eligible = fixed_booking_context_is_eligible(student=student, session=session)
     if not context_is_eligible:
         return False
 
-    if locked_session_bookings is None:
+    if active_booking_count is not None:
+        active_bookings = None
+    elif locked_session_bookings is None:
         active_bookings = [
             item for item in Booking.objects.filter(session_id=session.pk, status=BookingStatus.BOOKED)
             if item.pk != booking.pk
@@ -115,15 +118,18 @@ def _has_restorable_fixed_booking_context(
             item for item in locked_session_bookings
             if item.status == BookingStatus.BOOKED and item.pk != booking.pk
         ]
-    if len(active_bookings) >= session.capacity:
+    if active_booking_count is None:
+        active_booking_count = len(active_bookings)
+    if active_booking_count >= session.capacity:
         return False
-    if any(item.student_id == student.pk for item in active_bookings):
+    if active_bookings is not None and any(item.student_id == student.pk for item in active_bookings):
         return False
     return True
 
 
 def find_restorable_obsolete_fixed_booking(
     *, session, student, historical_bookings_by_session_id, context_is_eligible=None, locked_session_bookings=None,
+    active_booking_count=None,
 ):
     if has_global_deactivation_history(
         session=session,
@@ -140,6 +146,7 @@ def find_restorable_obsolete_fixed_booking(
                 student=student,
                 context_is_eligible=context_is_eligible,
                 locked_session_bookings=locked_session_bookings,
+                active_booking_count=active_booking_count,
             )
         ),
         None,
@@ -175,6 +182,32 @@ def restore_obsolete_fixed_booking(*, session, student, historical_bookings_by_s
         return True
 
 
+def find_restorable_recreatable_fixed_booking(
+    *, session, student, historical_bookings_by_session_id, context_is_eligible=None, locked_session_bookings=None,
+    active_booking_count=None,
+):
+    """Return safe technical/administrative history that can be restored."""
+    if not can_recreate_fixed_booking_over_history(
+        session=session,
+        student=student,
+        historical_bookings_by_session_id=historical_bookings_by_session_id,
+    ):
+        return None
+    historical_booking = historical_bookings_by_session_id[session.id][0]
+    if historical_booking.cancelled_at is None:
+        return None
+    if not _has_restorable_fixed_booking_context(
+        booking=historical_booking,
+        session=session,
+        student=student,
+        context_is_eligible=context_is_eligible,
+        locked_session_bookings=locked_session_bookings,
+        active_booking_count=active_booking_count,
+    ):
+        return None
+    return historical_booking
+
+
 def restore_recreatable_fixed_booking(*, session, student, historical_bookings_by_session_id):
     with transaction.atomic():
         locked_student, locked_session, locked_accesses, locked_plan, locked_plan_slots, locked_slots, locked_session_bookings = _lock_restore_context(
@@ -183,20 +216,10 @@ def restore_recreatable_fixed_booking(*, session, student, historical_bookings_b
         )
         locked_bookings = [item for item in locked_session_bookings if item.student_id == locked_student.pk]
         history = {locked_session.pk: locked_bookings}
-        if not can_recreate_fixed_booking_over_history(
+        historical_booking = find_restorable_recreatable_fixed_booking(
             session=locked_session,
             student=locked_student,
             historical_bookings_by_session_id=history,
-        ):
-            return False
-
-        historical_booking = locked_bookings[0]
-        if historical_booking.cancelled_at is None:
-            return False
-        if not _has_restorable_fixed_booking_context(
-            booking=historical_booking,
-            session=locked_session,
-            student=locked_student,
             context_is_eligible=fixed_booking_context_is_eligible_locked(
                 student=locked_student,
                 session=locked_session,
@@ -206,7 +229,8 @@ def restore_recreatable_fixed_booking(*, session, student, historical_bookings_b
                 locked_slots=locked_slots,
             ),
             locked_session_bookings=locked_session_bookings,
-        ):
+        )
+        if historical_booking is None:
             return False
 
         _restore_fixed_booking(historical_booking)
@@ -217,14 +241,16 @@ def materialize_fixed_booking_lock_context(*, student_id, session_id):
     """Read candidate IDs before locks; locked code only re-reads those simple rows."""
     session = ClassSession.objects.values('pk', 'section_id', 'date').get(pk=session_id)
     target_month = normalize_month_start(session['date'])
-    plan_id = (
-        StudentMonthlyPlan.objects.filter(
+    plan_queryset = StudentMonthlyPlan.objects.filter(
             student_id=student_id,
             section_id=session['section_id'],
             month__lte=target_month,
+            is_active=True,
         )
-        .order_by('-month', '-pk').values_list('pk', flat=True).first()
-    )
+    student_reset_from = User.objects.filter(pk=student_id).values_list('monthly_plan_reset_from', flat=True).first()
+    if student_reset_from is not None and target_month >= student_reset_from:
+        plan_queryset = plan_queryset.filter(month__gte=student_reset_from)
+    plan_id = plan_queryset.order_by('-month', '-pk').values_list('pk', flat=True).first()
     plan_slot_ids = []
     slot_ids = []
     if plan_id is not None:
@@ -313,16 +339,15 @@ def fixed_booking_context_is_eligible(*, student, session):
     ).exists():
         return False
 
-    plan_id = (
-        StudentMonthlyPlan.objects.filter(
+    plan_queryset = StudentMonthlyPlan.objects.filter(
             student_id=student.pk,
             section_id=session.section_id,
             month__lte=target_month,
+            is_active=True,
         )
-        .order_by('-month', '-pk')
-        .values_list('pk', flat=True)
-        .first()
-    )
+    if student.monthly_plan_reset_from is not None and target_month >= student.monthly_plan_reset_from:
+        plan_queryset = plan_queryset.filter(month__gte=student.monthly_plan_reset_from)
+    plan_id = plan_queryset.order_by('-month', '-pk').values_list('pk', flat=True).first()
     if plan_id is None:
         return False
 
@@ -357,6 +382,12 @@ def fixed_booking_context_is_eligible_locked(
     ):
         return False
     if locked_plan is None:
+        return False
+    if (
+        student.monthly_plan_reset_from is not None
+        and target_month >= student.monthly_plan_reset_from
+        and locked_plan.month < student.monthly_plan_reset_from
+    ):
         return False
 
     slots_by_id = {slot.pk: slot for slot in locked_slots}

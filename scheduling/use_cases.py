@@ -20,6 +20,7 @@ from .audit import (
     log_staff_monthly_access_change,
 )
 from .fixed_booking_history import restore_recreatable_fixed_booking
+from .fixed_booking_policy import decide_fixed_booking_history
 from .models import (
     Booking,
     BookingCancellationReason,
@@ -211,6 +212,9 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
         session = sessions_by_id[session_id]
         student = students_by_id[student_id]
         if bookings:
+            decision = decide_fixed_booking_history(session=session, student=student, bookings=bookings)
+            if decision.action != 'RESTORE':
+                continue
             # Lock the session and its history before restoring an eligible fixed booking.
             with transaction.atomic():
                 locked_student = User.objects.select_for_update().get(pk=student_id)
@@ -595,7 +599,7 @@ def cleanup_global_deactivation(
     *, student, booking_from_date, plan_reset_from, actor=None, when=None, only_not_started,
     booking_ids=None, plan_ids=None,
 ):
-    """Cancel bookings and remove plan assignments after a global deactivation.
+    """Cancel bookings and mask inherited plan assignments after deactivation.
 
     The repair command supplies ``only_not_started=False`` so its documented
     inclusive date policy remains distinct from an interactive deactivation.
@@ -662,18 +666,17 @@ def cleanup_global_deactivation(
         plan_queryset = plan_queryset.filter(pk__in=plan_ids)
     plan_ids = list(plan_queryset.order_by('pk').values_list('pk', flat=True))
     locked_plans = list(StudentMonthlyPlan.objects.select_for_update().filter(pk__in=plan_ids).order_by('pk'))
-    locked_plan_slots = list(
-        StudentMonthlyPlanSlot.objects.select_for_update()
-        .filter(monthly_plan_id__in=[plan.pk for plan in locked_plans])
-        .order_by('pk')
-    )
-    if locked_plan_slots:
-        StudentMonthlyPlanSlot.objects.filter(pk__in=[slot.pk for slot in locked_plan_slots]).delete()
-    deleted_plan_ids = [plan.pk for plan in locked_plans]
-    if deleted_plan_ids:
-        StudentMonthlyPlan.objects.filter(pk__in=deleted_plan_ids).delete()
+    # Plans are audit history, not disposable scheduling state. The reset barrier
+    # above makes these plans ineffective from the deactivation month onward;
+    # their slots remain available to staff for historical inspection.
+    if locked_plans:
+        StudentMonthlyPlan.objects.filter(pk__in=[plan.pk for plan in locked_plans]).update(
+            is_active=False,
+            updated_at=cancellation_time,
+        )
+    preserved_plan_ids = [plan.pk for plan in locked_plans]
 
-    return cancelled_booking_ids, deleted_plan_ids
+    return cancelled_booking_ids, preserved_plan_ids
 
 
 def rollover_monthly_access_statuses(*, month):
@@ -722,9 +725,11 @@ def rollover_monthly_access_statuses(*, month):
 
 
 def activate_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
-    access, created = _get_or_create_monthly_access(student=student, month=month)
-    changed = not access.grants_operational_booking_access()
-    access.activate_by_payment(actor=actor)
+    with transaction.atomic():
+        locked_student = User.objects.select_for_update().get(pk=student.pk)
+        access, created = _get_or_create_monthly_access(student=locked_student, month=month)
+        changed = not access.grants_operational_booking_access()
+        access.activate_by_payment(actor=actor)
 
     if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)
@@ -736,11 +741,20 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
     suspension_time = timezone.now()
 
     with transaction.atomic():
-        access, created = _get_or_create_monthly_access(student=student, month=month)
+        locked_student = User.objects.select_for_update().get(pk=student.pk)
+        access, created = _get_or_create_monthly_access(student=locked_student, month=month)
         access_changed = access.status != MonthlyAccessStatusType.SUSPENDED or access.booking_enabled
         access.suspend_operational_access(when=suspension_time)
+        cancelled_booking_ids, preserved_plan_ids = cleanup_global_deactivation(
+            student=locked_student,
+            actor=actor,
+            when=suspension_time,
+            booking_from_date=timezone.localdate(suspension_time),
+            plan_reset_from=access.month,
+            only_not_started=True,
+        )
 
-    changed = access_changed
+    changed = access_changed or bool(cancelled_booking_ids) or bool(preserved_plan_ids)
 
     if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)

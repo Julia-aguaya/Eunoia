@@ -1,6 +1,7 @@
 import json
 
 from scheduling.legacy_user_import import build_legacy_temporary_password
+from scheduling.models import UserRole
 
 from ._shared import *
 

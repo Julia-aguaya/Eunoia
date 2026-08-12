@@ -22,6 +22,7 @@ class LegacyRawSqlScriptTests(SimpleTestCase):
             'run_reformer_arriba_load.py',
             'fix_reformer_arriba_viernes.py',
         ):
+            self.assertFalse((root / script_name).exists(), f'{script_name} must stay removed')
             result = subprocess.run(
                 [sys.executable, str(root / script_name)],
                 capture_output=True,
@@ -30,8 +31,7 @@ class LegacyRawSqlScriptTests(SimpleTestCase):
             )
 
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('disabled', result.stderr)
-            self.assertIn('management command', result.stderr)
+            self.assertIn('No such file', result.stderr)
 
 
 class StudentActivationHardeningTests(TestCase):

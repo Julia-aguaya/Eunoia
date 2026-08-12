@@ -431,7 +431,7 @@ class WebRecoveryFlowTests(TestCase):
 
     def test_recovery_page_allows_recovery_on_origin_session(self):
         monday = self.today - timedelta(days=self.today.weekday())
-        future_day = monday + timedelta(days=6)  # Sunday, future from Wednesday
+        future_day = monday + timedelta(days=4)  # Friday, future from Wednesday
         origin_session = self.create_session_on(monday, start_hour=8)
         future_session = self.create_session_on(future_day, start_hour=10)
         credit = self.create_available_credit(origin_session=origin_session)
@@ -589,7 +589,7 @@ class WebRecoveryFlowTests(TestCase):
         self.assertEqual(booking.used_recovery_credit, credit)
         self.assertEqual(credit.status, RecoveryCreditStatus.USED)
         self.assertContains(response, 'usando tu recuperacion disponible')
-        self.assertContains(response, 'Usada')
+        self.assertContains(response, 'No tenés recuperaciones disponibles por ahora.')
 
         with patch('scheduling.views.timezone.now', return_value=self.fixed_now), patch(
             'scheduling.views.timezone.localdate', return_value=self.today

@@ -2,13 +2,17 @@ import json
 import tempfile
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
 from scheduling.legacy_recoverableturns_import import import_legacy_recoverableturns_from_json
-from scheduling.models import RecoveryCredit, RecoveryCreditSource, RecoveryCreditStatus, Section, StudentMonthlyPlan, User
+from scheduling.models import (
+    MonthlyAccessStatus, MonthlyAccessStatusType, RecoveryCredit, RecoveryCreditSource,
+    RecoveryCreditStatus, Section, StudentMonthlyPlan, User,
+)
 
 
 class LegacyRecoverableTurnsImportTests(TestCase):
@@ -82,7 +86,8 @@ class LegacyRecoverableTurnsImportTests(TestCase):
                 },
             ]
         )
-        result = import_legacy_recoverableturns_from_json(json_path=json_path)
+        with patch('scheduling.legacy_recoverableturns_import.timezone.localdate', return_value=date(2026, 5, 11)):
+            result = import_legacy_recoverableturns_from_json(json_path=json_path)
 
         self.assertEqual(result.total_records, 5)
         self.assertEqual(result.matched_user_count, 4)
@@ -160,10 +165,16 @@ class LegacyRecoverableTurnsImportTests(TestCase):
         self.assertIn('0 skipped for unresolved section', output)
 
     def test_import_resolves_ambiguous_section_from_current_activity(self):
-        StudentMonthlyPlan.objects.create(
+        plan = StudentMonthlyPlan.objects.create(
             student=self.student,
-            month=timezone.localdate().replace(day=1),
+            month=date(2026, 5, 1),
             section=Section.objects.get(code='reformer_abajo'),
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=plan.month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
         )
         json_path = self._write_json(
             [
@@ -181,7 +192,8 @@ class LegacyRecoverableTurnsImportTests(TestCase):
             ]
         )
 
-        result = import_legacy_recoverableturns_from_json(json_path=json_path)
+        with patch('scheduling.legacy_recoverableturns_import.timezone.localdate', return_value=date(2026, 5, 11)):
+            result = import_legacy_recoverableturns_from_json(json_path=json_path)
 
         self.assertEqual(result.created_count, 1)
         self.assertEqual(result.resolved_by_current_activity_count, 1)

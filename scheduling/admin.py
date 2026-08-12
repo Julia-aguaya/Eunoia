@@ -18,6 +18,7 @@ from .models import (
     BookingSource,
     BookingStatus,
     ClassSession,
+    FixedBookingCapacityConflict,
     HolidayClosure,
     MonthlyAccessStatus,
     RecoveryCredit,
@@ -39,6 +40,16 @@ from .use_cases import (
     reactivate_student_globally,
     suspend_student_monthly_access,
 )
+
+
+@admin.register(FixedBookingCapacityConflict)
+class FixedBookingCapacityConflictAdmin(admin.ModelAdmin):
+    list_display = ('session', 'state', 'capacity', 'active_booking_count', 'first_detected_at', 'last_detected_at')
+    list_filter = ('state',)
+    readonly_fields = (
+        'session', 'first_detected_at', 'last_detected_at', 'capacity', 'active_booking_count',
+        'expected_fixed_student_ids', 'active_booking_snapshot', 'detail',
+    )
 class UserCreationAdminForm(forms.ModelForm):
     temporary_password = forms.CharField(
         required=False,

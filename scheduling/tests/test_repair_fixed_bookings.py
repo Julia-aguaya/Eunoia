@@ -63,6 +63,20 @@ class RepairFixedBookingsCommandTests(TestCase):
         )
         return stdout.getvalue(), stderr.getvalue()
 
+    def create_second_eligible_student(self):
+        student = User.objects.create_user(
+            email='repair-second-capacity@example.com', password='secret123', first_name='Grace', last_name='Hopper',
+            primary_section=self.section,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=student, month=normalize_month_start(self.session.date), section=self.section,
+        ).assign_weekly_slots([self.slot])
+        MonthlyAccessStatus.objects.create(
+            student=student, month=normalize_month_start(self.session.date),
+            status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        return student
+
     def test_dry_run_never_booked_does_not_enter_atomic_or_lock(self):
         audit_row = {
             'student_id': 1, 'nombre': 'Ada Lovelace', 'session_id': 2,
@@ -72,6 +86,8 @@ class RepairFixedBookingsCommandTests(TestCase):
         session_manager = MagicMock()
         booking_manager = MagicMock()
         user_manager = MagicMock()
+        session_manager.get.return_value = MagicMock(pk=2, capacity=1)
+        booking_manager.filter.return_value.count.return_value = 0
         mysql_connection = MagicMock(vendor='mysql')
 
         with patch.object(fixed_booking_repair, 'audit_expected_fixed_bookings', return_value=[audit_row]), \
@@ -101,8 +117,7 @@ class RepairFixedBookingsCommandTests(TestCase):
         with patch.object(fixed_booking_repair, 'audit_expected_fixed_bookings', return_value=[audit_row]), \
               patch.object(fixed_booking_repair, 'materialize_fixed_booking_lock_context', return_value={}), \
               patch.object(fixed_booking_repair, 'lock_fixed_booking_context', return_value=(student, session, [], None, [], [], [])) as lock, \
-                patch.object(fixed_booking_repair, 'fixed_booking_context_is_eligible_locked', return_value=True), \
-               patch.object(fixed_booking_repair, 'find_restorable_obsolete_fixed_booking', return_value=None), \
+               patch.object(fixed_booking_repair, 'fixed_booking_context_is_eligible_locked', return_value=True), \
               patch.object(fixed_booking_repair, '_history_decision', return_value=('HISTORY_PRESENT', 'history')):
             fixed_booking_repair.repair_expected_fixed_bookings(
                 start_date=date(2026, 8, 5), end_date=date(2026, 8, 5), apply=True,
@@ -143,8 +158,7 @@ class RepairFixedBookingsCommandTests(TestCase):
         with patch.object(fixed_booking_repair, 'audit_expected_fixed_bookings', return_value=audit_rows), \
                patch.object(fixed_booking_repair, 'materialize_fixed_booking_lock_context', return_value={}), \
                patch.object(fixed_booking_repair, 'lock_fixed_booking_context', return_value=(student, session, [], None, [], [], [])), \
-                patch.object(fixed_booking_repair, 'fixed_booking_context_is_eligible_locked', return_value=True), \
-               patch.object(fixed_booking_repair, 'find_restorable_obsolete_fixed_booking', return_value=None), \
+                 patch.object(fixed_booking_repair, 'fixed_booking_context_is_eligible_locked', return_value=True), \
                patch.object(fixed_booking_repair, '_history_decision', return_value=('HISTORY_PRESENT', 'history')), \
                 patch.object(fixed_booking_repair.transaction, 'atomic') as atomic:
             fixed_booking_repair.repair_expected_fixed_bookings(
@@ -436,6 +450,49 @@ class RepairFixedBookingsCommandTests(TestCase):
 
         self.assertFalse(Booking.objects.filter(session=self.session, student=self.student).exists())
         self.assertIn('SKIP_CAPACITY', stdout)
+
+    def test_dry_run_projects_capacity_across_multiple_missing_candidates(self):
+        self.session.capacity = 1
+        self.session.save(update_fields=['capacity', 'updated_at'])
+        second_student = self.create_second_eligible_student()
+
+        dry_stdout, dry_stderr = self.run_command()
+
+        self.assertEqual(Booking.objects.count(), 0)
+        self.assertIn('WOULD_CREATE=1', dry_stderr)
+        self.assertIn('SKIP_CAPACITY=1', dry_stderr)
+        self.assertIn(f'{self.student.pk},Ada Lovelace', dry_stdout)
+        self.assertIn(f'{second_student.pk},Grace Hopper', dry_stdout)
+
+        apply_stdout, apply_stderr = self.run_command('--apply')
+
+        self.assertIn('CREATED=1', apply_stderr)
+        self.assertIn('SKIP_CAPACITY=1', apply_stderr)
+        self.assertEqual(Booking.objects.filter(session=self.session, status=BookingStatus.BOOKED).count(), 1)
+        self.assertIn('CREATED', apply_stdout)
+        self.assertIn('SKIP_CAPACITY', apply_stdout)
+
+    def test_repair_restores_safe_staff_cancellation_without_creating_a_duplicate(self):
+        staff = User.objects.create_user(
+            email='repair-staff@example.com', password='secret123', first_name='Staff', last_name='Member',
+            role='admin', is_staff=True,
+        )
+        booking = Booking.objects.create_booking(session=self.session, student=self.student, source=BookingSource.FIXED_SLOT)
+        Booking.objects.filter(pk=booking.pk).update(
+            status=BookingStatus.CANCELLED,
+            cancelled_at=timezone.now(),
+            cancelled_by=staff,
+            cancellation_generates_recovery=False,
+        )
+
+        dry_stdout, _ = self.run_command()
+        apply_stdout, _ = self.run_command('--apply')
+        booking.refresh_from_db()
+
+        self.assertIn('WOULD_RESTORE', dry_stdout)
+        self.assertIn('RESTORED', apply_stdout)
+        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(Booking.objects.filter(session=self.session, student=self.student).count(), 1)
 
 
 class RepairFixedBookingsTransactionTests(TransactionTestCase):

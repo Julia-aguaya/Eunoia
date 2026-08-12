@@ -31,12 +31,10 @@ from .forms import (
     StaffWeeklyClassSlotForm,
 )
 from .fixed_booking_history import (
-    can_recreate_fixed_booking_over_history as _can_recreate_fixed_booking_over_history,
-    has_blocking_fixed_plan_history as _has_blocking_fixed_plan_history,
-    has_global_deactivation_history as _has_global_deactivation_history,
-    has_student_cancelled_fixed_booking as _has_student_cancelled_fixed_booking,
-    restore_obsolete_fixed_booking as _restore_obsolete_fixed_booking,
+    restore_recreatable_fixed_booking,
 )
+from .fixed_booking_policy import decide_fixed_booking_history
+from .fixed_booking_capacity import assess_fixed_capacity
 from .models import (
     AuditLog,
     Booking,
@@ -705,19 +703,6 @@ def _build_staff_class_session_detail_context(session, *, date='', section=''):
 def _get_admin_student_detail_context(student, *, query='', month=None, section=None, manual_recovery_form=None, monthly_plan_form=None):
     today = timezone.localdate()
     selected_month = _resolve_month_value(month, fallback=today)
-    reconcile_start = max(today, selected_month)
-    reconcile_end = _resolve_fixed_plan_reconcile_end(
-        student,
-        start_date=reconcile_start,
-        end_date=_shift_month(selected_month, 1) - timedelta(days=1),
-    )
-    if reconcile_start <= reconcile_end:
-        _reconcile_fixed_plan_bookings(
-            student,
-            start_date=reconcile_start,
-            end_date=reconcile_end,
-            cancel_obsolete=True,
-        )
     current_access = student.get_monthly_access_for(today)
     current_monthly_plans = student.get_effective_monthly_plans_for(selected_month)
     activity_section = _get_student_activity_section(student, target_date=selected_month)
@@ -1177,40 +1162,22 @@ def _reconcile_fixed_plan_bookings(
                 if session.id in existing_bookings_by_session_id:
                     continue
 
-                if _has_global_deactivation_history(
-                    session=session,
-                    historical_bookings_by_session_id=historical_bookings_by_session_id,
-                ):
-                    continue
-
-                if _restore_obsolete_fixed_booking(
-                    session=session,
-                    student=user,
-                    historical_bookings_by_session_id=historical_bookings_by_session_id,
-                ):
-                    existing_bookings_by_session_id.add(session.id)
-                    restored_count += 1
-                    continue
-
-                if _has_student_cancelled_fixed_booking(
-                    session=session,
-                    student=user,
-                    historical_bookings_by_session_id=historical_bookings_by_session_id,
-                ):
-                    continue
-
-                if (
-                    not allow_new_booking_over_history
-                    and not _can_recreate_fixed_booking_over_history(
+                history = historical_bookings_by_session_id.get(session.id, [])
+                if history:
+                    decision = decide_fixed_booking_history(
+                        session=session,
+                        student=user,
+                        bookings=history,
+                    )
+                    if decision.action in {'RESPECT_GLOBAL_DEACTIVATION', 'RESPECT_CANCELLED', 'HISTORY_PRESENT'}:
+                        continue
+                    if restore_recreatable_fixed_booking(
                         session=session,
                         student=user,
                         historical_bookings_by_session_id=historical_bookings_by_session_id,
-                    )
-                    and _has_blocking_fixed_plan_history(
-                        session=session,
-                        historical_bookings_by_session_id=historical_bookings_by_session_id,
-                    )
-                ):
+                    ):
+                        existing_bookings_by_session_id.add(session.id)
+                        restored_count += 1
                     continue
 
                 try:
@@ -1275,7 +1242,7 @@ def _reconcile_fixed_plan_bookings(
 def _get_student_portal_context(
     user,
     *,
-    reconcile_fixed_bookings=True,
+    reconcile_fixed_bookings=False,
     sync_end_date=None,
     ensure_portal_sessions=False,
 ):
@@ -1283,11 +1250,8 @@ def _get_student_portal_context(
     today = timezone.localdate()
     current_week_start, current_week_end, current_week_is_next = _get_current_workweek_window(today)
     portal_range_end = _resolve_student_portal_sync_end(reference_date=today, requested_end_date=sync_end_date)
-    if ensure_portal_sessions:
-        _backfill_missing_monthly_plans_from_fixed_bookings(user, start_date=today, end_date=portal_range_end)
-        _ensure_student_portal_sessions(user, start_date=today, end_date=portal_range_end)
-    if reconcile_fixed_bookings:
-        _ensure_fixed_plan_bookings(user, start_date=today, end_date=portal_range_end)
+    # GET read models never generate sessions, backfill plans, or reconcile
+    # bookings. Maintenance and POST mutation services own those writes.
     portal_sections = user.get_effective_portal_sections_for(today) or user.get_effective_portal_sections_for(current_week_start)
     section = portal_sections[0] if portal_sections else None
     upcoming_bookings = list(
@@ -2105,6 +2069,17 @@ def _build_session_action(*, user, session, recovery_credit=None):
             'tone': 'blocked',
             'state': 'managed',
         }
+
+    if recovery_credit is not None:
+        assessment = assess_fixed_capacity(session=session)
+        if assessment.available_recovery_spots < 1:
+            return {
+                'can_book': False,
+                'label': 'Cupo reservado para turnos fijos',
+                'message': 'No hay cupo disponible luego de reservar los turnos fijos esperados.',
+                'tone': 'blocked',
+                'state': 'full',
+            }
 
     booking = Booking(session=session, student=user, used_recovery_credit=recovery_credit)
     try:

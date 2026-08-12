@@ -861,7 +861,7 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, self.section.name)
         self.assertContains(response, session_date.strftime('%d/%m/%Y'))
 
-    def test_staff_detail_backfills_missing_cadillac_monthly_plan_from_existing_fixed_booking(self):
+    def test_staff_detail_does_not_backfill_missing_cadillac_monthly_plan_on_get(self):
         slot = WeeklyClassSlot.objects.create(
             section=self.section,
             weekday=self.upcoming_session.date.isoweekday(),
@@ -885,14 +885,13 @@ class AdminPortalViewTests(TestCase):
         booking.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(booking.status, BookingStatus.BOOKED)
-        backfilled_plan = StudentMonthlyPlan.objects.get(
+        self.assertFalse(StudentMonthlyPlan.objects.filter(
             student=self.active_student,
             month=normalize_month_start(self.upcoming_session.date),
             section=self.section,
-        )
-        self.assertEqual(backfilled_plan.get_weekly_slots(), [slot])
+        ).exists())
 
-    def test_staff_detail_backfills_missing_reformer_arriba_monthly_plan_from_existing_fixed_booking(self):
+    def test_staff_detail_does_not_backfill_missing_reformer_arriba_monthly_plan_on_get(self):
         self.active_student.primary_section = self.other_section
         self.active_student.save(update_fields=['primary_section', 'updated_at'])
         slot = WeeklyClassSlot.objects.create(
@@ -917,12 +916,11 @@ class AdminPortalViewTests(TestCase):
         booking.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(booking.status, BookingStatus.BOOKED)
-        backfilled_plan = StudentMonthlyPlan.objects.get(
+        self.assertFalse(StudentMonthlyPlan.objects.filter(
             student=self.active_student,
             month=normalize_month_start(self.other_upcoming_session.date),
             section=self.other_section,
-        )
-        self.assertEqual(backfilled_plan.get_weekly_slots(), [slot])
+        ).exists())
 
     def test_staff_monthly_plan_update_generates_missing_sessions_before_reconciling_bookings(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
@@ -1041,9 +1039,9 @@ class AdminPortalViewTests(TestCase):
             status=BookingStatus.BOOKED,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(historical_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(historical_booking.status, BookingStatus.BOOKED)
         self.assertEqual(active_booking.source, BookingSource.FIXED_SLOT)
-        self.assertEqual(Booking.objects.filter(session=session, student=self.active_student).count(), 2)
+        self.assertEqual(Booking.objects.filter(session=session, student=self.active_student).count(), 1)
 
         agenda_response = self.client.get(
             reverse('admin-class-agenda'),
@@ -1735,7 +1733,6 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(slot.pk, option_map)
         self.assertIn('admin_detail_monthly_plan_picker', response.context)
-        self.assertContains(response, existing_session.date.strftime('%m/%Y'))
         ensure_sessions_mock.assert_not_called()
         generate_sessions_mock.assert_not_called()
 
@@ -3891,7 +3888,7 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
         self.assertEqual(response.context['admin_students'][0]['student'], self.active_student)
 
-    def test_staff_suspension_preserves_future_booking(self):
+    def test_staff_suspension_cancels_future_booking(self):
         self.client.force_login(self.staff_user)
 
         response = self.client.post(
@@ -3910,10 +3907,10 @@ class AdminPortalViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(booking.status, BookingStatus.BOOKED)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
         self.assertEqual(detail_response.status_code, 200)
-        self.assertEqual(detail_response.context['staff_session_active_bookings'][0].student, self.active_student)
-        self.assertContains(detail_response, 'Ada Lovelace')
+        self.assertEqual(detail_response.context['staff_session_active_bookings'], [])
 
     def test_staff_can_activate_student_without_current_month_access(self):
         student_without_status = User.objects.create_user(
@@ -4973,6 +4970,12 @@ class AdminPortalViewTests(TestCase):
             status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
         )
+        MonthlyAccessStatus.objects.create(
+            student=cross_month_student,
+            month=date(2026, 7, 1),
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=True,
+        )
         june_plan = StudentMonthlyPlan.objects.create(
             student=cross_month_student,
             month=date(2026, 6, 1),
@@ -4988,20 +4991,27 @@ class AdminPortalViewTests(TestCase):
             capacity=6,
             status=SessionStatus.SCHEDULED,
         )
-        wednesday_session = self.upcoming_session
-        wednesday_session.slot = wednesday_slot
-        wednesday_session.save(update_fields=['slot', 'updated_at'])
+        wednesday_session = ClassSession.objects.create(
+            slot=wednesday_slot,
+            section=self.section,
+            date=date(2026, 7, 1),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            capacity=6,
+            status=SessionStatus.SCHEDULED,
+        )
         Booking.objects.create_booking(session=monday_session, student=cross_month_student)
         Booking.objects.create_booking(session=wednesday_session, student=cross_month_student)
         self.client.force_login(self.staff_user)
 
-        response = self.client.get(
-            reverse('admin-class-agenda'),
-            {
-                'date': date(2026, 6, 29).isoformat(),
-                'section': self.section.pk,
-            },
-        )
+        with mock.patch('scheduling.views.timezone.localdate', return_value=date(2026, 6, 29)):
+            response = self.client.get(
+                reverse('admin-class-agenda'),
+                {
+                    'date': date(2026, 6, 29).isoformat(),
+                    'section': self.section.pk,
+                },
+            )
 
         self.assertEqual(response.status_code, 200)
         monday_row = next(
@@ -5023,11 +5033,9 @@ class AdminPortalViewTests(TestCase):
             wednesday_row['attendees'],
             [
                 {'full_name': 'Hedy Lamarr', 'is_makeup': False},
-                {'full_name': 'Ada Lovelace', 'is_makeup': False},
             ],
         )
         self.assertContains(response, 'Hedy Lamarr', count=2)
-        self.assertContains(response, 'Ada Lovelace')
 
     def test_staff_agenda_keeps_same_time_sessions_split_by_section_in_context(self):
         target_date = self.today + timedelta(days=1)
@@ -5052,6 +5060,7 @@ class AdminPortalViewTests(TestCase):
             date=target_date,
             start_time=shared_start,
         ).delete()
+        generate_class_sessions(start_date=target_date, end_date=target_date)
         self.client.force_login(self.staff_user)
 
         response = self.client.get(

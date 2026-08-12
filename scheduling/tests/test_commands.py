@@ -1,3 +1,7 @@
+from datetime import date
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
 from ._shared import *
 
 class GenerateClassSessionsCommandTests(TestCase):
@@ -54,6 +58,125 @@ class GenerateClassSessionsCommandTests(TestCase):
         self.assertIn('Created 3 sessions', out.getvalue())
         self.assertIn('Created 0 sessions', out.getvalue())
         self.assertIn('Skipped duplicates: 3', out.getvalue())
+
+
+class MaintainFixedBookingHorizonCommandTests(TestCase):
+    def test_weekly_maintenance_generates_and_repairs_the_same_horizon(self):
+        out = StringIO()
+        with patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.timezone.localdate',
+            return_value=date(2026, 8, 10),
+        ), patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.generate_class_sessions',
+            return_value=SimpleNamespace(created_count=3, skipped_duplicates=9),
+        ) as generate, patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.repair_expected_fixed_bookings',
+            return_value=[{'accion': 'CREATED'}, {'accion': 'ALREADY_BOOKED'}],
+        ) as repair:
+            call_command('maintain_fixed_booking_horizon', '--days-ahead', '42', stdout=out)
+
+        expected_start = date(2026, 8, 10)
+        expected_end = date(2026, 9, 20)
+        generate.assert_called_once_with(start_date=expected_start, end_date=expected_end)
+        repair.assert_called_once_with(start_date=expected_start, end_date=expected_end, apply=True)
+        self.assertIn('start=2026-08-10 end=2026-09-20', out.getvalue())
+        self.assertIn('CREATED=1', out.getvalue())
+
+    def test_maintenance_records_capacity_conflicts_and_fails_closed(self):
+        session = MagicMock(pk=17)
+        assessment = MagicMock()
+        out = StringIO()
+        with patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.timezone.localdate',
+            return_value=date(2026, 8, 10),
+        ), patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.generate_class_sessions',
+            return_value=SimpleNamespace(created_count=0, skipped_duplicates=1),
+        ), patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.repair_expected_fixed_bookings',
+            return_value=[{'accion': 'SKIP_CAPACITY', 'session_id': 17}],
+        ), patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.ClassSession.objects.get',
+            return_value=session,
+        ), patch(
+            'scheduling.management.commands.maintain_fixed_booking_horizon.assess_fixed_capacity',
+            return_value=assessment,
+        ), patch('scheduling.management.commands.maintain_fixed_booking_horizon.record_fixed_capacity_conflict') as record:
+            with self.assertRaisesMessage(CommandError, 'unresolved_conflicts=1'):
+                call_command('maintain_fixed_booking_horizon', stdout=out)
+
+        record.assert_called_once()
+
+
+class AuditInactiveMonthlyPlansCommandTests(TestCase):
+    def setUp(self):
+        self.section = Section.objects.get(code='cadillac')
+        self.inactive_student = User.objects.create_user(
+            email='inactive-plan@example.com', password='StudentPass2026!',
+            first_name='Ada', last_name='Inactive', primary_section=self.section,
+        )
+        self.active_student = User.objects.create_user(
+            email='active-plan@example.com', password='StudentPass2026!',
+            first_name='Grace', last_name='Active', primary_section=self.section,
+        )
+        self.slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.MONDAY,
+            start_time=time(9), end_time=time(10), is_active=True,
+        )
+        self.plan = StudentMonthlyPlan.objects.create(
+            student=self.inactive_student, month=date(2026, 8, 1), section=self.section,
+        )
+        self.plan.assign_weekly_slots([self.slot])
+        MonthlyAccessStatus.objects.create(
+            student=self.inactive_student, month=date(2026, 8, 1),
+            status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.active_student, month=date(2026, 8, 1),
+            status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        self.past_session = ClassSession.objects.create(
+            section=self.section, date=date(2026, 8, 2), start_time=time(9), end_time=time(10), capacity=4,
+        )
+        self.future_session = ClassSession.objects.create(
+            section=self.section, date=date(2026, 8, 10), start_time=time(9), end_time=time(10), capacity=4,
+        )
+        self.past_booking = Booking.objects.create(
+            session=self.past_session, student=self.inactive_student, status=BookingStatus.BOOKED,
+        )
+        self.future_booking = Booking.objects.create(
+            session=self.future_session, student=self.inactive_student, status=BookingStatus.BOOKED,
+        )
+        MonthlyAccessStatus.objects.filter(student=self.inactive_student, month=date(2026, 8, 1)).update(
+            status=MonthlyAccessStatusType.SUSPENDED,
+            booking_enabled=False,
+        )
+
+    def test_dry_run_reports_legacy_inactive_plan_without_writing(self):
+        out, err = StringIO(), StringIO()
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--dry-run', stdout=out, stderr=err)
+
+        self.plan.refresh_from_db()
+        self.future_booking.refresh_from_db()
+        self.assertTrue(self.plan.is_active)
+        self.assertEqual(self.future_booking.status, BookingStatus.BOOKED)
+        self.assertIn('Ada Inactive', out.getvalue())
+        self.assertIn('WOULD_MASK_PLAN_AND_CANCEL_FUTURE_BOOKINGS', out.getvalue())
+        self.assertIn('mode=dry-run candidates=1 applied=0', err.getvalue())
+
+    def test_apply_masks_plan_preserves_history_and_is_idempotent(self):
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply')
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply')
+
+        self.plan.refresh_from_db()
+        self.past_booking.refresh_from_db()
+        self.future_booking.refresh_from_db()
+        self.assertFalse(self.plan.is_active)
+        self.assertEqual(self.plan.plan_slots.count(), 1)
+        self.assertEqual(self.past_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(self.future_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(self.future_booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
+        self.assertTrue(self.active_student.is_active)
 
 
 class RolloverMonthlyAccessStatusesCommandTests(TestCase):

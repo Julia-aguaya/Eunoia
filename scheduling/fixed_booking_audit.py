@@ -114,7 +114,7 @@ def audit_expected_fixed_bookings(*, start_date, end_date):
 
     student_ids = {access.student_id for access in accesses}
     plans = (
-        StudentMonthlyPlan.objects.filter(student_id__in=student_ids, month__lte=max(months))
+        StudentMonthlyPlan.objects.filter(student_id__in=student_ids, month__lte=max(months), is_active=True)
         .select_related('student', 'section')
         .prefetch_related(Prefetch('plan_slots', queryset=StudentMonthlyPlanSlot.objects.select_related('weekly_class_slot')))
         .order_by('student_id', 'section_id', '-month', '-id')
@@ -138,7 +138,16 @@ def audit_expected_fixed_bookings(*, start_date, end_date):
     for session in sessions:
         for access in students_by_month[normalize_month_start(session.date)]:
             plans_for_section = effective_plans.get((access.student_id, session.section_id), ())
-            plan = next((item for item in plans_for_section if item.month <= normalize_month_start(session.date)), None)
+            target_month = normalize_month_start(session.date)
+            plan = next((
+                item for item in plans_for_section
+                if item.month <= target_month
+                and (
+                    access.student.monthly_plan_reset_from is None
+                    or target_month < access.student.monthly_plan_reset_from
+                    or item.month >= access.student.monthly_plan_reset_from
+                )
+            ), None)
             if plan is None:
                 continue
             matching_slot = next((

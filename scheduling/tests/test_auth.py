@@ -334,6 +334,17 @@ class AuthenticationFlowTests(TestCase):
         )
 
         responses = {
+            'login': self.client.get(reverse('login')),
+            'register': self.client.get(reverse('register')),
+        }
+        self.client.force_login(password_change_user)
+        responses['change_password_required'] = self.client.get(reverse('change-password-required'))
+
+        for name, response in responses.items():
+            with self.subTest(view=name):
+                self.assertEqual(response.status_code, 200)
+                self.assert_never_cache_headers(response)
+
     def test_global_deactivation_blocks_login(self):
         user = self.create_student(
             email='login-global-deactivation@example.com',
@@ -384,18 +395,6 @@ class AuthenticationFlowTests(TestCase):
         )
 
         self.assertRedirects(response, reverse('dashboard'))
-
-            'login': self.client.get(reverse('login')),
-            'register': self.client.get(reverse('register')),
-        }
-
-        self.client.force_login(password_change_user)
-        responses['change_password_required'] = self.client.get(reverse('change-password-required'))
-
-        for name, response in responses.items():
-            with self.subTest(view=name):
-                self.assertEqual(response.status_code, 200)
-                self.assert_never_cache_headers(response)
 
     def test_login_redirects_to_password_change_when_required(self):
         user = self.create_student(

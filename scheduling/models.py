@@ -271,7 +271,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         queryset = (
             self.monthly_plans.select_related('section')
             .prefetch_related('plan_slots__weekly_class_slot')
-            .filter(month=normalize_month_start(target_date))
+            .filter(month=normalize_month_start(target_date), is_active=True)
         )
 
         if section is not None:
@@ -289,7 +289,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         return list(
             self.monthly_plans.select_related('section')
             .prefetch_related('plan_slots__weekly_class_slot')
-            .filter(month=target_month)
+            .filter(month=target_month, is_active=True)
             .order_by('section__name', 'pk')
         )
 
@@ -301,7 +301,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         queryset = (
             self.monthly_plans.select_related('section')
             .prefetch_related('plan_slots__weekly_class_slot')
-            .filter(month__lte=target_month)
+            .filter(month__lte=target_month, is_active=True)
         )
         if self.monthly_plan_reset_from is not None and target_month >= self.monthly_plan_reset_from:
             queryset = queryset.filter(month__gte=self.monthly_plan_reset_from)
@@ -319,7 +319,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     def get_effective_monthly_plans_for(self, target_date):
         target_month = normalize_month_start(target_date)
         queryset = self.monthly_plans.select_related('section').prefetch_related('plan_slots__weekly_class_slot').filter(
-            month__lte=target_month
+            month__lte=target_month, is_active=True
         )
         if self.monthly_plan_reset_from is not None and target_month >= self.monthly_plan_reset_from:
             queryset = queryset.filter(month__gte=self.monthly_plan_reset_from)
@@ -504,6 +504,7 @@ class StudentMonthlyPlan(TimeStampedModel):
     month = models.DateField()
     section = models.ForeignKey(Section, on_delete=models.PROTECT, related_name='student_monthly_plans')
     notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-month', 'student__last_name', 'student__first_name']
@@ -1136,6 +1137,13 @@ class BookingManager(models.Manager):
                 **extra_fields,
             )
             booking._allow_fixed_plan_history = allow_fixed_plan_history
+            if source == BookingSource.MAKEUP:
+                from .fixed_booking_capacity import ensure_recovery_capacity
+
+                locked_session_bookings = list(
+                    self.select_for_update().filter(session_id=locked_session.pk).order_by('pk')
+                )
+                ensure_recovery_capacity(session=locked_session, locked_bookings=locked_session_bookings)
             booking.save(force_insert=True)
             if locked_credit is not None:
                 locked_credit.mark_as_used(student=locked_student, session=locked_session)
@@ -1406,6 +1414,7 @@ class Booking(TimeStampedModel):
     def remaining_time_until_start(self, when=None):
         reference_time = when or timezone.now()
         return self.session.starts_at() - reference_time
+
 
     def _mark_attendance_status(self, *, status, when=None):
         event_time = when or timezone.now()
@@ -1790,3 +1799,27 @@ class AuditLog(TimeStampedModel):
 
     def __str__(self):
         return f'{self.action} {self.entity_type} #{self.entity_id}'
+
+
+class FixedBookingCapacityConflict(TimeStampedModel):
+    """Latest unresolved fixed-capacity conflict for one class session."""
+
+    class State(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        RESOLVED = 'resolved', 'Resolved'
+
+    session = models.OneToOneField(ClassSession, on_delete=models.CASCADE, related_name='fixed_capacity_conflict')
+    state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
+    first_detected_at = models.DateTimeField(auto_now_add=True)
+    last_detected_at = models.DateTimeField(auto_now=True)
+    capacity = models.PositiveIntegerField()
+    active_booking_count = models.PositiveIntegerField()
+    expected_fixed_student_ids = models.JSONField(default=list)
+    active_booking_snapshot = models.JSONField(default=list)
+    detail = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['state', '-last_detected_at']
+
+    def __str__(self):
+        return f'Fixed capacity conflict: {self.session} ({self.state})'

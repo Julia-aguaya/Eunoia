@@ -354,7 +354,7 @@ class SchedulingUseCaseTests(TestCase):
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['status'], MonthlyAccessStatusType.SUSPENDED)
 
-    def test_suspend_student_monthly_access_preserves_future_bookings(self):
+    def test_suspend_student_monthly_access_cancels_future_bookings(self):
         future_session = ClassSession.objects.create(
             section=self.section,
             date=self.today + timedelta(days=1),
@@ -414,8 +414,9 @@ class SchedulingUseCaseTests(TestCase):
         other_booking.refresh_from_db()
         self.student.refresh_from_db()
 
-        self.assertEqual(future_booking.status, BookingStatus.BOOKED)
-        self.assertEqual(later_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(future_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(later_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(future_booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
         self.assertEqual(past_booking.status, BookingStatus.BOOKED)
         self.assertEqual(other_booking.status, BookingStatus.BOOKED)
         self.assertTrue(self.student.is_active)
@@ -509,7 +510,7 @@ class SchedulingUseCaseTests(TestCase):
         self.assertEqual(past_booking.status, BookingStatus.BOOKED)
         self.assertEqual(future_booking.status, BookingStatus.CANCELLED)
 
-    def test_global_deactivation_sets_plan_barrier_and_removes_current_and_future_plans(self):
+    def test_global_deactivation_sets_plan_barrier_and_preserves_current_and_future_plan_history(self):
         current_month = normalize_month_start(self.today)
         historical_plan = StudentMonthlyPlan.objects.create(
             student=self.student, month=date(self.today.year - 1, 1, 1), section=self.section,
@@ -531,9 +532,10 @@ class SchedulingUseCaseTests(TestCase):
         self.student.refresh_from_db()
         self.assertEqual(self.student.monthly_plan_reset_from, current_month)
         self.assertTrue(StudentMonthlyPlan.objects.filter(pk=historical_plan.pk).exists())
-        self.assertFalse(StudentMonthlyPlan.objects.filter(pk=current_plan.pk).exists())
-        self.assertFalse(StudentMonthlyPlan.objects.filter(pk=future_plan.pk).exists())
-        self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan__student=self.student).count(), 1)
+        self.assertTrue(StudentMonthlyPlan.objects.filter(pk=current_plan.pk, is_active=False).exists())
+        self.assertTrue(StudentMonthlyPlan.objects.filter(pk=future_plan.pk, is_active=False).exists())
+        self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan__student=self.student).count(), 3)
+        self.assertIsNone(self.student.get_effective_monthly_plan_for_section(current_month, self.section))
 
     def test_plan_barrier_blocks_historical_inheritance_but_allows_post_barrier_assignment(self):
         historical_plan = StudentMonthlyPlan.objects.create(

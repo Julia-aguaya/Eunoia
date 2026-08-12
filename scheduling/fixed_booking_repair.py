@@ -8,15 +8,13 @@ from django.db import OperationalError, connection, transaction
 
 from .fixed_booking_audit import audit_expected_fixed_bookings
 from .fixed_booking_history import (
-    can_recreate_fixed_booking_over_history,
     fixed_booking_context_is_eligible_locked,
-    find_restorable_obsolete_fixed_booking,
-    has_global_deactivation_history,
-    has_student_cancelled_fixed_booking,
+    find_restorable_recreatable_fixed_booking,
     lock_fixed_booking_context,
     materialize_fixed_booking_lock_context,
-    _restore_fixed_booking,
+    restore_recreatable_fixed_booking,
 )
+from .fixed_booking_policy import decide_fixed_booking_history
 from .models import Booking, BookingStatus, ClassSession, User
 
 
@@ -44,29 +42,29 @@ class CandidateRepairError(RuntimeError):
 
 
 def _history_decision(*, session, student, bookings):
-    if any(booking.status == BookingStatus.BOOKED for booking in bookings):
-        return 'ALREADY_BOOKED', 'Ya existe una reserva activa.'
+    decision = decide_fixed_booking_history(session=session, student=student, bookings=bookings)
+    return decision.action, decision.detail
 
-    historical_bookings_by_session_id = {session.id: bookings}
-    if has_global_deactivation_history(
-        session=session,
-        historical_bookings_by_session_id=historical_bookings_by_session_id,
-    ):
-        return 'RESPECT_GLOBAL_DEACTIVATION', 'Baja global registrada; requiere una accion explicita posterior.'
-    if has_student_cancelled_fixed_booking(
-        session=session,
-        student=student,
-        historical_bookings_by_session_id=historical_bookings_by_session_id,
-    ):
-        return 'RESPECT_CANCELLED', 'Cancelacion propia de un turno fijo; no se recrea.'
 
-    if can_recreate_fixed_booking_over_history(
-        session=session,
-        student=student,
-        historical_bookings_by_session_id=historical_bookings_by_session_id,
-    ):
-        return 'HISTORY_PRESENT', 'Historial administrativo/tecnico seguro para el reconciliador; repair no recrea historiales.'
-    return 'HISTORY_PRESENT', 'Historial ambiguo o no elegible para recreacion; no se recrea.'
+def _has_projected_capacity(*, session, projected_active_by_session):
+    active_count = projected_active_by_session.get(session.pk)
+    if active_count is None:
+        active_count = Booking.objects.filter(session_id=session.pk, status=BookingStatus.BOOKED).count()
+        projected_active_by_session[session.pk] = active_count
+    return active_count < session.capacity
+
+
+def _reserve_projected_capacity(*, session, projected_active_by_session):
+    projected_active_by_session[session.pk] += 1
+
+
+def _capacity_row(audit_row, *, mode):
+    return _row(
+        audit_row,
+        action='SKIP_CAPACITY',
+        mode=mode,
+        detail='La clase alcanzo su cupo considerando las reservas anteriores del mismo dry-run.',
+    )
 
 
 def _row(audit_row, *, action, mode, detail):
@@ -250,9 +248,10 @@ def _repair_missing_candidate(*, audit_row, mode):
 
 
 def repair_expected_fixed_bookings(*, start_date, end_date, apply=False):
-    """Return a report for auditor-selected pairs, creating only no-history pairs."""
+    """Return a report for auditor-selected pairs, creating or restoring safely."""
     mode = 'apply' if apply else 'dry-run'
     results = []
+    projected_active_by_session = {}
     for audit_row in audit_expected_fixed_bookings(start_date=start_date, end_date=end_date):
         if audit_row['clasificacion'] != 'D_never_booked':
             if apply:
@@ -291,15 +290,12 @@ def repair_expected_fixed_bookings(*, start_date, end_date, apply=False):
                             detail='El par dejo de ser elegible durante la reparacion.',
                         ))
                         continue
-                    historical_booking = find_restorable_obsolete_fixed_booking(
+                    decision = decide_fixed_booking_history(session=session, student=student, bookings=bookings)
+                    if decision.action == 'RESTORE' and restore_recreatable_fixed_booking(
                         session=session,
                         student=student,
                         historical_bookings_by_session_id=historical_bookings_by_session_id,
-                        context_is_eligible=context_is_eligible,
-                        locked_session_bookings=locked_session_bookings,
-                    )
-                    if historical_booking is not None:
-                        _restore_fixed_booking(historical_booking)
+                    ):
                         action, detail = 'RESTORED', 'Reserva fija tecnica restaurada conservando su identidad.'
                     else:
                         action, detail = _history_decision(session=session, student=student, bookings=bookings)
@@ -318,19 +314,35 @@ def repair_expected_fixed_bookings(*, start_date, end_date, apply=False):
                 continue
             bookings = list(Booking.objects.filter(session=session, student=student).order_by('id'))
             historical_bookings_by_session_id = {session.id: bookings}
-            historical_booking = find_restorable_obsolete_fixed_booking(
-                session=session,
-                student=student,
-                historical_bookings_by_session_id=historical_bookings_by_session_id,
-            )
-            if historical_booking is not None:
-                action, detail = 'WOULD_RESTORE', 'Reserva fija tecnica elegible para restauracion.'
+            decision = decide_fixed_booking_history(session=session, student=student, bookings=bookings)
+            if decision.action == 'RESTORE':
+                if not _has_projected_capacity(session=session, projected_active_by_session=projected_active_by_session):
+                    results.append(_capacity_row(audit_row, mode=mode))
+                    continue
+                # The dry-run uses the same history predicate as apply and only
+                # substitutes its in-memory sequential occupancy projection.
+                historical_booking = find_restorable_recreatable_fixed_booking(
+                    session=session,
+                    student=student,
+                    historical_bookings_by_session_id=historical_bookings_by_session_id,
+                    active_booking_count=projected_active_by_session[session.pk],
+                )
+                if historical_booking is not None:
+                    _reserve_projected_capacity(session=session, projected_active_by_session=projected_active_by_session)
+                    action, detail = 'WOULD_RESTORE', 'Reserva fija tecnica elegible para restauracion.'
+                else:
+                    action, detail = _history_decision(session=session, student=student, bookings=bookings)
             else:
-                action, detail = _history_decision(session=session, student=student, bookings=bookings)
+                action, detail = decision.action, decision.detail
             results.append(_row(audit_row, action=action, mode=mode, detail=detail))
             continue
 
         if not apply:
+            session = ClassSession.objects.get(pk=audit_row['session_id'])
+            if not _has_projected_capacity(session=session, projected_active_by_session=projected_active_by_session):
+                results.append(_capacity_row(audit_row, mode=mode))
+                continue
+            _reserve_projected_capacity(session=session, projected_active_by_session=projected_active_by_session)
             results.append(_row(
                 audit_row,
                 action='WOULD_CREATE',

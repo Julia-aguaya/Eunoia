@@ -36,7 +36,7 @@ CSV_COLUMNS = (
 
 
 class Command(BaseCommand):
-    help = 'Report or cancel booked classes for globally inactive students from an inclusive date.'
+    help = 'Report or clean future bookings and active plan assignments for globally inactive students without deleting plan history.'
 
     def add_arguments(self, parser):
         parser.add_argument('--from-date', required=True, type=self.parse_date)
@@ -61,6 +61,7 @@ class Command(BaseCommand):
             StudentMonthlyPlan.objects.filter(
                 student__is_active=False,
                 month__gte=target_month,
+                is_active=True,
             )
             .select_related('student', 'section')
             .prefetch_related('plan_slots__weekly_class_slot')
@@ -104,7 +105,7 @@ class Command(BaseCommand):
             writer.writerow(row)
 
         for candidate in plan_candidates:
-            row = self._plan_row(candidate, action='WOULD_DELETE_PLAN')
+            row = self._plan_row(candidate, action='WOULD_MASK_PLAN')
             if apply:
                 with transaction.atomic():
                     # Lock parent before children so plan writers share one order.
@@ -132,7 +133,7 @@ class Command(BaseCommand):
                         )
                         skipped_count += 1
                     else:
-                        row['action'] = 'DELETED_PLAN'
+                        row['action'] = 'MASKED_PLAN'
                         applied_count += 1
             writer.writerow(row)
 

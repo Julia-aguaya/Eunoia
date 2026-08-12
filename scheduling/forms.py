@@ -363,7 +363,17 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         self.plan = None
         self.effective_plan = None
         if self.selected_section is not None:
-            self.plan = student.get_monthly_plan_for_section(self.month, section=self.selected_section)
+            # Retain the inactive plan row as audit history and let a staff save
+            # explicitly reactivate it with a newly confirmed schedule.
+            self.plan = (
+                StudentMonthlyPlan.objects.filter(
+                    student=student,
+                    month=self.month,
+                    section=self.selected_section,
+                )
+                .prefetch_related('plan_slots__weekly_class_slot')
+                .first()
+            )
             self.effective_plan = self.plan or student.get_effective_monthly_plan_for_section(self.month, section=self.selected_section)
 
         queryset = WeeklyClassSlot.objects.none()
@@ -437,6 +447,7 @@ class StaffStudentMonthlyPlanForm(forms.Form):
         )
         plan.month = self.cleaned_data['month']
         plan.section = self.cleaned_data['section']
+        plan.is_active = True
         plan.notes = merge_notes_with_legacy_userselections_metadata(
             self.cleaned_data.get('notes', '').strip(),
             existing_notes=plan.notes,
