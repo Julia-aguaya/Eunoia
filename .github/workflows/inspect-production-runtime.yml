@@ -1,0 +1,39 @@
+name: Inspect Eunoia Production Runtime
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eunoia-production-maintenance
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: Read-only runtime inspection
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect runtime via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          command_timeout: 1m
+          script: |
+            set -euo pipefail
+            printf 'ssh_user=%s\nproject_dir=%s\n' "$(id -un)" "$HOME/eunoia"
+            systemctl show eunoia \
+              --property=User \
+              --property=Group \
+              --property=WorkingDirectory \
+              --property=EnvironmentFiles \
+              --property=ExecStart \
+              --no-pager | sed -E \
+                -e 's/((DATABASE_URL|DJANGO_[A-Z0-9_]*|EUNOIA_[A-Z0-9_]*|SECRET_KEY|PASSWORD|TOKEN|KEY)=)[^ ]+/\1[REDACTED]/g' \
+                -e 's/(--(password|token|key|secret)[= ]+)[^ ]+/\1[REDACTED]/gI'
+            test -d "$HOME/eunoia" && echo "project_exists=yes" || echo "project_exists=no"
+            test -x "$HOME/eunoia/.venv/bin/python" && echo "venv_python_exists=yes" || echo "venv_python_exists=no"
