@@ -46,7 +46,7 @@ Este bloque deja el proyecto mas cerca de una entrega real y NO solo de demo:
 - MySQL como camino recomendado de produccion por `DATABASE_URL` o vars explicitas;
 - SQLite reservado para local/demo con opt-in claro por `DJANGO_USE_SQLITE=True`;
 - static files listos para `collectstatic` con WhiteNoise;
-- deploy basico repetible con `Procfile` y `render.yaml`;
+- deploy repetible mediante GitHub Actions por SSH a DigitalOcean;
 - bootstrap operativo idempotente para admin inicial y helpers opcionales de agenda base;
 - runbook corto para setup, carga inicial y smoke test manual.
 
@@ -142,11 +142,7 @@ Orden recomendado para primer arranque real:
 
 ## Deploy basico
 
-Queda una ruta clara para deployar la app en Render usando MySQL externo gestionado:
-
-- `render.yaml` deja el servicio web listo, fuerza `DJANGO_USE_SQLITE=False` y espera que completes `DATABASE_URL` con un MySQL gestionado externo;
-- `Procfile` mantiene una entrada portable compatible con plataformas estilo Heroku/Railway/Render cuando ya existe `DATABASE_URL`;
-- cuando `RENDER_EXTERNAL_HOSTNAME` existe, settings lo agrega automaticamente a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
+Producción se despliega desde GitHub Actions por SSH a un servidor DigitalOcean. `.github/workflows/deploy.yml` usa los secrets `DO_HOST`, `DO_USER` y `DO_SSH_KEY`, actualiza `~/eunoia` y ejecuta `deploy-eunoia.sh`; el servicio web es `eunoia`.
 
 Estrategia final de base de datos:
 
@@ -157,11 +153,13 @@ Estrategia final de base de datos:
 
 Pasos de despliegue recomendados:
 
-1. crear el servicio en Render usando `render.yaml`;
-2. definir `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`, `EUNOIA_ADMIN_EMAIL` y `EUNOIA_ADMIN_PASSWORD`;
-3. cargar un `DATABASE_URL` de MySQL gestionado y verificar que `DJANGO_USE_SQLITE=False`;
-4. abrir shell o job y correr `python manage.py bootstrap_eunoia` una vez;
+1. configurar `DO_HOST`, `DO_USER` y `DO_SSH_KEY` como GitHub Secrets;
+2. definir las variables Django y `DATABASE_URL` en `~/eunoia/.env`;
+3. ejecutar el workflow **Deploy Eunoia** sobre `main`;
+4. abrir una shell del servidor y correr `python manage.py bootstrap_eunoia` una vez;
 5. validar login admin, alta/importacion de alumnas y generacion de sesiones.
+
+El mantenimiento de reservas fijas se ejecuta con el workflow **Maintain Eunoia Fixed Booking Horizon**. Está programado para sábado 03:05 UTC (00:05 ART) y diariamente 03:15 UTC (00:15 ART); también se puede iniciar manualmente desde GitHub Actions. Ver `docs/DEPLOY_MANUAL.md`.
 
 ## Smoke test manual de entrega
 

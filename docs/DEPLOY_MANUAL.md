@@ -1,32 +1,66 @@
-## Deploy manual
+## Deploy y mantenimiento de producción
 
-Esta guia usa lo que ya existe en `render.yaml`, `.env.example` y `Procfile`. NO despliega nada por vos: deja el paso a paso para que alguien lo haga manualmente.
+Producción se despliega desde GitHub Actions por SSH a un servidor DigitalOcean. La fuente de verdad es `.github/workflows/deploy.yml` y `deploy-eunoia.sh`; Render no forma parte de esta infraestructura.
 
-### Fuente de verdad del deploy actual
+### Deploy
 
-- `render.yaml`: define `buildCommand`, `startCommand` y variables sugeridas para conectar un MySQL externo
-- `Procfile`: deja el start command portable para plataformas estilo Heroku/Railway
-- `.env.example`: lista las variables base que hay que completar
+El workflow **Deploy Eunoia** usa únicamente los GitHub Secrets `DO_HOST`, `DO_USER` y `DO_SSH_KEY`. En el servidor trabaja en `~/eunoia` y ejecuta `deploy-eunoia.sh`, que activa `.venv`, instala dependencias, aplica migraciones, recolecta estáticos y reinicia el servicio `eunoia`.
 
-### Configuracion recomendada para esta entrega
+El servicio web usa:
 
-- base de datos: MySQL gestionado
-- variable principal: `DATABASE_URL`
-- app server: `gunicorn config.wsgi --log-file -`
-- migraciones: se ejecutan en el arranque (`python manage.py migrate && ...`)
+- `WorkingDirectory=~/eunoia`;
+- entorno productivo en `~/eunoia/.env`;
+- Python en `~/eunoia/.venv/bin/python`;
+- Gunicorn de `~/eunoia/.venv/bin/gunicorn`.
 
-### Variables minimas
+Las variables Django y `DATABASE_URL` se configuran exclusivamente en `~/eunoia/.env`; no se almacenan en workflows ni en el repositorio.
 
-Definir manualmente:
+### Primer arranque
 
-- `DJANGO_SECRET_KEY`: valor real, no `change-me-before-deploy`
+1. Configurar los GitHub Secrets `DO_HOST`, `DO_USER` y `DO_SSH_KEY`.
+2. Crear `~/eunoia/.env` con las variables Django productivas y `DATABASE_URL`.
+3. Ejecutar **Deploy Eunoia** desde GitHub Actions sobre `main`.
+4. Ejecutar una vez en el servidor:
+
+```bash
+cd "$HOME/eunoia"
+set -a
+. "$HOME/eunoia/.env"
+set +a
+./.venv/bin/python manage.py bootstrap_eunoia
+```
+
+### Mantenimiento de reservas fijas
+
+El workflow **Maintain Eunoia Fixed Booking Horizon** ejecuta en el mismo entorno que el servicio web:
+
+```bash
+cd "$HOME/eunoia"
+set -a
+. "$HOME/eunoia/.env"
+set +a
+./.venv/bin/python manage.py maintain_fixed_booking_horizon --days-ahead 42
+```
+
+Antes de cargar el entorno verifica, sin leer ni imprimir secretos, que el directorio del proyecto, `.venv/bin/python` y `.env` existan, y que el directorio actual sea exactamente `~/eunoia`.
+
+GitHub Actions interpreta cron en UTC:
+
+- `5 3 * * 6`: sábado 03:05 UTC, sábado 00:05 ART.
+- `15 3 * * *`: todos los días 03:15 UTC, 00:15 ART.
+
+Para ejecutarlo manualmente: **Actions → Maintain Eunoia Fixed Booking Horizon → Run workflow**.
+
+El workflow no ejecuta deploy, `pip`, migraciones, collectstatic ni reinicios. Comparte la concurrencia `eunoia-production-maintenance` con deploy, sin cancelar ejecuciones en curso: una ejecución espera a la otra y no se superponen. El exit code remoto se propaga a GitHub Actions; conflictos de capacidad o errores hacen fallar visiblemente el job y el resumen del comando queda disponible en los logs del workflow.
+
+### Variables mínimas
+
+- `DJANGO_SECRET_KEY`
 - `DJANGO_DEBUG=False`
 - `DJANGO_USE_SQLITE=False`
-- `DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DBNAME`
+- `DATABASE_URL`
 - `DJANGO_DB_CHARSET=utf8mb4`
 - `DJANGO_DB_SQL_MODE=STRICT_TRANS_TABLES`
-- `DJANGO_DB_SSL_CA` si tu proveedor exige CA explicita
-- `DJANGO_DB_SSL_CERT` y `DJANGO_DB_SSL_KEY` si tu proveedor usa mTLS
 - `DJANGO_DB_CONNECT_TIMEOUT=5`
 - `DJANGO_DB_CONN_MAX_AGE=60`
 - `DJANGO_DB_CONN_HEALTH_CHECKS=True`
@@ -34,78 +68,5 @@ Definir manualmente:
 - `EUNOIA_DEFAULT_TEMPORARY_PASSWORD`
 - `EUNOIA_ADMIN_EMAIL`
 - `EUNOIA_ADMIN_PASSWORD`
-
-Segun host final:
-
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
-
-Nota: si el host expone `RENDER_EXTERNAL_HOSTNAME`, `config/settings.py` lo agrega solo a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
-
-SQLite queda solo para local/demo. Si alguien realmente quiere deployar con SQLite, ahora tiene que hacerlo de forma explicita con `DJANGO_USE_SQLITE=True` y asumir el costo operativo.
-
-Importante sobre Render: al momento de esta guia, Render documenta Postgres gestionado pero no un recurso gestionado equivalente para MySQL. Por eso `render.yaml` ya no aprovisiona base propia: deja la app lista y espera que conectes un MySQL externo por `DATABASE_URL`.
-
-### Paso a paso manual
-
-1. Crear un servicio Python en Render y provisionar un MySQL gestionado externo en el proveedor que elijas.
-2. Cargar el repo tal como esta.
-3. Configurar el build command de `render.yaml`:
-
-```bash
-pip install -r requirements.txt && python manage.py collectstatic --noinput
-```
-
-4. Configurar el start command de `render.yaml` o `Procfile`:
-
-```bash
-python manage.py migrate && gunicorn config.wsgi --log-file -
-```
-
-5. Cargar `DATABASE_URL` con la cadena de conexion MySQL y definir las variables del bloque anterior.
-6. Hacer el primer arranque de la app.
-7. Abrir una shell del servicio y correr una sola vez el bootstrap inicial:
-
-```bash
-python manage.py bootstrap_eunoia
-```
-
-8. Importar alumnas:
-
-```bash
-python manage.py import_students_csv ruta/alumnas.csv
-```
-
-9. Cargar slots semanales reales desde admin o sembrar demo minima:
-
-```bash
-python manage.py bootstrap_eunoia --with-demo-slots --generate-next-days 14
-```
-
-10. Si la agenda es real, generar sesiones del rango operativo:
-
-```bash
-python manage.py generate_class_sessions 2026-04-01 2026-04-30
-```
-
-11. Verificar readiness minima:
-
-```bash
-python manage.py check_eunoia_readiness --strict
-```
-
-12. Validar manualmente:
-
-- `/login/` con staff bootstrap
-- `/staff/` con listado visible
-- login de una alumna
-- reserva en `/agenda/`
-- cancelacion en `/mis-turnos/`
-- recuperacion en `/recuperaciones/<id>/usar/`
-
-### Inconsistencias evitadas en esta guia
-
-- no depende de `createsuperuser` interactivo: usa `bootstrap_eunoia`
-- deja MySQL como camino principal de produccion, sin fallback silencioso a SQLite
-- no asume slots cargados: si no existen, hay que cargarlos o sembrar demo antes de generar sesiones
-- no asume que el arranque crea datos operativos: `migrate` corre solo esquema; el bootstrap sigue siendo paso explicito

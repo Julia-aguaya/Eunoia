@@ -1,0 +1,42 @@
+name: Maintain Eunoia Fixed Booking Horizon
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub Actions evaluates schedules in UTC: Saturday 03:05 is 00:05 ART.
+    - cron: "5 3 * * 6"
+    # GitHub Actions evaluates schedules in UTC: 03:15 is 00:15 ART.
+    - cron: "15 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eunoia-production-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    name: Maintain production fixed-booking horizon
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run maintenance via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -eu
+            project_dir="$HOME/eunoia"
+            test -d "$project_dir"
+            test -x "$project_dir/.venv/bin/python"
+            test -f "$project_dir/.env"
+            cd "$project_dir"
+            test "$(pwd -P)" = "$project_dir"
+            set -a
+            . "$project_dir/.env"
+            set +a
+            ./.venv/bin/python manage.py maintain_fixed_booking_horizon --days-ahead 42

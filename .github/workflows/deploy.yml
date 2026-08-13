@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: eunoia-production-maintenance
+  cancel-in-progress: false
 
 jobs:
   deploy:
