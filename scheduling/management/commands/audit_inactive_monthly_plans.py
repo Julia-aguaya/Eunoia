@@ -48,21 +48,18 @@ class Command(BaseCommand):
         for access in accesses:
             student = access.student
             plans = list(
-                StudentMonthlyPlan.objects.filter(student=student, month__lte=target_month, is_active=True)
+                StudentMonthlyPlan.objects.filter(student=student, is_active=True)
                 .select_related('section')
                 .prefetch_related('plan_slots__weekly_class_slot')
-                .order_by('section_id', '-month', '-pk')
+                .order_by('month', 'section_id', 'pk')
             )
-            effective_by_section = {}
-            for plan in plans:
-                effective_by_section.setdefault(plan.section_id, plan)
             future_bookings = list(Booking.objects.filter(
                 student=student, status=BookingStatus.BOOKED, session__date__gte=from_date,
             ).order_by('pk').values_list('pk', flat=True))
-            if not effective_by_section and not future_bookings:
+            if not plans and not future_bookings:
                 continue
             candidates += 1
-            for plan in effective_by_section.values() or [None]:
+            for plan in plans or [None]:
                 writer.writerow({
                     'student_id': student.pk,
                     'student_name': student.get_full_name(),
@@ -85,6 +82,7 @@ class Command(BaseCommand):
                         booking_from_date=from_date,
                         plan_reset_from=target_month,
                         only_not_started=False,
+                        mask_all_active_plans=True,
                     )
                 applied += 1
         self.stderr.write(

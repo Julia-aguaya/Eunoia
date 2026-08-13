@@ -165,8 +165,9 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         self.assertIn('mode=dry-run candidates=1 applied=0', err.getvalue())
 
     def test_apply_masks_plan_preserves_history_and_is_idempotent(self):
-        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply')
-        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply')
+        first_err, second_err = StringIO(), StringIO()
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stderr=first_err)
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stderr=second_err)
 
         self.plan.refresh_from_db()
         self.past_booking.refresh_from_db()
@@ -177,6 +178,48 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         self.assertEqual(self.future_booking.status, BookingStatus.CANCELLED)
         self.assertEqual(self.future_booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
         self.assertTrue(self.active_student.is_active)
+        self.assertIn('mode=apply candidates=1 applied=1', first_err.getvalue())
+        self.assertIn('mode=apply candidates=0 applied=0', second_err.getvalue())
+
+    def test_apply_masks_every_active_plan_for_suspended_student_once(self):
+        # Mirrors legacy students with a stale history plus several section/month
+        # overrides: the audit must not leave a hidden effective plan behind.
+        reformer = Section.objects.get(code='reformer_arriba')
+        historical_plan = StudentMonthlyPlan.objects.create(
+            student=self.inactive_student, month=date(2026, 5, 1), section=self.section,
+        )
+        historical_plan.assign_weekly_slots([self.slot])
+        reformer_slot = WeeklyClassSlot.objects.create(
+            section=reformer, weekday=Weekday.WEDNESDAY, start_time=time(18), end_time=time(19), is_active=True,
+        )
+        current_reformer_plan = StudentMonthlyPlan.objects.create(
+            student=self.inactive_student, month=date(2026, 8, 1), section=reformer,
+        )
+        current_reformer_plan.assign_weekly_slots([reformer_slot])
+        future_plan = StudentMonthlyPlan.objects.create(
+            student=self.inactive_student, month=date(2026, 9, 1), section=self.section,
+        )
+        future_plan.assign_weekly_slots([self.slot])
+
+        first_out, first_err = StringIO(), StringIO()
+        second_out, second_err = StringIO(), StringIO()
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stdout=first_out, stderr=first_err)
+        call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stdout=second_out, stderr=second_err)
+
+        plan_ids = {self.plan.pk, historical_plan.pk, current_reformer_plan.pk, future_plan.pk}
+        self.assertEqual(
+            StudentMonthlyPlan.objects.filter(pk__in=plan_ids, is_active=True).count(),
+            0,
+        )
+        self.assertEqual(StudentMonthlyPlan.objects.filter(pk__in=plan_ids).count(), 4)
+        self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan_id__in=plan_ids).count(), 4)
+        self.assertFalse(self.inactive_student.get_effective_monthly_plans_for(date(2026, 9, 1)))
+        self.assertEqual(first_out.getvalue().count('MASKED_PLAN_AND_CANCELLED_FUTURE_BOOKINGS'), 4)
+        self.assertEqual(second_out.getvalue().splitlines(), [
+            'student_id,student_name,access_status,plan_id,plan_month,section,slot_details,future_booking_ids,action',
+        ])
+        self.assertIn('mode=apply candidates=1 applied=1', first_err.getvalue())
+        self.assertIn('mode=apply candidates=0 applied=0', second_err.getvalue())
 
 
 class RolloverMonthlyAccessStatusesCommandTests(TestCase):

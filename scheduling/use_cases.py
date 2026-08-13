@@ -597,7 +597,7 @@ def cancel_booking_for_global_deactivation(*, booking, actor=None, when=None):
 
 def cleanup_global_deactivation(
     *, student, booking_from_date, plan_reset_from, actor=None, when=None, only_not_started,
-    booking_ids=None, plan_ids=None,
+    booking_ids=None, plan_ids=None, mask_all_active_plans=False,
 ):
     """Cancel bookings and mask inherited plan assignments after deactivation.
 
@@ -659,9 +659,9 @@ def cleanup_global_deactivation(
         )
         cancelled_booking_ids.append(booking.pk)
 
-    plan_queryset = StudentMonthlyPlan.objects.filter(
-        student_id=student.pk, month__gte=normalized_plan_reset_from,
-    )
+    plan_queryset = StudentMonthlyPlan.objects.filter(student_id=student.pk, is_active=True)
+    if not mask_all_active_plans:
+        plan_queryset = plan_queryset.filter(month__gte=normalized_plan_reset_from)
     if plan_ids is not None:
         plan_queryset = plan_queryset.filter(pk__in=plan_ids)
     plan_ids = list(plan_queryset.order_by('pk').values_list('pk', flat=True))
