@@ -48,8 +48,8 @@
     }
 
     .recovery-picker-hero h2 {
-        font-size: clamp(3rem, 9vw, 4.6rem);
-        line-height: 0.92;
+        font-size: clamp(2rem, 6vw, 2.8rem);
+        line-height: 1;
         margin: 0;
     }
 
@@ -563,7 +563,7 @@
 
 {% block content %}
 <section class="recovery-picker-layout">
-    <article class="card picker-card">
+    <article id="recovery-picker" class="card picker-card" tabindex="-1">
         <div class="credit-summary">
             <div class="summary-icon-wrap" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -591,7 +591,7 @@
         <p class="meta" style="margin: 14px 0 0; line-height: 1.6;">{{ eligible_sessions_count }} horario{{ eligible_sessions_count|pluralize:"s" }} con cupo en {{ recovery_selected_activity.name }} del {{ recovery_week_start|date:"j/m" }} al {{ recovery_week_end|date:"j/m" }}.</p>
     </article>
 
-    <article class="card picker-card">
+    <article id="recovery-calendar" class="card picker-card">
         <div class="calendar-header">
             <a href="{{ recovery_prev_url }}" class="calendar-nav" aria-label="Ver mes anterior">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -653,7 +653,7 @@
                 <div class="slot-grid">
                     {% for card in recovery_selected_day_cards %}
                         {% if card.action.can_book %}
-                            <a class="slot-button available{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&section={{ recovery_selected_activity.code }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}">{{ card.display_label }}</a>
+                            <a class="slot-button available{% if recovery_selected_session_card and recovery_selected_session_card.session.id == card.session.id %} active{% endif %}" href="{% url 'use-recovery' recovery_focus_credit.id %}?month={{ recovery_month_start|date:'Y-m' }}&section={{ recovery_selected_activity.code }}&date={{ recovery_selected_date|date:'Y-m-d' }}&session={{ card.session.id }}#recovery-picker">{{ card.display_label }}</a>
                         {% else %}
                             <span class="slot-button blocked {{ card.action.state|default:'blocked' }}">{{ card.display_label }}</span>
                         {% endif %}
