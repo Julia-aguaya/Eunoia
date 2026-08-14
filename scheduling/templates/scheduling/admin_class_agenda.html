@@ -356,7 +356,7 @@
                     Este horario queda disponible de inmediato para incluirlo en los planes mensuales de la actividad.
                 </div>
 
-                <form method="post" action="{% url 'admin-create-weekly-class-slot' %}" class="day-stack">
+                <form method="post" action="{% url 'admin-create-weekly-class-slot' %}" class="day-stack" data-testid="recurring-slot-form">
                     {% csrf_token %}
                     <input type="hidden" name="section_filter" value="{{ staff_agenda_section_id }}">
 
