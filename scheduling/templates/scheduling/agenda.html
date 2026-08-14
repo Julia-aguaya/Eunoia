@@ -39,7 +39,7 @@
 <style>
     .shell {
         width: min(860px, calc(100% - (var(--shell-padding) * 2)));
-        padding-bottom: 110px;
+        padding-bottom: var(--bottom-nav-reserve);
     }
 
     .agenda-hero {
@@ -498,7 +498,7 @@
     @media (max-width: 560px) {
         .shell {
             width: min(100% - 14px, 860px);
-            padding-bottom: 104px;
+            padding-bottom: var(--bottom-nav-reserve);
         }
 
         .agenda-card {

@@ -25,7 +25,7 @@
 <style>
     .shell {
         width: min(860px, calc(100% - (var(--shell-padding) * 2)));
-        padding-bottom: 110px;
+        padding-bottom: var(--bottom-nav-reserve);
     }
 
     .account-hero {
@@ -128,7 +128,7 @@
     .bottom-nav a.active { color: var(--primary-strong); font-weight: 700; background: rgba(223,232,223,0.42); }
 
     @media (max-width: 560px) {
-        .shell { width: min(100% - 14px, 860px); padding-bottom: 104px; }
+            .shell { width: min(100% - 14px, 860px); padding-bottom: var(--bottom-nav-reserve); }
         .account-card { padding: 18px; border-radius: 24px; }
         .identity-grid, .activity-card, .help-card, .rules-card, .form-grid { grid-template-columns: 1fr; }
         .section-head { flex-direction: column; align-items: flex-start; }
