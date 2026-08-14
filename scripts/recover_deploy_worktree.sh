@@ -5,10 +5,15 @@ umask 077
 project_dir="$HOME/eunoia"
 venv_python="$project_dir/.venv/bin/python"
 
-readonly allowed_paths=(
+readonly allowed_script_paths=(
   'scripts/configure_resend_smtp.sh'
   'scripts/configure_resend_api.sh'
   'deploy-eunoia.sh'
+)
+
+readonly allowed_lock_paths=(
+  '.configure-resend-api.lock'
+  '.configure-resend-smtp.lock'
 )
 
 fail() {
@@ -16,15 +21,26 @@ fail() {
   exit 1
 }
 
-is_allowed_path() {
+is_allowed_script_path() {
   local path="$1"
-  local allowed_path
+  local allowed_script_path
 
-  for allowed_path in "${allowed_paths[@]}"; do
-    [[ "$path" == "$allowed_path" ]] && return 0
+  for allowed_script_path in "${allowed_script_paths[@]}"; do
+    [[ "$path" == "$allowed_script_path" ]] && return 0
   done
 
   return 1
+}
+
+is_allowed_artifact_path() {
+  local path="$1"
+  local allowed_lock_path
+
+  for allowed_lock_path in "${allowed_lock_paths[@]}"; do
+    [[ "$path" == "$allowed_lock_path" ]] && return 0
+  done
+
+  [[ "$path" =~ ^\.env\.resend-backup\.[0-9]{8}T[0-9]{6}Z$ ]]
 }
 
 worktree_is_clean() {
@@ -39,11 +55,29 @@ secure_backup() {
   [[ -f "$destination" && "$(stat -c '%a' "$destination")" == '600' ]] || fail 'Recovery failed: backup was not created securely.'
 }
 
+move_artifact_to_backup() {
+  local path="$1"
+  local project_dir_real
+  local artifact_real
+  local destination
+
+  [[ -f "$path" && ! -L "$path" ]] || fail 'Recovery failed: artifact must be a regular file.'
+  project_dir_real="$(realpath -e -- "$project_dir")"
+  artifact_real="$(realpath -e -- "$path")"
+  [[ "$artifact_real" == "$project_dir_real/"* ]] || fail 'Recovery failed: artifact is outside the project directory.'
+
+  destination="$backup_dir/$path"
+  [[ ! -e "$destination" && ! -L "$destination" ]] || fail 'Recovery failed: backup destination already exists.'
+  mv -- "$path" "$destination"
+  secure_backup "$destination"
+}
+
 cd "$project_dir"
 [[ "$(git branch --show-current)" == 'main' ]] || fail 'Recovery precondition failed: expected main branch.'
 
 declare -a changed_paths=()
 declare -a changed_statuses=()
+declare -a artifact_paths=()
 declare -a unexpected_paths=()
 unsupported_status=false
 
@@ -58,21 +92,25 @@ while IFS= read -r -d '' entry; do
     continue
   fi
 
-  if ! is_allowed_path "$path"; then
+  if is_allowed_script_path "$path"; then
+    case "$status" in
+      ' M'|'M '|'MM'|'A '|'AM'|'??')
+        changed_paths+=("$path")
+        changed_statuses+=("$status")
+        ;;
+      *)
+        unexpected_paths+=("$path")
+        unsupported_status=true
+        ;;
+    esac
+  elif is_allowed_artifact_path "$path" && [[ "$status" == '??' ]]; then
+    artifact_paths+=("$path")
+  else
     unexpected_paths+=("$path")
-    continue
-  fi
-
-  case "$status" in
-    ' M'|'M '|'MM'|'A '|'AM'|'??')
-      changed_paths+=("$path")
-      changed_statuses+=("$status")
-      ;;
-    *)
-      unexpected_paths+=("$path")
+    if is_allowed_artifact_path "$path"; then
       unsupported_status=true
-      ;;
-  esac
+    fi
+  fi
 done < <(git status --porcelain=v1 -z)
 
 if ((${#unexpected_paths[@]})); then
@@ -82,11 +120,17 @@ if ((${#unexpected_paths[@]})); then
 fi
 
 [[ "$unsupported_status" == false ]] || fail 'Recovery precondition failed: unsupported worktree status.'
-(( ${#changed_paths[@]} > 0 )) || fail 'Recovery precondition failed: no permitted worktree changes found.'
+(( ${#changed_paths[@]} + ${#artifact_paths[@]} > 0 )) || fail 'Recovery precondition failed: no permitted worktree changes found.'
 
-backup_dir="$(mktemp -d "$HOME/eunoia-recovery-backups.XXXXXXXX")"
+backup_dir="$HOME/eunoia-recovery-backups"
+[[ ! -L "$backup_dir" ]] || fail 'Recovery failed: backup directory must not be a symlink.'
+mkdir -p "$backup_dir"
 chmod 700 "$backup_dir"
-[[ "$(stat -c '%a' "$backup_dir")" == '700' ]] || fail 'Recovery failed: backup directory permissions.'
+[[ -d "$backup_dir" && ! -L "$backup_dir" && "$(stat -c '%a' "$backup_dir")" == '700' ]] || fail 'Recovery failed: backup directory permissions.'
+
+for path in "${artifact_paths[@]}"; do
+  move_artifact_to_backup "$path"
+done
 
 for index in "${!changed_paths[@]}"; do
   path="${changed_paths[$index]}"
