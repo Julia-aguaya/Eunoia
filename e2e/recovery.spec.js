@@ -40,6 +40,9 @@ for (const [origin, targets] of Object.entries(matrix)) {
       }
 
       await activities.getByRole('link', { name: labels[target], exact: true }).click();
+      await expect(page).toHaveURL(/#recovery-picker$/);
+      await expect(page.locator('#recovery-picker')).toBeInViewport();
+      await expect(page.locator('#recovery-picker')).toBeFocused();
       await page.getByRole('link', { name: '11', exact: true }).click();
       await page.getByRole('link', { name: '09:00', exact: true }).click();
       await page.getByRole('button', { name: 'Confirmar recuperación' }).click();

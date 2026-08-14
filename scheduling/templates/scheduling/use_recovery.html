@@ -17,6 +17,16 @@
     </button>
 {% endblock %}
 
+{% block extra_body %}
+<script>
+    (function () {
+        if (window.location.hash !== '#recovery-picker') return;
+        var picker = document.getElementById('recovery-picker');
+        if (picker) picker.focus({ preventScroll: true });
+    }());
+</script>
+{% endblock %}
+
 {% block hero_actions %}{% endblock %}
 {% block hero_stats %}{% endblock %}
 {% block status_banner %}{% endblock %}
