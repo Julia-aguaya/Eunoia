@@ -9,7 +9,7 @@ function projectSuffix(testInfo) {
 async function login(page, email) {
   await page.goto('/login/');
   await page.getByLabel('Email').fill(email);
-  await page.getByRole('textbox', { name: 'Contrasena' }).fill(password);
+  await page.getByRole('textbox', { name: 'Contraseña' }).fill(password);
   await page.getByRole('button', { name: 'Ingresar' }).click();
   await page.waitForURL((url) => url.pathname !== '/login/');
 }

@@ -26,6 +26,8 @@
             --radius-md: 20px;
             --radius-sm: 14px;
             --shell-padding: clamp(16px, 3vw, 28px);
+            --bottom-nav-height: 0px;
+            --bottom-nav-reserve: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 32px);
         }
 
         * { box-sizing: border-box; }
@@ -47,7 +49,7 @@
         .shell {
             width: min(1120px, calc(100% - (var(--shell-padding) * 2)));
             margin: 0 auto;
-            padding: var(--shell-padding) 0 40px;
+            padding: var(--shell-padding) 0 max(40px, var(--bottom-nav-reserve));
         }
 
         .topbar {
@@ -564,7 +566,7 @@
             </div>
         </header>
 
-        <section class="hero {% block hero_class %}{% endblock %}">
+        {% block portal_hero %}<section class="hero {% block hero_class %}{% endblock %}">
             <div class="hero-main {% block hero_main_class %}{% endblock %}">
                 {% block hero_lead_icon %}{% endblock %}
                 <div class="hero-copy-stack">
@@ -590,7 +592,7 @@
                     </div>
                 {% endblock %}
             </div>
-        </section>
+        </section>{% endblock %}
 
         {% if messages %}
             <section class="flash-list" aria-live="polite">
@@ -620,5 +622,17 @@
 
         {% block bottom_nav %}{% endblock %}
     </div>
+    <script>
+        (function () {
+            var navigation = document.querySelector('.bottom-nav');
+            if (!navigation || !window.ResizeObserver) return;
+            var updateReserve = function () {
+                document.documentElement.style.setProperty('--bottom-nav-height', navigation.offsetHeight + 'px');
+            };
+            new ResizeObserver(updateReserve).observe(navigation);
+            updateReserve();
+        }());
+    </script>
+    {% block extra_body %}{% endblock %}
 </body>
 </html>

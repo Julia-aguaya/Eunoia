@@ -1892,6 +1892,7 @@ def _build_recovery_calendar_context(
     selected_date=None,
     selected_session_id=None,
     selected_section_code=None,
+    default_start_date=None,
 ):
     available_dates = {card['session'].date for card in recovery_session_cards}
     published_dates = {card['session'].date for card in recovery_day_cards}
@@ -1904,7 +1905,23 @@ def _build_recovery_calendar_context(
 
     selectable_dates = sorted(selectable_dates)
     selectable_available_dates = sorted(day for day in selectable_dates if day in available_dates)
-    default_selected_date = selectable_available_dates[0] if selectable_available_dates else (selectable_dates[0] if selectable_dates else None)
+    future_available_dates = [
+        day for day in selectable_available_dates
+        if default_start_date is None or day >= default_start_date
+    ]
+    future_selectable_dates = [
+        day for day in selectable_dates
+        if default_start_date is None or day >= default_start_date
+    ]
+    default_selected_date = (
+        future_available_dates[0]
+        if future_available_dates else (
+            future_selectable_dates[0]
+            if future_selectable_dates else (
+                selectable_available_dates[0] if selectable_available_dates else (selectable_dates[0] if selectable_dates else None)
+            )
+        )
+    )
     selected_date = selected_date if selected_date in selectable_dates else default_selected_date
 
     month_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_start.year, month_start.month)
@@ -1926,7 +1943,7 @@ def _build_recovery_calendar_context(
                     'is_selectable': day in selectable_dates,
                     'is_selected': selected_date == day,
                     'select_url': (
-                        f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'date': day.isoformat(), 'section': selected_section_code})}"
+                        f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'date': day.isoformat(), 'section': selected_section_code})}#recovery-picker"
                         if day in selectable_dates
                         else ''
                     ),
@@ -1954,8 +1971,8 @@ def _build_recovery_calendar_context(
         'recovery_selected_date': selected_date,
         'recovery_selected_day_cards': selected_day_cards,
         'recovery_selected_session_card': selected_session_card,
-        'recovery_prev_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m'), 'section': selected_section_code})}",
-        'recovery_next_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, 1).strftime('%Y-%m'), 'section': selected_section_code})}",
+        'recovery_prev_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, -1).strftime('%Y-%m'), 'section': selected_section_code})}#recovery-picker",
+        'recovery_next_url': f"{reverse('use-recovery', args=[credit_id])}?{urlencode({'month': _shift_month(month_start, 1).strftime('%Y-%m'), 'section': selected_section_code})}#recovery-picker",
     }
 
 
@@ -2572,6 +2589,7 @@ def use_recovery_view(request, recovery_credit_id):
         selected_date=selected_date,
         selected_session_id=selected_session_id,
         selected_section_code=selected_section_code,
+        default_start_date=today,
     )
 
     selected_section = next(
@@ -2583,7 +2601,7 @@ def use_recovery_view(request, recovery_credit_id):
         {
             'section': section,
             'is_selected': section.code == selected_section_code,
-            'select_url': f"{reverse('use-recovery', args=[credit.id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'section': section.code, **({'date': selected_date_query} if selected_date_query else {})})}",
+            'select_url': f"{reverse('use-recovery', args=[credit.id])}?{urlencode({'month': month_start.strftime('%Y-%m'), 'section': section.code, **({'date': selected_date_query} if selected_date_query else {})})}#recovery-picker",
         }
         for section in activity_sections
     ]
