@@ -566,7 +566,7 @@
             </div>
         </header>
 
-        <section class="hero {% block hero_class %}{% endblock %}">
+        {% block portal_hero %}<section class="hero {% block hero_class %}{% endblock %}">
             <div class="hero-main {% block hero_main_class %}{% endblock %}">
                 {% block hero_lead_icon %}{% endblock %}
                 <div class="hero-copy-stack">
@@ -592,7 +592,7 @@
                     </div>
                 {% endblock %}
             </div>
-        </section>
+        </section>{% endblock %}
 
         {% if messages %}
             <section class="flash-list" aria-live="polite">
