@@ -5,11 +5,12 @@ from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import Resolver404, resolve, reverse
@@ -146,6 +147,12 @@ def staff_required(view_func):
         return view_func(request, *args, **kwargs)
 
     return wrapped
+
+
+def healthz_view(request):
+    if not getattr(settings, 'EUNOIA_E2E', False):
+        raise Http404
+    return JsonResponse({'status': 'ok'})
 
 
 def student_portal_required(view_func):

@@ -5,3 +5,6 @@ db.sqlite3
 .env
 staticfiles/
 data/
+playwright-report/
+test-results/
+node_modules/
