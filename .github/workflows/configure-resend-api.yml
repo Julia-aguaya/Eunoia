@@ -1,4 +1,4 @@
-name: Configure Resend SMTP
+name: Configure Resend API
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
     env:
       RESEND_SMTP_API_KEY: ${{ secrets.RESEND_SMTP_API_KEY }}
     steps:
-      - name: Configure SMTP via SSH
+      - name: Configure Resend API via SSH
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.DO_HOST }}
@@ -26,6 +26,6 @@ jobs:
             set -euo pipefail
             cd ~/eunoia
             git fetch origin main
-            git restore --source=origin/main --staged --worktree scripts/configure_resend_smtp.sh
-            chmod +x scripts/configure_resend_smtp.sh
-            ./scripts/configure_resend_smtp.sh
+            git restore --source=origin/main --staged --worktree scripts/configure_resend_api.sh
+            chmod +x scripts/configure_resend_api.sh
+            ./scripts/configure_resend_api.sh

@@ -79,6 +79,14 @@ def allow_password_reset_request(*, email, ip_address):
     return email_allowed and ip_allowed
 
 
+def provider_error_metadata(error):
+    status_code = getattr(error, 'status_code', None)
+    if not isinstance(status_code, int):
+        response = getattr(error, 'response', None)
+        status_code = getattr(response, 'status_code', None)
+    return error.__class__.__name__, status_code if isinstance(status_code, int) else 'unknown'
+
+
 def invalidate_user_sessions(user):
     """Remove every database-backed authenticated session for a reset user."""
     session_keys = []
@@ -122,9 +130,14 @@ class EunoiaPasswordResetView(PasswordResetView):
                     subject_template_name=self.subject_template_name,
                     request=self.request,
                 )
-            except Exception:
+            except Exception as error:
                 # Keep the HTTP response neutral and never log the email, token, or password.
-                logger.error('Password reset email delivery failed.')
+                error_class, status_code = provider_error_metadata(error)
+                logger.warning(
+                    'Password reset email delivery failed: provider_error=%s status_code=%s.',
+                    error_class,
+                    status_code,
+                )
         logger.info('Password reset requested; rate_limit=%s.', 'allowed' if allowed else 'blocked')
         return HttpResponseRedirect(self.get_success_url())
 

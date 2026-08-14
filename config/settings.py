@@ -352,17 +352,12 @@ PASSWORD_RESET_RATE_LIMIT_SECRET = os.getenv('PASSWORD_RESET_RATE_LIMIT_SECRET',
 PASSWORD_RESET_IP_LIMIT = env_int('PASSWORD_RESET_IP_LIMIT', 5)
 PASSWORD_RESET_EMAIL_LIMIT = env_int('PASSWORD_RESET_EMAIL_LIMIT', 3)
 
-# Local development is deliberately mail-safe. Production must explicitly set
-# SMTP settings in its deployment environment before enabling real delivery.
+# Local development is deliberately mail-safe. Production explicitly selects
+# Anymail's Resend API backend through its deployment environment.
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.locmem.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', '')
-EMAIL_PORT = env_int('EMAIL_PORT', 465)
-EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', default=True)
-EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', default=False)
-if EMAIL_USE_SSL and EMAIL_USE_TLS:
-    raise ImproperlyConfigured('EMAIL_USE_SSL and EMAIL_USE_TLS cannot both be enabled.')
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+ANYMAIL = {
+    'RESEND_API_KEY': os.getenv('ANYMAIL_RESEND_API_KEY', ''),
+}
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Eunoia <no-reply@mail.pilateseunoia.com>')
 
 # Default primary key field type

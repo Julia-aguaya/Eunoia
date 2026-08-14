@@ -15,11 +15,11 @@ El servicio web usa:
 
 Las variables Django y `DATABASE_URL` se configuran exclusivamente en `~/eunoia/.env`; no se almacenan en workflows ni en el repositorio.
 
-### Configurar SMTP de Resend
+### Configurar API de Resend
 
 Después de que este cambio esté desplegado en `main`, crear el GitHub Actions secret de repositorio `RESEND_SMTP_API_KEY` con la API key de Resend. No usar variables de repositorio ni incluir la clave en commits, logs o `.env.example`.
 
-Luego ejecutar manualmente **Configure Resend SMTP** desde GitHub Actions. El workflow pasa la key sólo como variable de entorno de la acción SSH y actualiza únicamente las variables SMTP/reset de `~/eunoia/.env`, incluido `EMAIL_USE_TLS=False` para que no pueda coexistir con SSL. Antes del cambio toma un lock, crea un backup local protegido y hace un reemplazo atómico; si falla la actualización, la validación Django o el reinicio, restaura ese backup. La verificación sólo imprime backend, host, puerto, SSL, origen público y remitente; nunca imprime la key ni el contenido de `.env`.
+Luego ejecutar manualmente **Configure Resend API** desde GitHub Actions. El workflow reutiliza `RESEND_SMTP_API_KEY` sólo como variable de entorno de la acción SSH y la guarda como `ANYMAIL_RESEND_API_KEY` en `~/eunoia/.env`. Configura el backend `anymail.backends.resend.EmailBackend` y elimina únicamente las claves SMTP obsoletas. Antes del cambio toma un lock, crea un backup local protegido y hace un reemplazo atómico; si falla la actualización, la validación Django o el reinicio, restaura ese backup. La validación previa comprueba presencia de key, construcción de settings, import del backend Anymail y `manage.py check`; no hace llamadas HTTPS porque una key con sólo Sending access no tiene un endpoint de autenticación sin envío documentado. El smoke test real y controlado se realiza después del deploy. La verificación no muestra destinatario, key, token, contenido o `.env`.
 
 ### Primer arranque
 
