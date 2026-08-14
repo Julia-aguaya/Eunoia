@@ -24,9 +24,34 @@ async function login(page, email) {
   await page.waitForURL((url) => url.pathname !== '/login/');
 }
 
+async function expectPickerToStayStable(page, target) {
+  await target.scrollIntoViewIfNeeded();
+  const before = await page.locator('#recovery-picker').evaluate((element) => ({
+    scrollY: window.scrollY,
+    top: element.getBoundingClientRect().top,
+    navigations: performance.getEntriesByType('navigation').length,
+  }));
+  const targetBox = await target.boundingBox();
+  if (!targetBox) throw new Error('Recovery control is not visible for a real pointer click.');
+  await page.mouse.click(targetBox.x + (targetBox.width / 2), targetBox.y + (targetBox.height / 2));
+  await expect(page.locator('#recovery-picker')).not.toHaveAttribute('aria-busy', 'true');
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expect(page.locator('#recovery-picker')).toBeVisible();
+  const after = await page.locator('#recovery-picker').evaluate((element) => ({
+    scrollY: window.scrollY,
+    top: element.getBoundingClientRect().top,
+    navigations: performance.getEntriesByType('navigation').length,
+  }));
+  const debug = await page.evaluate(() => window.__recoveryDebugEvents || []);
+  expect(after.navigations).toBe(before.navigations);
+  expect(Math.abs(after.top - before.top), JSON.stringify({ before, after, debug })).toBeLessThanOrEqual(8);
+  expect(Math.abs(after.scrollY - before.scrollY), JSON.stringify({ before, after, debug })).toBeLessThanOrEqual(8);
+}
+
 for (const [origin, targets] of Object.entries(matrix)) {
   for (const target of targets) {
     test(`student recovery cross-matrix ${origin} to ${target}`, async ({ page }, testInfo) => {
+      await page.addInitScript(() => { window.__recoveryDebug = true; });
       await login(page, `e2e.${origin}-${target}-${projectSuffix(testInfo)}@example.test`);
       await page.goto('/mis-turnos/');
       await page.getByRole('link', { name: /Ver actividades|Ver horarios/ }).click();
@@ -39,12 +64,11 @@ for (const [origin, targets] of Object.entries(matrix)) {
         await expect(activities.getByRole('link', { name: 'Cadillac', exact: true })).toHaveCount(0);
       }
 
-      await activities.getByRole('link', { name: labels[target], exact: true }).click();
-      await expect(page).toHaveURL(/#recovery-picker$/);
+      await expectPickerToStayStable(page, activities.getByRole('link', { name: labels[target], exact: true }));
+      await expect(page).toHaveURL(/section=/);
       await expect(page.locator('#recovery-picker')).toBeInViewport();
-      await expect(page.locator('#recovery-picker')).toBeFocused();
-      await page.getByRole('link', { name: '11', exact: true }).click();
-      await page.getByRole('link', { name: '09:00', exact: true }).click();
+      await expectPickerToStayStable(page, page.getByRole('link', { name: '11', exact: true }));
+      await expectPickerToStayStable(page, page.getByRole('link', { name: '09:00', exact: true }));
       await page.getByRole('button', { name: 'Confirmar recuperación' }).click();
       await expect(page.getByText(`Reservaste ${labels[target]}`, { exact: false })).toBeVisible();
     });
@@ -56,7 +80,9 @@ test('capacity blocks recovery booking when the only place is occupied', async (
   await page.goto('/mis-turnos/');
   await page.getByRole('link', { name: /Ver actividades|Ver horarios/ }).click();
   await page.getByLabel('Elegir actividad para recuperar').getByRole('link', { name: 'Reformer Arriba' }).click();
+  await expect(page.locator('#recovery-picker')).not.toHaveAttribute('aria-busy', 'true');
   await page.getByRole('link', { name: '11', exact: true }).click();
+  await expect(page.locator('#recovery-picker')).not.toHaveAttribute('aria-busy', 'true');
 
   const fullSlotName = `${projectSuffix(testInfo) === 'mobile' ? '13' : '12'}:00 - cupo completo`;
   const fullSlot = page.getByText(fullSlotName, { exact: true });
