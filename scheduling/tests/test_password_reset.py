@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlsplit
+from unittest import mock
 
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sessions.models import Session
@@ -47,6 +48,39 @@ class PasswordResetTests(TestCase):
         self.assertRedirects(unknown, reverse('password-reset-done'))
         self.assertEqual(existing_body, unknown.content.decode())
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_done_page_keeps_only_neutral_password_reset_content(self):
+        response = self.client.get(reverse('password-reset-done'))
+
+        self.assertContains(response, 'Revisá tu email')
+        self.assertContains(response, 'Si existe una cuenta con ese email, te enviamos un enlace para crear una nueva contraseña.')
+        self.assertContains(response, 'Puede tardar unos minutos. Revisá también Spam o Correo no deseado.')
+        self.assertContains(response, 'Volver a ingresar')
+        self.assertNotContains(response, 'Agenda a mano')
+        self.assertNotContains(response, 'Señales claras')
+
+    @override_settings(EMAIL_BACKEND='anymail.backends.test.EmailBackend')
+    def test_anymail_test_backend_sends_without_a_network_call(self):
+        self.request_reset(self.user.email)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(mail.outbox[0].anymail_status.recipients)
+
+    def test_provider_failure_stays_neutral_and_logs_only_error_metadata(self):
+        error = type('ProviderUnavailableError', (Exception,), {'status_code': 503})(
+            f'provider payload for {self.user.email} contains reset-token'
+        )
+        with mock.patch('scheduling.password_reset.PasswordResetForm.save', side_effect=error):
+            with self.assertLogs('scheduling.password_reset', level='WARNING') as logs:
+                response = self.request_reset(self.user.email)
+
+        rendered_logs = '\n'.join(logs.output)
+        self.assertRedirects(response, reverse('password-reset-done'))
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertIn('ProviderUnavailableError', rendered_logs)
+        self.assertIn('503', rendered_logs)
+        self.assertNotIn(self.user.email, rendered_logs)
+        self.assertNotIn('reset-token', rendered_logs)
 
     def test_email_uses_fixed_https_public_origin(self):
         self.request_reset(self.user.email)
