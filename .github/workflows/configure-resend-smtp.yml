@@ -1,0 +1,31 @@
+name: Configure Resend SMTP
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: eunoia-production-maintenance
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RESEND_SMTP_API_KEY: ${{ secrets.RESEND_SMTP_API_KEY }}
+    steps:
+      - name: Configure SMTP via SSH
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          command_timeout: 5m
+          envs: RESEND_SMTP_API_KEY
+          script: |
+            set -euo pipefail
+            cd ~/eunoia
+            git fetch origin main
+            git restore --source=origin/main --staged --worktree scripts/configure_resend_smtp.sh
+            chmod +x scripts/configure_resend_smtp.sh
+            ./scripts/configure_resend_smtp.sh
