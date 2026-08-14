@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
+from django.core import mail
 from django.http import Http404, JsonResponse
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -2306,7 +2307,16 @@ def login_view(request):
 
 @never_cache
 def password_recovery_help_view(request):
-    return render(request, 'scheduling/password_recovery_help.html')
+    if request.resolver_match.url_name == 'password-reset-complete':
+        return render(request, 'scheduling/password_reset_complete.html')
+    return render(request, 'scheduling/password_reset_done.html')
+
+
+@never_cache
+def password_reset_e2e_outbox_view(request):
+    if not getattr(settings, 'EUNOIA_E2E', False):
+        raise Http404
+    return JsonResponse({'emails': [{'body': message.body} for message in getattr(mail, 'outbox', [])]})
 
 
 @never_cache

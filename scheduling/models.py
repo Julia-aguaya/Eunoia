@@ -1823,3 +1823,18 @@ class FixedBookingCapacityConflict(TimeStampedModel):
 
     def __str__(self):
         return f'Fixed capacity conflict: {self.session} ({self.state})'
+
+
+class PasswordResetRateLimit(models.Model):
+    """Shared, privacy-preserving counters for password reset requests."""
+
+    scope = models.CharField(max_length=10)
+    principal_digest = models.CharField(max_length=64)
+    window_started_at = models.DateTimeField()
+    count = models.PositiveSmallIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['scope', 'principal_digest'], name='password_reset_rate_limit_principal'),
+        ]
