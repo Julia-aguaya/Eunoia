@@ -42,6 +42,9 @@ CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1', 'http://localhost']
 TIME_ZONE = 'America/Argentina/Cordoba'
 E2E_FIXED_DATE = '2026-08-10'
 E2E_FIXED_NOW = timezone.make_aware(datetime(2026, 8, 10, 8, 0), ZoneInfo(TIME_ZONE))
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+E2E_PASSWORD_RESET_EMAIL_DOMAIN = '127.0.0.1:8000'
+E2E_PASSWORD_RESET_EMAIL_USE_HTTPS = False
 
 
 def _e2e_now():

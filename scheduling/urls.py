@@ -1,4 +1,5 @@
 from django.urls import path
+from django.conf import settings
 
 from .views import (
     admin_class_agenda_view,
@@ -26,9 +27,12 @@ from .views import (
     login_view,
     logout_view,
     my_bookings_view,
+    password_recovery_help_view,
+    password_reset_e2e_outbox_view,
     register_view,
     use_recovery_view,
 )
+from .password_reset import EunoiaPasswordResetConfirmView, EunoiaPasswordResetView
 
 
 urlpatterns = [
@@ -80,7 +84,14 @@ urlpatterns = [
     path('mi-cuenta/', account_view, name='account'),
     path('mis-turnos/<int:booking_id>/cancelar/', cancel_booking_view, name='cancel-booking'),
     path('login/', login_view, name='login'),
+    path('password-reset/', EunoiaPasswordResetView.as_view(), name='password-reset'),
+    path('password-reset/done/', password_recovery_help_view, name='password-reset-done'),
+    path('password-reset/<uidb64>/<token>/', EunoiaPasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('password-reset/complete/', password_recovery_help_view, name='password-reset-complete'),
     path('crear-cuenta/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
     path('change-password-required/', change_password_required_view, name='change-password-required'),
 ]
+
+if getattr(settings, 'EUNOIA_E2E', False):
+    urlpatterns.append(path('__e2e__/outbox/', password_reset_e2e_outbox_view, name='e2e-outbox'))

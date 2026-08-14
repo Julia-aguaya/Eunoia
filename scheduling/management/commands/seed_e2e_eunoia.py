@@ -91,8 +91,11 @@ class Command(BaseCommand):
                         defaults={'expires_at': base + timedelta(days=30)},
                     )
             users[f'suspendida-{project}'] = seed_student(f'suspendida-{project}', 'cadillac', suspended=True)
+            users[f'password-reset-{project}'] = seed_student(f'password-reset-{project}', 'cadillac')
             users[f'capacity-{project}'] = seed_student(f'capacity-{project}', 'cadillac')
             users[f'capacity-filler-{project}'] = seed_student(f'capacity-filler-{project}', 'reformer_arriba')
+
+        users['password-reset-manual'] = seed_student('password-reset-manual', 'cadillac')
 
         staff, _ = User.objects.get_or_create(
             email='e2e.staff@example.test',
