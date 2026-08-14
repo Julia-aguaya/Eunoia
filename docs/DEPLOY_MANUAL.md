@@ -4,7 +4,13 @@ Producción se despliega desde GitHub Actions por SSH a un servidor DigitalOcean
 
 ### Deploy
 
-El workflow **Deploy Eunoia** usa únicamente los GitHub Secrets `DO_HOST`, `DO_USER` y `DO_SSH_KEY`. En el servidor trabaja en `~/eunoia` y ejecuta `deploy-eunoia.sh`, que activa `.venv`, instala dependencias, aplica migraciones, recolecta estáticos y reinicia el servicio `eunoia`.
+El workflow **Deploy Eunoia** usa únicamente los GitHub Secrets `DO_HOST`, `DO_USER` y `DO_SSH_KEY`. En el servidor trabaja en `~/eunoia` y ejecuta `deploy-eunoia.sh`, que usa explícitamente `~/eunoia/.venv/bin/python` para instalar dependencias, ejecutar `pip check`, aplicar migraciones, recolectar estáticos y validar Django antes de reiniciar el servicio `eunoia`. Si la instalación o validación falla, el script termina antes del reinicio y el Gunicorn en ejecución conserva el servicio anterior.
+
+Los workflows remotos obtienen scripts aprobados con `git show origin/main:<path>` y los ejecutan desde un directorio temporal. No restauran ni escriben scripts trackeados dentro de `~/eunoia`, por lo que terminan sin cambios locales en el worktree.
+
+### Recuperar worktree de deploy
+
+**Recover Deploy Worktree** es un workflow manual de uso único. Sólo procede si `git status --porcelain` contiene exactamente ` M scripts/configure_resend_smtp.sh`; con cualquier otro cambio falla sin modificar nada. Guarda ese archivo en `$HOME/eunoia-recovery-backups` con timestamp y permisos `600`, restaura exclusivamente ese path contra `HEAD` —sin `reset --hard`— y ejecuta el deploy desde una copia temporal aprobada. Al final verifica commit, worktree limpio, import de Anymail, `pip check`, `manage.py check` y servicio `eunoia` activo, sin imprimir `.env`, secretos, IPs ni contenido de backup.
 
 El servicio web usa:
 

@@ -1,0 +1,30 @@
+name: Recover Deploy Worktree
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: eunoia-production-maintenance
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Recover deploy worktree via SSH
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            cd ~/eunoia
+            git fetch origin main
+            temporary_dir="$(mktemp -d)"
+            trap 'rm -rf "$temporary_dir"' EXIT
+            git show origin/main:scripts/recover_deploy_worktree.sh > "$temporary_dir/recover_deploy_worktree.sh"
+            chmod 700 "$temporary_dir/recover_deploy_worktree.sh"
+            "$temporary_dir/recover_deploy_worktree.sh"
