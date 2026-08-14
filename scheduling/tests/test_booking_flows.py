@@ -1513,7 +1513,9 @@ class WebBookingFlowTests(TestCase):
         self.assertContains(dashboard_response, '1 disponible')
 
     def test_dashboard_does_not_recreate_self_cancelled_fixed_slot_booking_from_monthly_plan(self):
-        session = self.create_session(days=4)
+        # Keep the cancelled fixed session inside the dashboard's visible
+        # workweek; a fixed +4 day offset becomes invisible on Thursdays.
+        session = self.create_session(days=(7 - self.today.weekday()) if self.today.weekday() >= 5 else 1)
         slot = WeeklyClassSlot.objects.create(
             section=self.section,
             weekday=session.date.isoweekday(),
@@ -1549,7 +1551,7 @@ class WebBookingFlowTests(TestCase):
         self.assertContains(dashboard_response, 'Turno cancelado')
 
     def test_dashboard_keeps_safe_staff_cancelled_fixed_slot_booking_read_only(self):
-        session = self.create_session(days=4)
+        session = self.create_session(days=(7 - self.today.weekday()) if self.today.weekday() >= 5 else 1)
         staff_user = User.objects.create_user(
             email='booking-staff-history@example.com',
             password='StaffHistory2026!',
@@ -2410,11 +2412,12 @@ class BookingAttendanceLifecycleTests(TestCase):
         self.assertIsNone(booking.attendance_marked_at)
 
     def test_mark_no_show_requires_session_to_end(self):
-        start_at = timezone.now() - timedelta(minutes=15)
-        booking = self.create_booking(start_at=start_at, end_at=timezone.now() + timedelta(minutes=45))
+        reference_time = timezone.make_aware(datetime.combine(timezone.localdate(), time(12)))
+        start_at = reference_time - timedelta(minutes=15)
+        booking = self.create_booking(start_at=start_at, end_at=reference_time + timedelta(minutes=45))
 
         with self.assertRaisesMessage(ValidationError, 'A no-show can only be marked after the class ends.'):
-            booking.mark_no_show(when=timezone.now())
+            booking.mark_no_show(when=reference_time)
 
         booking.refresh_from_db()
         self.assertEqual(booking.status, BookingStatus.BOOKED)

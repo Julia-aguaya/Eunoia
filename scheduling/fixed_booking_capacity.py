@@ -57,6 +57,50 @@ def assess_fixed_capacity(*, session, locked_bookings=None):
     )
 
 
+def assess_fixed_capacities(*, sessions):
+    """Return read-only fixed-capacity assessments for a session collection.
+
+    The expected-fixed audit is deliberately evaluated once over the full date
+    range, then reduced to the requested sessions.  Recovery availability uses
+    this on its GET read model so it never repeats a whole-day audit for each
+    session or compatible recovery credit.
+    """
+    sessions = list(sessions)
+    if not sessions:
+        return {}
+
+    session_ids = {session.pk for session in sessions}
+    active_counts = {}
+    active_student_ids_by_session = {}
+    for booking in Booking.objects.filter(
+        session_id__in=session_ids,
+        status=BookingStatus.BOOKED,
+    ).only('session_id', 'student_id'):
+        active_counts[booking.session_id] = active_counts.get(booking.session_id, 0) + 1
+        active_student_ids_by_session.setdefault(booking.session_id, set()).add(booking.student_id)
+
+    expected_student_ids_by_session = {}
+    for row in audit_expected_fixed_bookings(
+        start_date=min(session.date for session in sessions),
+        end_date=max(session.date for session in sessions),
+    ):
+        if row['session_id'] in session_ids:
+            expected_student_ids_by_session.setdefault(row['session_id'], set()).add(row['student_id'])
+
+    return {
+        session.pk: FixedCapacityAssessment(
+            session_id=session.pk,
+            capacity=session.capacity,
+            active_booking_count=active_counts.get(session.pk, 0),
+            pending_fixed_student_ids=tuple(sorted(
+                expected_student_ids_by_session.get(session.pk, set())
+                - active_student_ids_by_session.get(session.pk, set())
+            )),
+        )
+        for session in sessions
+    }
+
+
 def ensure_recovery_capacity(*, session, locked_bookings=None):
     assessment = assess_fixed_capacity(session=session, locked_bookings=locked_bookings)
     if assessment.available_recovery_spots < 1:

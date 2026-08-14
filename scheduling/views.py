@@ -34,7 +34,7 @@ from .fixed_booking_history import (
     restore_recreatable_fixed_booking,
 )
 from .fixed_booking_policy import decide_fixed_booking_history
-from .fixed_booking_capacity import assess_fixed_capacity
+from .fixed_booking_capacity import assess_fixed_capacities, assess_fixed_capacity
 from .models import (
     AuditLog,
     Booking,
@@ -1245,6 +1245,8 @@ def _get_student_portal_context(
     reconcile_fixed_bookings=False,
     sync_end_date=None,
     ensure_portal_sessions=False,
+    include_recovery_previews=True,
+    include_schedule_context=True,
 ):
     now = timezone.now()
     today = timezone.localdate()
@@ -1299,11 +1301,14 @@ def _get_student_portal_context(
         for card in upcoming_booking_cards
         if current_week_start <= card['booking'].session.date <= current_week_end
     ]
-    weekly_plan_cards = _build_weekly_plan_cards(
-        user=user,
-        week_start=current_week_start,
-        week_end=current_week_end,
-        upcoming_booking_cards=upcoming_booking_cards,
+    weekly_plan_cards = (
+        _build_weekly_plan_cards(
+            user=user,
+            week_start=current_week_start,
+            week_end=current_week_end,
+            upcoming_booking_cards=upcoming_booking_cards,
+        )
+        if include_schedule_context else []
     )
     if not weekly_plan_cards:
         weekly_plan_cards = [
@@ -1320,16 +1325,19 @@ def _get_student_portal_context(
             for card in this_week_booking_cards
         ]
 
-    next_portal_turn_card = _build_next_portal_turn_card(
-        upcoming_booking_cards=upcoming_booking_cards,
-        weekly_plan_cards=weekly_plan_cards,
-        today=today,
-        current_time=timezone.localtime(now).time(),
+    next_portal_turn_card = (
+        _build_next_portal_turn_card(
+            upcoming_booking_cards=upcoming_booking_cards,
+            weekly_plan_cards=weekly_plan_cards,
+            today=today,
+            current_time=timezone.localtime(now).time(),
+        )
+        if include_schedule_context else None
     )
     booked_session_ids = {booking.session_id for booking in upcoming_bookings}
     upcoming_sessions = []
 
-    if portal_sections:
+    if include_schedule_context and portal_sections:
         upcoming_sessions = list(
             ClassSession.objects.select_related('section')
             .filter(section_id__in=[portal_section.pk for portal_section in portal_sections], date__gte=today, status=SessionStatus.SCHEDULED)
@@ -1412,24 +1420,25 @@ def _get_student_portal_context(
         )
     primary_recovery_credit_card = recovery_credit_cards[0] if recovery_credit_cards else None
 
-    operational_status = _build_operational_status(user, today)
+    operational_status = _build_operational_status(user, today) if include_schedule_context else None
     upcoming_session_cards = []
-    for session in upcoming_sessions:
-        action = _build_session_action(user=user, session=session)
-        compatible_credit_ids = []
-        for credit_id in available_recovery_credit_ids_by_section.get(session.section_id, []):
-            credit = available_recovery_credit_map.get(credit_id)
-            if credit and _booking_preview_is_valid(user=user, session=session, recovery_credit=credit):
-                compatible_credit_ids.append(credit.id)
+    if include_recovery_previews:
+        for session in upcoming_sessions:
+            action = _build_session_action(user=user, session=session)
+            compatible_credit_ids = []
+            for credit_id in available_recovery_credit_ids_by_section.get(session.section_id, []):
+                credit = available_recovery_credit_map.get(credit_id)
+                if credit and _booking_preview_is_valid(user=user, session=session, recovery_credit=credit):
+                    compatible_credit_ids.append(credit.id)
 
-        upcoming_session_cards.append(
-            {
-                'session': session,
-                'action': action,
-                'compatible_recovery_count': len(compatible_credit_ids),
-                'recovery_url': reverse('use-recovery', args=[compatible_credit_ids[0]]) if compatible_credit_ids else '',
-            }
-        )
+            upcoming_session_cards.append(
+                {
+                    'session': session,
+                    'action': action,
+                    'compatible_recovery_count': len(compatible_credit_ids),
+                    'recovery_url': reverse('use-recovery', args=[compatible_credit_ids[0]]) if compatible_credit_ids else '',
+                }
+            )
 
     upcoming_makeup_bookings = [booking for booking in upcoming_bookings if booking.used_recovery_credit_id]
 
@@ -1972,24 +1981,84 @@ def _build_recovery_activity_sections(credits):
     return [sections_by_code[code] for code in ordered_codes if code in sections_by_code]
 
 
-def _build_recovery_session_action_for_credits(*, user, session, recovery_credits, now):
-    compatible_actions = [
-        _build_recovery_session_action(user=user, session=session, recovery_credit=credit, now=now)
-        for credit in recovery_credits
-        if credit.is_session_compatible(session)
-    ]
-    for action in compatible_actions:
-        if action['can_book']:
-            return action
-    if compatible_actions:
-        return compatible_actions[0]
-    return {
-        'can_book': False,
-        'label': 'No disponible para esta recuperación',
-        'message': 'No queda una recuperación compatible disponible para esta clase.',
-        'tone': 'blocked',
-        'state': 'blocked',
+def _build_bulk_recovery_session_actions(*, user, sessions, recovery_credits, now):
+    """Build recovery previews with a bounded set of bulk ORM reads."""
+    sessions = list(sessions)
+    if not sessions:
+        return {}
+
+    assessments = assess_fixed_capacities(sessions=sessions)
+    session_ids = [session.pk for session in sessions]
+    user_bookings_by_session = {}
+    for booking in Booking.objects.filter(session_id__in=session_ids, student=user).only('session_id', 'status'):
+        user_bookings_by_session.setdefault(booking.session_id, []).append(booking)
+
+    months = {normalize_month_start(session.date) for session in sessions}
+    accesses = {
+        access.month: access
+        for access in MonthlyAccessStatus.objects.filter(student=user, month__in=months).only(
+            'month', 'status', 'booking_enabled',
+        )
     }
+    previous_months = {(month - timedelta(days=1)).replace(day=1) for month in months}
+    previous_accesses = {
+        access.month: access
+        for access in MonthlyAccessStatus.objects.filter(student=user, month__in=previous_months).only(
+            'month', 'status', 'booking_enabled',
+        )
+    }
+
+    actions = {}
+    for session in sessions:
+        if not any(credit.is_session_compatible(session) for credit in recovery_credits):
+            actions[session.pk] = {
+                'can_book': False, 'label': 'No disponible para esta recuperación',
+                'message': 'No queda una recuperación compatible disponible para esta clase.',
+                'tone': 'blocked', 'state': 'blocked',
+            }
+            continue
+        if session.status in {SessionStatus.CANCELLED, SessionStatus.HOLIDAY_CLOSED}:
+            actions[session.pk] = {
+                'can_book': False, 'label': 'No disponible para esta recuperación',
+                'message': 'Esta clase está cerrada y no admite reservas.', 'tone': 'blocked', 'state': 'blocked',
+            }
+            continue
+        month = normalize_month_start(session.date)
+        access = accesses.get(month)
+        if access is None and session.date.day <= 10:
+            access = previous_accesses.get((month - timedelta(days=1)).replace(day=1))
+        if not user.is_active or access is None or not access.grants_operational_booking_access():
+            actions[session.pk] = {
+                'can_book': False, 'label': 'No disponible para esta recuperación',
+                'message': 'Este mes no podés reservar esta clase desde el portal.', 'tone': 'blocked', 'state': 'paused',
+            }
+            continue
+        if any(booking.status == BookingStatus.BOOKED for booking in user_bookings_by_session.get(session.pk, ())):
+            actions[session.pk] = {
+                'can_book': False, 'label': 'Ya reservada',
+                'message': 'Ya tenés una reserva activa para esta clase.', 'tone': 'blocked', 'state': 'booked',
+            }
+            continue
+        if assessments[session.pk].available_recovery_spots < 1:
+            actions[session.pk] = {
+                'can_book': False, 'label': 'Cupo reservado para turnos fijos',
+                'message': 'No hay cupo disponible luego de reservar los turnos fijos esperados.',
+                'tone': 'blocked', 'state': 'full',
+            }
+            continue
+        if session.starts_at() <= now:
+            actions[session.pk] = {
+                'can_book': False, 'label': 'Clase ya pasada',
+                'message': 'Esta clase ya pasó y queda solo como referencia para revisar la semana.',
+                'tone': 'blocked', 'state': 'past',
+            }
+            continue
+        actions[session.pk] = {
+            'can_book': True, 'label': 'Usar recuperación',
+            'message': 'Podés usar una recuperación compatible disponible para reservar esta clase.',
+            'tone': 'ready', 'state': 'ready',
+        }
+    return actions
 
 
 def _build_booking_detail_modal_context(*, request, context):
@@ -2282,6 +2351,7 @@ def agenda_view(request):
         request.user,
         sync_end_date=visible_range_end,
         ensure_portal_sessions=_should_sync_portal_sessions_on_get(today),
+        include_recovery_previews=False,
     )
     context.update(_build_agenda_calendar_context(user=request.user, context=context, month_start=month_start))
     context.update(_build_booking_detail_modal_context(request=request, context=context))
@@ -2369,6 +2439,8 @@ def use_recovery_view(request, recovery_credit_id):
         request.user,
         sync_end_date=visible_range_end,
         ensure_portal_sessions=_should_sync_portal_sessions_on_get(today),
+        include_recovery_previews=False,
+        include_schedule_context=False,
     )
     credit = get_object_or_404(
         RecoveryCredit.objects.select_related('section', 'origin_session'),
@@ -2394,20 +2466,26 @@ def use_recovery_view(request, recovery_credit_id):
         selected_section_code = activity_sections[0].code
 
     fixed_schedule_dates = set()
-    day_cursor = month_start
-    while day_cursor <= month_end:
-        effective_plans = request.user.get_effective_monthly_plans_for(day_cursor)
-        if not effective_plans:
-            day_cursor += timedelta(days=1)
-            continue
-        for effective_plan in effective_plans:
-            for slot in effective_plan.get_weekly_slots():
-                if slot.is_effective_on(day_cursor):
-                    fixed_schedule_dates.add(day_cursor)
-                    break
-            if day_cursor in fixed_schedule_dates:
-                break
-        day_cursor += timedelta(days=1)
+    month_plans = list(
+        StudentMonthlyPlan.objects.filter(
+            student=request.user, is_active=True, month__lte=normalize_month_start(month_end),
+        ).select_related('section').prefetch_related('plan_slots__weekly_class_slot').order_by('-month', '-pk')
+    )
+    for day_cursor in (month_start + timedelta(days=offset) for offset in range((month_end - month_start).days + 1)):
+        target_month = normalize_month_start(day_cursor)
+        effective_by_section = {}
+        for plan in month_plans:
+            if plan.month > target_month or plan.section_id in effective_by_section:
+                continue
+            if request.user.monthly_plan_reset_from and target_month >= request.user.monthly_plan_reset_from and plan.month < request.user.monthly_plan_reset_from:
+                continue
+            effective_by_section[plan.section_id] = plan
+        if any(
+            plan_slot.weekly_class_slot.is_effective_on(day_cursor)
+            for plan in effective_by_section.values()
+            for plan_slot in plan._prefetched_objects_cache.get('plan_slots', ())
+        ):
+            fixed_schedule_dates.add(day_cursor)
 
     if not fixed_schedule_dates:
         fixed_schedule_dates = {
@@ -2435,15 +2513,13 @@ def use_recovery_view(request, recovery_credit_id):
         )
         .order_by('date', 'start_time')
     )
+    recovery_actions = _build_bulk_recovery_session_actions(
+        user=request.user, sessions=candidate_sessions, recovery_credits=available_recovery_credits, now=now,
+    )
     recovery_session_cards = []
     recovery_day_cards = []
     for session in candidate_sessions:
-        action = _build_recovery_session_action_for_credits(
-            user=request.user,
-            session=session,
-            recovery_credits=available_recovery_credits,
-            now=now,
-        )
+        action = recovery_actions[session.pk]
         if action['can_book']:
             display_label = f'{session.start_time:%H:%M}'
         elif action['state'] == 'full':
