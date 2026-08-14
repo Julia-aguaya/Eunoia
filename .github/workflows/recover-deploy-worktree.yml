@@ -1,9 +1,6 @@
-name: Deploy Eunoia
+name: Recover Deploy Worktree
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:
@@ -11,11 +8,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  recover:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Deploy via SSH
+      - name: Recover deploy worktree via SSH
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.DO_HOST }}
@@ -28,6 +25,6 @@ jobs:
             git fetch origin main
             temporary_dir="$(mktemp -d)"
             trap 'rm -rf "$temporary_dir"' EXIT
-            git show origin/main:deploy-eunoia.sh > "$temporary_dir/deploy-eunoia.sh"
-            chmod 700 "$temporary_dir/deploy-eunoia.sh"
-            "$temporary_dir/deploy-eunoia.sh"
+            git show origin/main:scripts/recover_deploy_worktree.sh > "$temporary_dir/recover_deploy_worktree.sh"
+            chmod 700 "$temporary_dir/recover_deploy_worktree.sh"
+            "$temporary_dir/recover_deploy_worktree.sh"

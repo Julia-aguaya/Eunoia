@@ -16,6 +16,7 @@ fail() {
 [[ "$RESEND_SMTP_API_KEY" != *$'\n'* && "$RESEND_SMTP_API_KEY" != *$'\r'* ]] || fail 'RESEND_SMTP_API_KEY must be a single line.'
 [[ -f "$env_file" ]] || fail 'Production .env is missing.'
 [[ -x "$project_dir/.venv/bin/python" ]] || fail 'Production virtual environment is missing.'
+"$project_dir/.venv/bin/python" -c 'from anymail.backends.resend import EmailBackend'
 
 exec 9>"$project_dir/.configure-resend-api.lock"
 flock -n 9 || fail 'Another Resend API configuration is already running.'
