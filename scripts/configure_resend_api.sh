@@ -17,8 +17,8 @@ fail() {
 [[ -f "$env_file" ]] || fail 'Production .env is missing.'
 [[ -x "$project_dir/.venv/bin/python" ]] || fail 'Production virtual environment is missing.'
 
-exec 9>"$project_dir/.configure-resend-smtp.lock"
-flock -n 9 || fail 'Another Resend SMTP configuration is already running.'
+exec 9>"$project_dir/.configure-resend-api.lock"
+flock -n 9 || fail 'Another Resend API configuration is already running.'
 
 backup_file="$env_file.resend-backup.$(date -u +%Y%m%dT%H%M%SZ)"
 temporary_file="$(mktemp "$project_dir/.env.resend-tmp.XXXXXX")"
@@ -49,16 +49,19 @@ import re
 env_file = os.environ['EUNOIA_ENV_FILE']
 temporary_file = os.environ['EUNOIA_ENV_TEMP_FILE']
 values = {
-    'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-    'EMAIL_HOST': 'smtp.resend.com',
-    'EMAIL_PORT': '465',
-    'EMAIL_USE_SSL': 'True',
-    'EMAIL_USE_TLS': 'False',
-    'EMAIL_HOST_USER': 'resend',
-    'EMAIL_HOST_PASSWORD': os.environ['RESEND_SMTP_API_KEY'],
+    'EMAIL_BACKEND': 'anymail.backends.resend.EmailBackend',
+    'ANYMAIL_RESEND_API_KEY': os.environ['RESEND_SMTP_API_KEY'],
     'DEFAULT_FROM_EMAIL': '"Eunoia <no-reply@mail.pilateseunoia.com>"',
     'PASSWORD_RESET_TIMEOUT': '3600',
     'EUNOIA_PUBLIC_ORIGIN': 'https://pilateseunoia.com',
+}
+removed_keys = {
+    'EMAIL_HOST',
+    'EMAIL_PORT',
+    'EMAIL_USE_SSL',
+    'EMAIL_USE_TLS',
+    'EMAIL_HOST_USER',
+    'EMAIL_HOST_PASSWORD',
 }
 
 with open(env_file, 'r', encoding='utf-8', newline='') as source:
@@ -69,6 +72,8 @@ with open(temporary_file, 'w', encoding='utf-8', newline='') as target:
     for line in lines:
         match = re.match(r'^([A-Z0-9_]+)=', line)
         key = match.group(1) if match else None
+        if key in removed_keys:
+            continue
         if key not in values:
             target.write(line)
             continue
@@ -95,37 +100,33 @@ import django
 
 django.setup()
 
+from anymail.backends.resend import EmailBackend
 from django.conf import settings
 
 expected = {
-    'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-    'EMAIL_HOST': 'smtp.resend.com',
-    'EMAIL_PORT': 465,
-    'EMAIL_USE_SSL': True,
-    'EMAIL_USE_TLS': False,
-    'EMAIL_HOST_USER': 'resend',
+    'EMAIL_BACKEND': 'anymail.backends.resend.EmailBackend',
     'DEFAULT_FROM_EMAIL': 'Eunoia <no-reply@mail.pilateseunoia.com>',
     'PASSWORD_RESET_TIMEOUT': 3600,
     'EUNOIA_PUBLIC_ORIGIN': 'https://pilateseunoia.com',
 }
 
-if not settings.EMAIL_HOST_PASSWORD:
-    raise SystemExit('SMTP configuration validation failed: password is empty.')
+if not settings.ANYMAIL.get('RESEND_API_KEY'):
+    raise SystemExit('Resend API configuration validation failed: key is empty.')
 
 for name, value in expected.items():
     if getattr(settings, name) != value:
-        raise SystemExit(f'SMTP configuration validation failed: {name}.')
+        raise SystemExit(f'Resend API configuration validation failed: {name}.')
+
+EmailBackend()
 
 print(f'backend={settings.EMAIL_BACKEND}')
-print(f'host={settings.EMAIL_HOST}')
-print(f'port={settings.EMAIL_PORT}')
-print(f'ssl={settings.EMAIL_USE_SSL}')
 print(f'public_origin={settings.EUNOIA_PUBLIC_ORIGIN}')
 print(f'from_email={settings.DEFAULT_FROM_EMAIL}')
+print('resend_api_https=deferred_controlled_smoke_test')
 PY
 .venv/bin/python manage.py check
 
 sudo -n systemctl restart "$service_name"
 trap - EXIT
 rm -f "$temporary_file"
-printf '%s\n' 'Resend SMTP configuration applied and validated.'
+printf '%s\n' 'Resend API configuration applied and validated.'
