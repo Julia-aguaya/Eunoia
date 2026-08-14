@@ -13,19 +13,21 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
           command_timeout: 20m
           script: |
-            set -e
+            set -euo pipefail
             cd ~/eunoia
-            git fetch origin
-            git restore --source=origin/main --staged --worktree deploy-eunoia.sh || true
-            git pull --ff-only
-            chmod +x deploy-eunoia.sh
-            ./deploy-eunoia.sh
+            git fetch origin main
+            temporary_dir="$(mktemp -d)"
+            trap 'rm -rf "$temporary_dir"' EXIT
+            git show origin/main:deploy-eunoia.sh > "$temporary_dir/deploy-eunoia.sh"
+            chmod 700 "$temporary_dir/deploy-eunoia.sh"
+            "$temporary_dir/deploy-eunoia.sh"
