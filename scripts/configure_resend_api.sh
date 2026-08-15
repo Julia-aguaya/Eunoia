@@ -4,6 +4,7 @@ umask 077
 
 project_dir="$HOME/eunoia"
 env_file="$project_dir/.env"
+state_dir="$HOME/eunoia-resend-maintenance"
 # This is the existing service name used by deploy-eunoia.sh.
 service_name='eunoia'
 
@@ -18,11 +19,16 @@ fail() {
 [[ -x "$project_dir/.venv/bin/python" ]] || fail 'Production virtual environment is missing.'
 "$project_dir/.venv/bin/python" -c 'from anymail.backends.resend import EmailBackend'
 
-exec 9>"$project_dir/.configure-resend-api.lock"
+[[ ! -L "$state_dir" ]] || fail 'Resend maintenance directory must not be a symlink.'
+mkdir -p "$state_dir"
+chmod 700 "$state_dir"
+[[ -d "$state_dir" && ! -L "$state_dir" && "$(stat -c '%a' "$state_dir")" == '700' ]] || fail 'Resend maintenance directory permissions are invalid.'
+
+exec 9>"$state_dir/configure-resend-api.lock"
 flock -n 9 || fail 'Another Resend API configuration is already running.'
 
-backup_file="$env_file.resend-backup.$(date -u +%Y%m%dT%H%M%SZ)"
-temporary_file="$(mktemp "$project_dir/.env.resend-tmp.XXXXXX")"
+backup_file="$(mktemp "$state_dir/.env.resend-backup.$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
+temporary_file="$(mktemp "$state_dir/.env.resend-tmp.XXXXXX")"
 chmod 600 "$temporary_file"
 cp --preserve=mode,timestamps "$env_file" "$backup_file"
 chmod 600 "$backup_file"
@@ -87,9 +93,10 @@ with open(temporary_file, 'w', encoding='utf-8', newline='') as target:
     target.flush()
     os.fsync(target.fileno())
 
-os.replace(temporary_file, env_file)
-os.chmod(env_file, 0o600)
 PY
+
+mv -- "$temporary_file" "$env_file"
+chmod 600 "$env_file"
 
 cd "$project_dir"
 .venv/bin/python - <<'PY'
