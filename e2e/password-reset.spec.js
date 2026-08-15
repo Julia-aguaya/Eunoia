@@ -10,6 +10,21 @@ async function expectCompactConfirmation(page) {
   await expect(page.getByText('Señales claras')).toHaveCount(0);
 }
 
+async function expectSimplePasswordResetComplete(page, testInfo) {
+  await expect(page.getByRole('heading', { name: '¡Listo!' })).toBeVisible();
+  await expect(page.getByText('Tu contraseña fue actualizada.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ingresar' })).toHaveAttribute('href', '/login/');
+  await expect(page.getByText('Contraseña actualizada', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Tu acceso está protegido', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Ingresá con tu nueva contraseña.', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Ya está, tu contraseña cambió.', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.auth-panel:visible')).toHaveCount(0);
+
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+  }
+}
+
 test('password reset disables a double submission and shows sending state', async ({ page }) => {
   await page.goto('/password-reset/');
   await page.getByLabel('Email').fill('e2e.password-reset-manual@example.test');
@@ -48,7 +63,7 @@ for (const email of ['e2e.password-reset-desktop@example.test', 'e2e.password-re
     await page.locator('input[name="new_password1"]').fill(newPassword);
     await page.locator('input[name="new_password2"]').fill(newPassword);
     await page.getByRole('button', { name: 'Guardar nueva contraseña' }).click();
-    await expect(page.getByText('Contraseña actualizada', { exact: true })).toBeVisible();
+    await expectSimplePasswordResetComplete(page, testInfo);
 
     await page.getByRole('link', { name: 'Ingresar' }).click();
     await page.getByLabel('Email').fill(email);
