@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 
 from .fixed_booking_audit import audit_expected_fixed_bookings
-from .models import Booking, BookingStatus, FixedBookingCapacityConflict
+from .fixed_booking_policy import decide_fixed_booking_history
+from .models import Booking, BookingStatus, FixedBookingCapacityConflict, User
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,19 @@ def assess_fixed_capacity(*, session, locked_bookings=None):
         for row in audit_expected_fixed_bookings(start_date=session.date, end_date=session.date)
         if row['session_id'] == session.pk
     }
-    pending_fixed_student_ids = tuple(sorted(expected_student_ids - active_student_ids))
+    missing_student_ids = expected_student_ids - active_student_ids
+    bookings_by_student_id = {student_id: [] for student_id in missing_student_ids}
+    if locked_bookings is not None:
+        for booking in locked_bookings:
+            if booking.student_id in bookings_by_student_id:
+                bookings_by_student_id[booking.student_id].append(booking)
+
+    pending_fixed_student_ids = _materializable_fixed_student_ids(
+        session=session,
+        expected_student_ids=expected_student_ids,
+        active_student_ids=active_student_ids,
+        bookings_by_student_id=bookings_by_student_id if locked_bookings is not None else None,
+    )
     return FixedCapacityAssessment(
         session_id=session.pk,
         capacity=session.capacity,
@@ -87,18 +100,81 @@ def assess_fixed_capacities(*, sessions):
         if row['session_id'] in session_ids:
             expected_student_ids_by_session.setdefault(row['session_id'], set()).add(row['student_id'])
 
+    missing_student_ids_by_session = {
+        session_id: expected_student_ids - active_student_ids_by_session.get(session_id, set())
+        for session_id, expected_student_ids in expected_student_ids_by_session.items()
+    }
+    missing_student_ids = set().union(*missing_student_ids_by_session.values()) if missing_student_ids_by_session else set()
+    bookings_by_session_student_id = {
+        (session_id, student_id): []
+        for session_id, student_ids in missing_student_ids_by_session.items()
+        for student_id in student_ids
+    }
+    for booking in Booking.objects.filter(
+        session_id__in=session_ids,
+        student_id__in=missing_student_ids,
+    ).only(
+        'session_id', 'student_id', 'status', 'source', 'cancelled_by_id',
+        'cancellation_reason', 'used_recovery_credit_id', 'moved_from_booking_id',
+        'moved_to_session_id', 'cancellation_generates_recovery',
+    ):
+        bookings = bookings_by_session_student_id.get((booking.session_id, booking.student_id))
+        if bookings is not None:
+            bookings.append(booking)
+    students_by_id = User.objects.in_bulk(missing_student_ids)
+
     return {
         session.pk: FixedCapacityAssessment(
             session_id=session.pk,
             capacity=session.capacity,
             active_booking_count=active_counts.get(session.pk, 0),
-            pending_fixed_student_ids=tuple(sorted(
-                expected_student_ids_by_session.get(session.pk, set())
-                - active_student_ids_by_session.get(session.pk, set())
-            )),
+            pending_fixed_student_ids=_materializable_fixed_student_ids(
+                session=session,
+                expected_student_ids=expected_student_ids_by_session.get(session.pk, set()),
+                active_student_ids=active_student_ids_by_session.get(session.pk, set()),
+                bookings_by_student_id={
+                    student_id: bookings_by_session_student_id[(session.pk, student_id)]
+                    for student_id in missing_student_ids_by_session.get(session.pk, set())
+                },
+                students_by_id=students_by_id,
+            ),
         )
         for session in sessions
     }
+
+
+def _materializable_fixed_student_ids(
+    *, session, expected_student_ids, active_student_ids, bookings_by_student_id=None, students_by_id=None,
+):
+    """Reserve only absent pairs that repair may create or restore."""
+    missing_student_ids = expected_student_ids - active_student_ids
+    if not missing_student_ids:
+        return ()
+
+    if bookings_by_student_id is None:
+        bookings_by_student_id = {student_id: [] for student_id in missing_student_ids}
+        for booking in Booking.objects.filter(
+            session_id=session.pk,
+            student_id__in=missing_student_ids,
+        ).only(
+            'student_id', 'status', 'source', 'cancelled_by_id',
+            'cancellation_reason', 'used_recovery_credit_id', 'moved_from_booking_id',
+            'moved_to_session_id', 'cancellation_generates_recovery',
+        ):
+            bookings_by_student_id[booking.student_id].append(booking)
+    if students_by_id is None:
+        students_by_id = User.objects.in_bulk(missing_student_ids)
+
+    return tuple(sorted(
+        student_id
+        for student_id, bookings in bookings_by_student_id.items()
+        if not bookings
+        or decide_fixed_booking_history(
+            session=session,
+            student=students_by_id[student_id],
+            bookings=bookings,
+        ).action == 'RESTORE'
+    ))
 
 
 def ensure_recovery_capacity(*, session, locked_bookings=None):
