@@ -137,7 +137,7 @@ class StudentDeactivationLockingTests(TransactionTestCase):
     def setUp(self):
         if not connection.features.has_select_for_update:
             self.skipTest('This race test requires database row locking.')
-        self.section = Section.objects.get(code='cadillac')
+        self.section, _ = Section.objects.get_or_create(code='cadillac', defaults={'name': 'Cadillac'})
         self.student = User.objects.create_user(
             email='locking-student@example.com', password='secret123', first_name='Ada', last_name='Lovelace',
             primary_section=self.section,
@@ -203,6 +203,14 @@ class StudentDeactivationLockingTests(TransactionTestCase):
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
 
     def test_deactivation_serializes_against_technical_booking_restore(self):
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=self.session.date.isoweekday(), start_time=self.session.start_time,
+            end_time=self.session.end_time, is_active=True,
+        )
+        StudentMonthlyPlan.objects.create(
+            student=self.student, month=normalize_month_start(self.session.date), section=self.section,
+            is_active=True,
+        ).assign_weekly_slots([slot])
         booking = Booking.objects.create_booking(session=self.session, student=self.student)
         Booking.objects.filter(pk=booking.pk).update(status=BookingStatus.CANCELLED, cancelled_at=timezone.now())
         entered_restore = threading.Event()
