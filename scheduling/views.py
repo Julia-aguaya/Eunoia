@@ -3131,6 +3131,7 @@ def admin_mark_student_paid_view(request, student_id):
         actor=request.user,
         month=current_month,
         record_audit=True,
+        synchronize_global_auth=True,
     )
 
     messages.success(
@@ -3159,6 +3160,7 @@ def admin_toggle_student_access_view(request, student_id):
             actor=request.user,
             month=current_month,
             record_audit=True,
+            synchronize_global_auth=True,
         )
         activated = False
     else:
@@ -3167,6 +3169,7 @@ def admin_toggle_student_access_view(request, student_id):
             actor=request.user,
             month=current_month,
             record_audit=True,
+            synchronize_global_auth=True,
         )
         activated = True
 

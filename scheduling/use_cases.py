@@ -724,12 +724,18 @@ def rollover_monthly_access_statuses(*, month):
     )
 
 
-def activate_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
+def activate_student_monthly_access(*, student, actor=None, month=None, record_audit=False, synchronize_global_auth=False):
     with transaction.atomic():
         locked_student = User.objects.select_for_update().get(pk=student.pk)
         access, created = _get_or_create_monthly_access(student=locked_student, month=month)
-        changed = not access.grants_operational_booking_access()
+        access_changed = not access.grants_operational_booking_access()
         access.activate_by_payment(actor=actor)
+        auth_changed = (
+            _set_student_auth_active(student=locked_student, is_active=True)
+            if synchronize_global_auth else False
+        )
+
+    changed = access_changed or auth_changed
 
     if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)
@@ -737,7 +743,7 @@ def activate_student_monthly_access(*, student, actor=None, month=None, record_a
     return MonthlyAccessChange(access=access, created=created, changed=changed)
 
 
-def suspend_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
+def suspend_student_monthly_access(*, student, actor=None, month=None, record_audit=False, synchronize_global_auth=False):
     suspension_time = timezone.now()
 
     with transaction.atomic():
@@ -745,6 +751,10 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
         access, created = _get_or_create_monthly_access(student=locked_student, month=month)
         access_changed = access.status != MonthlyAccessStatusType.SUSPENDED or access.booking_enabled
         access.suspend_operational_access(when=suspension_time)
+        auth_changed = (
+            _set_student_auth_active(student=locked_student, is_active=False)
+            if synchronize_global_auth else False
+        )
         cancelled_booking_ids, preserved_plan_ids = cleanup_global_deactivation(
             student=locked_student,
             actor=actor,
@@ -754,7 +764,7 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
             only_not_started=True,
         )
 
-    changed = access_changed or bool(cancelled_booking_ids) or bool(preserved_plan_ids)
+    changed = auth_changed or access_changed or bool(cancelled_booking_ids) or bool(preserved_plan_ids)
 
     if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)
@@ -784,15 +794,23 @@ def deactivate_student_globally(*, student, actor=None, when=None):
 def reactivate_student_globally(*, student):
     with transaction.atomic():
         locked_student = User.objects.select_for_update().get(pk=student.pk)
-        return _set_student_auth_active(student=locked_student, is_active=True)
+        auth_changed = _set_student_auth_active(student=locked_student, is_active=True)
+
+    return auth_changed
 
 
-def toggle_student_monthly_access(*, student, actor=None, month=None, record_audit=False):
+def toggle_student_monthly_access(*, student, actor=None, month=None, record_audit=False, synchronize_global_auth=False):
     access = student.get_monthly_access_for(month or timezone.localdate())
 
     if access is not None and access.grants_operational_booking_access():
-        result = suspend_student_monthly_access(student=student, actor=actor, month=month, record_audit=record_audit)
+        result = suspend_student_monthly_access(
+            student=student, actor=actor, month=month, record_audit=record_audit,
+            synchronize_global_auth=synchronize_global_auth,
+        )
         return MonthlyAccessToggle(access=result.access, activated=False)
 
-    result = activate_student_monthly_access(student=student, actor=actor, month=month, record_audit=record_audit)
+    result = activate_student_monthly_access(
+        student=student, actor=actor, month=month, record_audit=record_audit,
+        synchronize_global_auth=synchronize_global_auth,
+    )
     return MonthlyAccessToggle(access=result.access, activated=True)

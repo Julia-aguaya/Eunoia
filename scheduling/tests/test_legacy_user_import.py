@@ -102,6 +102,31 @@ class LegacyUsersJsonImportCommandTests(TestCase):
         self.assertEqual(user.password, initial_hash)
         self.assertEqual(user.monthly_access_statuses.filter(month=date(2026, 6, 1)).count(), 1)
 
+    @override_settings(SECRET_KEY='legacy-import-secret')
+    def test_historical_payment_import_does_not_write_existing_user_auth_state(self):
+        user = User.objects.create_user(
+            email='historical-payment@example.com', password='StudentPass2026!', first_name='Ada', last_name='Lovelace',
+            is_active=False,
+        )
+        payload = [{
+            '_id': {'$oid': 'legacy-student-historical-payment'},
+            'nombre': 'Ada', 'apellido': 'Lovelace', 'email': user.email, 'celular': '3413333333',
+            'diasSemanales': 3, 'password': '$2b$10$legacy-hash', 'pago': True, 'rol': 'usuario',
+            'fechaRegistro': {'$date': '2025-05-29T20:02:39.052Z'},
+            'fechaPago': {'$date': '2026-06-10T23:38:34.529Z'},
+        }]
+        with tempfile.NamedTemporaryFile('w', suffix='.json', encoding='utf-8', delete=False) as handle:
+            json.dump(payload, handle)
+            json_path = Path(handle.name)
+
+        with mock.patch('scheduling.use_cases._set_student_auth_active') as set_auth_active:
+            call_command('import_legacy_users_json', str(json_path))
+
+        set_auth_active.assert_not_called()
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertTrue(user.monthly_access_statuses.filter(month=date(2026, 6, 1)).exists())
+
     def test_command_rejects_paid_users_without_payment_date(self):
         payload = [
             {

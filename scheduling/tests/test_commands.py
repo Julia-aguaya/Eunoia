@@ -287,6 +287,13 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
 
+    def test_command_rollover_never_writes_user_auth_state(self):
+        with patch.object(User, 'save') as user_save:
+            call_command('rollover_monthly_access_statuses', '--month', '2026-09')
+
+        user_save.assert_not_called()
+        self.assertTrue(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
+
     def test_command_is_idempotent_and_preserves_manually_suspended_target_access(self):
         target_access = MonthlyAccessStatus.objects.create(
             student=self.student,
@@ -329,6 +336,17 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
             'skipped due to global deactivation=1; errors/failures=0',
             out.getvalue(),
         )
+
+    def test_command_does_not_reactivate_monthly_suspended_student(self):
+        suspend_student_monthly_access(
+            student=self.student, month=date(2026, 8, 1), synchronize_global_auth=True,
+        )
+
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09')
+
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.is_active)
+        self.assertFalse(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
 
     def test_command_reports_individual_partial_failures_and_exits_nonzero(self):
         failing_student = User.objects.create_user(

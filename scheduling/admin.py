@@ -239,6 +239,7 @@ def activate_access_by_payment(modeladmin, request, queryset):
             actor=request.user,
             month=access.month,
             record_audit=True,
+            synchronize_global_auth=True,
         )
         if change.changed:
             updated += 1
@@ -261,6 +262,7 @@ def suspend_operational_access(modeladmin, request, queryset):
             actor=request.user,
             month=access.month,
             record_audit=True,
+            synchronize_global_auth=True,
         )
         if change.changed:
             updated += 1

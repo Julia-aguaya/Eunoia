@@ -54,7 +54,7 @@ class MonthlyAccessAdminActionTests(TestCase):
             ['Se activaron 1 accesos mensuales. Sin cambios: 0.'],
         )
 
-    def test_activate_access_action_does_not_reactivate_globally_deactivated_student(self):
+    def test_activate_access_action_synchronizes_global_login_access(self):
         access = MonthlyAccessStatus.objects.create(
             student=self.student,
             month=self.month,
@@ -69,7 +69,7 @@ class MonthlyAccessAdminActionTests(TestCase):
 
         self.student.refresh_from_db()
         access.refresh_from_db()
-        self.assertFalse(self.student.is_active)
+        self.assertTrue(self.student.is_active)
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
 
@@ -3861,7 +3861,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
-        self.assertTrue(self.active_student.is_active)
+        self.assertFalse(self.active_student.is_active)
         audit_log = AuditLog.objects.get(entity_type='MonthlyAccessStatus', entity_id=access.pk, action=AuditAction.STATUS_CHANGE)
         self.assertEqual(audit_log.actor, self.staff_user)
         self.assertEqual(audit_log.payload['student_id'], self.active_student.pk)
@@ -3884,9 +3884,9 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.SUSPENDED)
         self.assertFalse(access.booking_enabled)
-        self.assertTrue(self.active_student.is_active)
+        self.assertFalse(self.active_student.is_active)
         self.assertContains(response, 'Se suspendio el acceso operativo de Ada Lovelace')
-        self.assertEqual(response.context['admin_students'][0]['student'], self.active_student)
+        self.assertEqual(response.context['admin_students'], [])
 
     def test_staff_suspension_cancels_future_booking(self):
         self.client.force_login(self.staff_user)
@@ -3943,7 +3943,7 @@ class AdminPortalViewTests(TestCase):
         self.assertTrue(audit_log.payload['booking_enabled'])
         self.assertContains(response, 'Se activo el acceso operativo de Katherine Johnson')
 
-    def test_staff_monthly_activation_does_not_reactivate_globally_inactive_student(self):
+    def test_staff_monthly_activation_synchronizes_globally_inactive_student(self):
         access = self.active_student.get_monthly_access_for(self.current_month)
         access.suspend_operational_access()
         self.active_student.is_active = False
@@ -3961,7 +3961,7 @@ class AdminPortalViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
-        self.assertFalse(self.active_student.is_active)
+        self.assertTrue(self.active_student.is_active)
         self.assertContains(response, 'Se activo el acceso operativo de Ada Lovelace')
 
     def test_staff_can_mark_student_paid_and_activate_access(self):
