@@ -356,7 +356,12 @@ class StaffStudentMonthlyPlanForm(forms.Form):
 
         if self.is_bound:
             raw_section_id = self.data.get(self.add_prefix('section'))
-            self.selected_section = available_sections.filter(pk=raw_section_id).first()
+            if raw_section_id:
+                try:
+                    self.selected_section = available_sections.filter(pk=raw_section_id).first()
+                except (TypeError, ValueError):
+                    # Let ModelChoiceField report invalid submitted values as form errors.
+                    pass
         elif default_section is not None:
             self.selected_section = available_sections.filter(pk=default_section.pk).first() or default_section
 

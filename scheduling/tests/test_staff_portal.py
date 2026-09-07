@@ -664,6 +664,22 @@ class AdminPortalViewTests(TestCase):
         self.assertContains(response, 'Se actualizó el plan mensual de Ada Lovelace')
         self.assertContains(response, 'Plan mensual fijo')
 
+    def test_staff_monthly_plan_with_empty_section_returns_form_error(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse('admin-update-student-monthly-plan', args=[self.active_student.pk]),
+            {
+                'month': self.current_month.strftime('%Y-%m'),
+                'section': '',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        form = response.context['admin_detail_monthly_plan_form']
+        self.assertIn('section', form.errors)
+        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.active_student).count(), 0)
+
     def test_staff_can_save_two_monthly_plan_sections_and_agenda_shows_both(self):
         next_month = normalize_month_start(self.current_month + timedelta(days=32))
         MonthlyAccessStatus.objects.create(
