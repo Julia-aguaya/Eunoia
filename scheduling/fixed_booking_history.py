@@ -334,7 +334,6 @@ def fixed_booking_context_is_eligible(*, student, session):
     if not MonthlyAccessStatus.objects.filter(
         student_id=student.pk,
         month=target_month,
-        status=MonthlyAccessStatusType.ACTIVE,
         booking_enabled=True,
     ).exists():
         return False
@@ -376,7 +375,6 @@ def fixed_booking_context_is_eligible_locked(
     target_month = normalize_month_start(session.date)
     if not any(
         access.month == target_month
-        and access.status == MonthlyAccessStatusType.ACTIVE
         and access.booking_enabled
         for access in locked_accesses
     ):

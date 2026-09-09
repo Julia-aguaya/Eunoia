@@ -104,7 +104,6 @@ def audit_expected_fixed_bookings(*, start_date, end_date):
     months = {normalize_month_start(session.date) for session in sessions}
     accesses = MonthlyAccessStatus.objects.select_related('student').filter(
         month__in=months,
-        status=MonthlyAccessStatusType.ACTIVE,
         booking_enabled=True,
         student__is_active=True,
     ).order_by('student_id', 'month')

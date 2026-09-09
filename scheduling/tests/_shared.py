@@ -46,6 +46,8 @@ from scheduling.models import (
     AuditLog,
     Booking,
     BookingCancellationReason,
+    BookingCancellationOrigin,
+    BookingRemediationApproval,
     BookingSource,
     BookingStatus,
     ClassSession,

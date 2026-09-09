@@ -3,22 +3,18 @@ from datetime import datetime
 import re
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
-
 from scheduling.models import (
     Booking,
     BookingStatus,
     MonthlyAccessStatus,
     MonthlyAccessStatusType,
     StudentMonthlyPlan,
-    User,
     normalize_month_start,
 )
-from scheduling.use_cases import cleanup_global_deactivation
 
 
 class Command(BaseCommand):
-    help = 'Audit inactive monthly access with inherited fixed plans; apply masks plans and cancels future bookings without deleting history.'
+    help = 'Report delinquent or suspended monthly access with fixed plans. This command never changes access, plans, or bookings.'
 
     def add_arguments(self, parser):
         parser.add_argument('--from-date', required=True, type=self.parse_date)
@@ -72,21 +68,10 @@ class Command(BaseCommand):
                         for item in plan.plan_slots.all()
                     ) if plan else '',
                     'future_booking_ids': '|'.join(map(str, future_bookings)),
-                    'action': 'WOULD_MASK_PLAN_AND_CANCEL_FUTURE_BOOKINGS' if not apply else 'MASKED_PLAN_AND_CANCELLED_FUTURE_BOOKINGS',
+                    'action': 'REPORTED_NO_AUTOMATIC_CHANGE',
                 })
-            if apply:
-                with transaction.atomic():
-                    locked_student = User.objects.select_for_update().get(pk=student.pk)
-                    cleanup_global_deactivation(
-                        student=locked_student,
-                        booking_from_date=from_date,
-                        plan_reset_from=target_month,
-                        only_not_started=False,
-                        mask_all_active_plans=True,
-                    )
-                applied += 1
         self.stderr.write(
-            f'audit_inactive_monthly_plans mode={"apply" if apply else "dry-run"} '
+            f'audit_inactive_monthly_plans mode={"apply-requested" if apply else "dry-run"} '
             f'candidates={candidates} applied={applied}'
         )
 

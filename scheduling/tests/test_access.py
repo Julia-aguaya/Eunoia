@@ -64,7 +64,7 @@ class MonthlyAccessStatusModelTests(TestCase):
             },
         )
 
-    def test_mark_pending_payment_disables_operational_booking(self):
+    def test_mark_pending_payment_preserves_operational_booking(self):
         admin_user = User.objects.create_user(
             email='pending-admin@example.com',
             password='secret123',
@@ -79,10 +79,10 @@ class MonthlyAccessStatusModelTests(TestCase):
 
         access.refresh_from_db()
         self.assertEqual(access.status, MonthlyAccessStatusType.PENDING_PAYMENT)
-        self.assertFalse(access.booking_enabled)
-        self.assertIsNone(access.activated_at)
+        self.assertTrue(access.booking_enabled)
+        self.assertIsNotNone(access.activated_at)
         self.assertIsNone(access.deactivated_at)
-        self.assertIsNone(access.activated_by)
+        self.assertEqual(access.activated_by, admin_user)
 
     def test_suspended_access_cannot_transition_back_to_pending_payment(self):
         access = self.create_access(status=MonthlyAccessStatusType.SUSPENDED, booking_enabled=False)
@@ -155,10 +155,10 @@ class MonthlyAccessStatusModelTests(TestCase):
         access.mark_pending_payment()
         access.refresh_from_db()
         self.assertEqual(access.status, MonthlyAccessStatusType.PENDING_PAYMENT)
-        self.assertFalse(access.booking_enabled)
-        self.assertIsNone(access.activated_at)
+        self.assertTrue(access.booking_enabled)
+        self.assertIsNotNone(access.activated_at)
         self.assertIsNone(access.deactivated_at)
-        self.assertIsNone(access.activated_by)
+        self.assertEqual(access.activated_by, admin_user)
 
     def test_active_access_requires_booking_enabled(self):
         access = MonthlyAccessStatus(
@@ -179,7 +179,7 @@ class MonthlyAccessStatusModelTests(TestCase):
         self.assertIn('booking_enabled', exc.exception.message_dict)
         self.assertIn('Active monthly access must enable booking.', exc.exception.message_dict['booking_enabled'])
 
-    def test_pending_payment_cannot_keep_transition_metadata(self):
+    def test_pending_payment_can_keep_transition_metadata(self):
         admin_user = User.objects.create_user(
             email='pending-metadata-admin@example.com',
             password='secret123',
@@ -202,14 +202,9 @@ class MonthlyAccessStatusModelTests(TestCase):
             activated_by=admin_user,
         )
 
-        with self.assertRaises(ValidationError) as exc:
-            access.full_clean()
+        access.full_clean()
 
-        self.assertIn('activated_at', exc.exception.message_dict)
-        self.assertIn('deactivated_at', exc.exception.message_dict)
-        self.assertIn('activated_by', exc.exception.message_dict)
-
-    def test_operational_access_falls_back_to_previous_active_month_until_day_ten(self):
+    def test_operational_access_falls_back_to_previous_active_month_without_date_cutoff(self):
         student = User.objects.create_user(
             email='cross-month-access@example.com',
             password='secret123',
@@ -225,7 +220,7 @@ class MonthlyAccessStatusModelTests(TestCase):
 
         self.assertEqual(student.get_operational_monthly_access_for(date(2026, 7, 1)), june_access)
         self.assertTrue(student.has_operational_booking_access_for(date(2026, 7, 10)))
-        self.assertFalse(student.has_operational_booking_access_for(date(2026, 7, 11)))
+        self.assertTrue(student.has_operational_booking_access_for(date(2026, 7, 11)))
 
     def test_operational_access_does_not_fall_back_when_current_month_is_explicitly_blocked(self):
         student = User.objects.create_user(
@@ -504,6 +499,7 @@ class SchedulingUseCaseTests(TestCase):
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
         self.assertEqual(booking.cancelled_by, self.staff_user)
         self.assertEqual(booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
+        self.assertEqual(booking.cancellation_origin, BookingCancellationOrigin.STAFF_MANUAL)
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
 
@@ -901,6 +897,7 @@ class RemoveMakeupBookingUseCaseTests(TestCase):
         self.assertIsNone(booking.used_recovery_credit)
         self.assertEqual(booking.source, BookingSource.MANUAL)
         self.assertEqual(booking.cancelled_by, self.staff_user)
+        self.assertEqual(booking.cancellation_origin, BookingCancellationOrigin.STAFF_MANUAL)
         self.assertEqual(recovery_credit.status, RecoveryCreditStatus.AVAILABLE)
         self.assertIsNone(recovery_credit.used_at)
         self.assertEqual(self.session.active_bookings().count(), 0)

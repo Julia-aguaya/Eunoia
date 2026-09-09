@@ -15,6 +15,7 @@ from .application.recovery_credits import expire_overdue_recovery_credits as exp
 from .models import (
     AuditLog,
     Booking,
+    BookingRemediationApproval,
     BookingSource,
     BookingStatus,
     ClassSession,
@@ -482,8 +483,9 @@ class BookingAdmin(admin.ModelAdmin):
         'cancellation_generates_recovery',
         'cancelled_at',
         'cancelled_by',
+        'cancellation_origin',
     )
-    list_filter = ('status', 'source', 'cancellation_generates_recovery', 'session__section')
+    list_filter = ('status', 'source', 'cancellation_origin', 'cancellation_generates_recovery', 'session__section')
     search_fields = ('student__email', 'student__first_name', 'student__last_name')
     autocomplete_fields = ('session', 'student', 'used_recovery_credit', 'moved_from_booking', 'moved_to_session', 'cancelled_by')
     list_select_related = ('student', 'session', 'session__section', 'used_recovery_credit', 'moved_from_booking', 'moved_to_session')
@@ -503,6 +505,7 @@ class BookingAdmin(admin.ModelAdmin):
             'moved_to_session',
             'cancelled_at',
             'cancelled_by',
+            'cancellation_origin',
             'cancellation_generates_recovery',
             'attendance_marked_at',
         )
@@ -510,6 +513,15 @@ class BookingAdmin(admin.ModelAdmin):
     @admin.display(description='Moved to booking')
     def moved_to_booking_reference(self, obj):
         return getattr(obj, 'moved_to_booking', None)
+
+
+@admin.register(BookingRemediationApproval)
+class BookingRemediationApprovalAdmin(admin.ModelAdmin):
+    list_display = ('booking', 'approved_by', 'approved_at')
+    search_fields = ('booking__student__email', 'booking__student__first_name', 'booking__student__last_name', 'notes')
+    autocomplete_fields = ('booking', 'approved_by')
+    list_select_related = ('booking', 'booking__student', 'approved_by')
+    readonly_fields = ('approved_at',)
 
 
 @admin.register(RecoveryCredit)
