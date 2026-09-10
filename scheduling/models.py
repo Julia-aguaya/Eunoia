@@ -58,13 +58,6 @@ class BookingCancellationReason(models.TextChoices):
     GLOBAL_DEACTIVATION = 'global_deactivation', 'Global Deactivation'
 
 
-class BookingCancellationOrigin(models.TextChoices):
-    AUTOMATIC_ACCESS_IMPACT = 'automatic_access_impact', 'Automatic Access Impact'
-    STUDENT_SELF_SERVICE = 'student_self_service', 'Student Self-Service'
-    STAFF_MANUAL = 'staff_manual', 'Staff Manual'
-    SESSION_CANCELLATION = 'session_cancellation', 'Session Cancellation'
-
-
 class SessionStatus(models.TextChoices):
     SCHEDULED = 'scheduled', 'Scheduled'
     CANCELLED = 'cancelled', 'Cancelled'
@@ -252,7 +245,6 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     temporary_password_set_at = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    manual_suspension = models.BooleanField(default=False)
     monthly_plan_reset_from = models.DateField(null=True, blank=True)
 
     objects = UserManager()
@@ -393,6 +385,9 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         access = self.get_monthly_access_for(target_date)
         if access is not None:
             return access
+
+        if target_date.day > 10:
+            return None
 
         previous_month = add_months(normalize_month_start(target_date), -1)
         previous_access = self.monthly_access_statuses.filter(month=previous_month).first()
@@ -680,12 +675,6 @@ class ClassSession(TimeStampedModel):
     end_time = models.TimeField()
     capacity = models.PositiveSmallIntegerField()
     status = models.CharField(max_length=20, choices=SessionStatus.choices, default=SessionStatus.SCHEDULED)
-    cancellation_origin = models.CharField(
-        max_length=32,
-        choices=BookingCancellationOrigin.choices,
-        null=True,
-        blank=True,
-    )
     holiday_closure = models.ForeignKey(
         HolidayClosure,
         null=True,
@@ -1219,12 +1208,6 @@ class Booking(TimeStampedModel):
         null=True,
         blank=True,
     )
-    cancellation_origin = models.CharField(
-        max_length=32,
-        choices=BookingCancellationOrigin.choices,
-        null=True,
-        blank=True,
-    )
     attendance_marked_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
@@ -1298,15 +1281,12 @@ class Booking(TimeStampedModel):
             self.cancelled_by = None
             self.cancellation_generates_recovery = False
             self.cancellation_reason = None
-            self.cancellation_origin = None
-            self.full_clean()
             self.save(update_fields=[
                 'status',
                 'cancelled_at',
                 'cancelled_by',
                 'cancellation_generates_recovery',
                 'cancellation_reason',
-                'cancellation_origin',
                 'updated_at',
             ])
         finally:
@@ -1354,8 +1334,6 @@ class Booking(TimeStampedModel):
                 add_error('cancelled_by', 'Only cancelled bookings can keep a cancellation actor.')
             if self.cancellation_generates_recovery:
                 add_error('cancellation_generates_recovery', 'Only cancelled bookings can generate recovery credits.')
-            if self.cancellation_origin is not None:
-                add_error('cancellation_origin', 'Only cancelled bookings can keep cancellation provenance.')
 
         if self.moved_from_booking_id is not None:
             original_booking = self.moved_from_booking
@@ -1557,7 +1535,6 @@ class Booking(TimeStampedModel):
             booking.cancelled_at = cancellation_time
             booking.cancelled_by = acting_user
             booking.cancellation_generates_recovery = True
-            booking.cancellation_origin = BookingCancellationOrigin.STUDENT_SELF_SERVICE
             booking._transition_to(
                 BookingStatus.CANCELLED,
                 update_fields=[
@@ -1565,7 +1542,6 @@ class Booking(TimeStampedModel):
                     'cancelled_at',
                     'cancelled_by',
                     'cancellation_generates_recovery',
-                    'cancellation_origin',
                     'updated_at',
                 ],
                 previous_status=booking.status,
@@ -1585,24 +1561,6 @@ class Booking(TimeStampedModel):
             return recovery_credit
 
 
-class BookingRemediationApproval(TimeStampedModel):
-    """Explicit human review required before a legacy cancellation can be remediated."""
-
-    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='remediation_approval')
-    approved_by = models.ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='approved_booking_remediations',
-    )
-    approved_at = models.DateTimeField(default=timezone.now)
-    notes = models.TextField()
-
-    class Meta:
-        ordering = ['-approved_at', '-pk']
-
-
 class MonthlyAccessStatus(TimeStampedModel):
     STATUS_TRANSITIONS = {
         MonthlyAccessStatusType.PENDING_PAYMENT: frozenset({
@@ -1620,6 +1578,10 @@ class MonthlyAccessStatus(TimeStampedModel):
     STATUS_UPDATE_FIELDS = {
         MonthlyAccessStatusType.PENDING_PAYMENT: (
             'status',
+            'booking_enabled',
+            'activated_at',
+            'deactivated_at',
+            'activated_by',
             'updated_at',
         ),
         MonthlyAccessStatusType.ACTIVE: (
@@ -1645,7 +1607,7 @@ class MonthlyAccessStatus(TimeStampedModel):
         choices=MonthlyAccessStatusType.choices,
         default=MonthlyAccessStatusType.PENDING_PAYMENT,
     )
-    booking_enabled = models.BooleanField(default=True)
+    booking_enabled = models.BooleanField(default=False)
     activated_at = models.DateTimeField(null=True, blank=True)
     deactivated_at = models.DateTimeField(null=True, blank=True)
     activated_by = models.ForeignKey(
@@ -1702,7 +1664,7 @@ class MonthlyAccessStatus(TimeStampedModel):
             })
 
     def grants_operational_booking_access(self):
-        return self.booking_enabled
+        return self.status == MonthlyAccessStatusType.ACTIVE and self.booking_enabled
 
     @classmethod
     def transition_update_fields(cls, target_status):
@@ -1714,6 +1676,10 @@ class MonthlyAccessStatus(TimeStampedModel):
         if target_status == MonthlyAccessStatusType.PENDING_PAYMENT:
             return {
                 'status': MonthlyAccessStatusType.PENDING_PAYMENT,
+                'booking_enabled': False,
+                'activated_at': None,
+                'deactivated_at': None,
+                'activated_by': None,
             }
 
         if target_status == MonthlyAccessStatusType.ACTIVE:
@@ -1794,8 +1760,16 @@ class MonthlyAccessStatus(TimeStampedModel):
         if self.status == MonthlyAccessStatusType.ACTIVE and self.deactivated_at is not None:
             add_error('deactivated_at', 'Active monthly access cannot keep a suspension timestamp.')
 
-        if self.status == MonthlyAccessStatusType.SUSPENDED and self.booking_enabled:
-            add_error('booking_enabled', 'Suspended monthly access cannot enable booking.')
+        if self.status in {MonthlyAccessStatusType.PENDING_PAYMENT, MonthlyAccessStatusType.SUSPENDED} and self.booking_enabled:
+            add_error('booking_enabled', 'Pending or suspended monthly access cannot enable booking.')
+
+        if self.status == MonthlyAccessStatusType.PENDING_PAYMENT:
+            if self.activated_at is not None:
+                add_error('activated_at', 'Pending monthly access cannot keep an activation timestamp.')
+            if self.deactivated_at is not None:
+                add_error('deactivated_at', 'Pending monthly access cannot keep a suspension timestamp.')
+            if self.activated_by_id is not None:
+                add_error('activated_by', 'Pending monthly access cannot keep an activation actor.')
 
         if errors:
             raise ValidationError(errors)

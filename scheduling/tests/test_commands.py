@@ -161,10 +161,10 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         self.assertTrue(self.plan.is_active)
         self.assertEqual(self.future_booking.status, BookingStatus.BOOKED)
         self.assertIn('Ada Inactive', out.getvalue())
-        self.assertIn('REPORTED_NO_AUTOMATIC_CHANGE', out.getvalue())
+        self.assertIn('WOULD_MASK_PLAN_AND_CANCEL_FUTURE_BOOKINGS', out.getvalue())
         self.assertIn('mode=dry-run candidates=1 applied=0', err.getvalue())
 
-    def test_apply_request_is_report_only_and_idempotent(self):
+    def test_apply_masks_plan_preserves_history_and_is_idempotent(self):
         first_err, second_err = StringIO(), StringIO()
         call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stderr=first_err)
         call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stderr=second_err)
@@ -172,15 +172,16 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         self.plan.refresh_from_db()
         self.past_booking.refresh_from_db()
         self.future_booking.refresh_from_db()
-        self.assertTrue(self.plan.is_active)
+        self.assertFalse(self.plan.is_active)
         self.assertEqual(self.plan.plan_slots.count(), 1)
         self.assertEqual(self.past_booking.status, BookingStatus.BOOKED)
-        self.assertEqual(self.future_booking.status, BookingStatus.BOOKED)
+        self.assertEqual(self.future_booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(self.future_booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
         self.assertTrue(self.active_student.is_active)
-        self.assertIn('mode=apply-requested candidates=1 applied=0', first_err.getvalue())
-        self.assertIn('mode=apply-requested candidates=1 applied=0', second_err.getvalue())
+        self.assertIn('mode=apply candidates=1 applied=1', first_err.getvalue())
+        self.assertIn('mode=apply candidates=0 applied=0', second_err.getvalue())
 
-    def test_apply_request_never_masks_active_plans_for_suspended_student(self):
+    def test_apply_masks_every_active_plan_for_suspended_student_once(self):
         # Mirrors legacy students with a stale history plus several section/month
         # overrides: the audit must not leave a hidden effective plan behind.
         reformer = Section.objects.get(code='reformer_arriba')
@@ -208,15 +209,17 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         plan_ids = {self.plan.pk, historical_plan.pk, current_reformer_plan.pk, future_plan.pk}
         self.assertEqual(
             StudentMonthlyPlan.objects.filter(pk__in=plan_ids, is_active=True).count(),
-            4,
+            0,
         )
         self.assertEqual(StudentMonthlyPlan.objects.filter(pk__in=plan_ids).count(), 4)
         self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan_id__in=plan_ids).count(), 4)
-        self.assertTrue(self.inactive_student.get_effective_monthly_plans_for(date(2026, 9, 1)))
-        self.assertEqual(first_out.getvalue().count('REPORTED_NO_AUTOMATIC_CHANGE'), 4)
-        self.assertEqual(second_out.getvalue().count('REPORTED_NO_AUTOMATIC_CHANGE'), 4)
-        self.assertIn('mode=apply-requested candidates=1 applied=0', first_err.getvalue())
-        self.assertIn('mode=apply-requested candidates=1 applied=0', second_err.getvalue())
+        self.assertFalse(self.inactive_student.get_effective_monthly_plans_for(date(2026, 9, 1)))
+        self.assertEqual(first_out.getvalue().count('MASKED_PLAN_AND_CANCELLED_FUTURE_BOOKINGS'), 4)
+        self.assertEqual(second_out.getvalue().splitlines(), [
+            'student_id,student_name,access_status,plan_id,plan_month,section,slot_details,future_booking_ids,action',
+        ])
+        self.assertIn('mode=apply candidates=1 applied=1', first_err.getvalue())
+        self.assertIn('mode=apply candidates=0 applied=0', second_err.getvalue())
 
 
 class RolloverMonthlyAccessStatusesCommandTests(TestCase):

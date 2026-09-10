@@ -247,16 +247,12 @@ def _repair_missing_candidate(*, audit_row, mode):
     raise RuntimeError(f'Unexpected retry loop exit for errno {last_errno}')
 
 
-def repair_expected_fixed_bookings(*, start_date, end_date, apply=False, student_ids=None, only_missing=False):
+def repair_expected_fixed_bookings(*, start_date, end_date, apply=False):
     """Return a report for auditor-selected pairs, creating or restoring safely."""
     mode = 'apply' if apply else 'dry-run'
     results = []
     projected_active_by_session = {}
     for audit_row in audit_expected_fixed_bookings(start_date=start_date, end_date=end_date):
-        if student_ids is not None and audit_row['student_id'] not in student_ids:
-            continue
-        if only_missing and audit_row['clasificacion'] != 'D_never_booked':
-            continue
         if audit_row['clasificacion'] != 'D_never_booked':
             if apply:
                 # Apply locks the history before deciding whether an obsolete booking can be restored.

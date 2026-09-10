@@ -23,7 +23,6 @@ from .fixed_booking_history import restore_recreatable_fixed_booking
 from .fixed_booking_policy import decide_fixed_booking_history
 from .models import (
     Booking,
-    BookingCancellationOrigin,
     BookingCancellationReason,
     BookingSource,
     BookingStatus,
@@ -146,6 +145,7 @@ def _sync_monthly_plan_bookings_for_published_sessions(*, start_date, end_date, 
         MonthlyAccessStatus.objects.select_related('student')
         .filter(
             month__in=candidate_access_months,
+            status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
             student__is_active=True,
         )
@@ -325,8 +325,7 @@ def cancel_class_session(*, session_id, actor=None, when=None, record_audit=Fals
             raise ValidationError('Solo podés cancelar clases que todavia no terminaron.')
 
         session.status = SessionStatus.CANCELLED
-        session.cancellation_origin = BookingCancellationOrigin.SESSION_CANCELLATION
-        session.save(update_fields=['status', 'cancellation_origin', 'updated_at'])
+        session.save(update_fields=['status', 'updated_at'])
 
         active_bookings = list(
             Booking.objects.select_related('student', 'session', 'session__section')
@@ -403,7 +402,6 @@ def remove_makeup_booking(*, booking_id, actor=None, when=None, record_audit=Fal
             cancelled_at=removal_time,
             cancelled_by=actor,
             cancellation_generates_recovery=False,
-            cancellation_origin=BookingCancellationOrigin.STAFF_MANUAL,
             updated_at=removal_time,
         )
         booking.status = BookingStatus.CANCELLED
@@ -412,7 +410,6 @@ def remove_makeup_booking(*, booking_id, actor=None, when=None, record_audit=Fal
         booking.cancelled_at = removal_time
         booking.cancelled_by = actor
         booking.cancellation_generates_recovery = False
-        booking.cancellation_origin = BookingCancellationOrigin.STAFF_MANUAL
         booking.updated_at = removal_time
         recovery_credit.save(update_fields=['status', 'used_at', 'updated_at'])
 
@@ -577,22 +574,13 @@ def _set_student_auth_active(*, student, is_active):
     return True
 
 
-def _set_manual_suspension(*, student, suspended):
-    if student.manual_suspension == suspended:
-        return False
-    student.manual_suspension = suspended
-    student.save(update_fields=['manual_suspension', 'updated_at'])
-    return True
-
-
-def cancel_booking_for_global_deactivation(*, booking, actor=None, when=None, origin=BookingCancellationOrigin.STAFF_MANUAL):
+def cancel_booking_for_global_deactivation(*, booking, actor=None, when=None):
     """Apply the canonical no-recovery cancellation used for global deactivation."""
     cancellation_time = when or timezone.now()
     booking.cancelled_at = cancellation_time
     booking.cancelled_by = actor
     booking.cancellation_generates_recovery = False
     booking.cancellation_reason = BookingCancellationReason.GLOBAL_DEACTIVATION
-    booking.cancellation_origin = origin
     booking._transition_to(
         BookingStatus.CANCELLED,
         update_fields=[
@@ -601,7 +589,6 @@ def cancel_booking_for_global_deactivation(*, booking, actor=None, when=None, or
             'cancelled_by',
             'cancellation_generates_recovery',
             'cancellation_reason',
-            'cancellation_origin',
             'updated_at',
         ],
         previous_status=booking.status,
@@ -741,7 +728,7 @@ def activate_student_monthly_access(*, student, actor=None, month=None, record_a
     with transaction.atomic():
         locked_student = User.objects.select_for_update().get(pk=student.pk)
         access, created = _get_or_create_monthly_access(student=locked_student, month=month)
-        access_changed = created or not access.grants_operational_booking_access()
+        access_changed = not access.grants_operational_booking_access()
         access.activate_by_payment(actor=actor)
         auth_changed = (
             _set_student_auth_active(student=locked_student, is_active=True)
@@ -768,10 +755,6 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
             _set_student_auth_active(student=locked_student, is_active=False)
             if synchronize_global_auth else False
         )
-        manual_suspension_changed = (
-            _set_manual_suspension(student=locked_student, suspended=True)
-            if synchronize_global_auth else False
-        )
         cancelled_booking_ids, preserved_plan_ids = cleanup_global_deactivation(
             student=locked_student,
             actor=actor,
@@ -781,7 +764,7 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
             only_not_started=True,
         )
 
-    changed = auth_changed or manual_suspension_changed or access_changed or bool(cancelled_booking_ids) or bool(preserved_plan_ids)
+    changed = auth_changed or access_changed or bool(cancelled_booking_ids) or bool(preserved_plan_ids)
 
     if record_audit and changed:
         log_staff_monthly_access_change(actor=actor, access=access)
@@ -795,7 +778,6 @@ def deactivate_student_globally(*, student, actor=None, when=None):
     with transaction.atomic():
         locked_student = User.objects.select_for_update().get(pk=student.pk)
         auth_changed = _set_student_auth_active(student=locked_student, is_active=False)
-        _set_manual_suspension(student=locked_student, suspended=True)
         plan_reset_from = normalize_month_start(timezone.localdate(deactivation_time))
         cancelled_booking_ids, deleted_plan_ids = cleanup_global_deactivation(
             student=locked_student,
@@ -813,7 +795,6 @@ def reactivate_student_globally(*, student):
     with transaction.atomic():
         locked_student = User.objects.select_for_update().get(pk=student.pk)
         auth_changed = _set_student_auth_active(student=locked_student, is_active=True)
-        _set_manual_suspension(student=locked_student, suspended=False)
 
     return auth_changed
 

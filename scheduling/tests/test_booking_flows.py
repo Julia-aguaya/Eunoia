@@ -966,14 +966,15 @@ class StudentPortalViewTests(TestCase):
             )
         )
 
-    def test_agenda_keeps_actions_available_when_payment_is_pending(self):
+    def test_agenda_blocks_actions_when_operational_access_is_not_available(self):
         access = self.student.get_monthly_access_for(self.today)
         access.mark_pending_payment()
 
         response = self.get_portal_page(reverse('agenda'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['operational_status']['can_operate'], True)
+        self.assertEqual(response.context['operational_status']['title'], 'Impaga')
+        self.assertEqual(response.context['operational_status']['can_operate'], False)
         self.assertContains(response, 'Tus clases confirmadas')
 
     def test_agenda_shows_operational_states_for_capacity_and_existing_booking(self):
@@ -1240,8 +1241,8 @@ class StudentPortalViewTests(TestCase):
         response = self.get_portal_page(reverse('my-bookings'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['operational_status']['can_operate'], True)
-        self.assertNotContains(response, 'Este mes no podés reservar ni cancelar desde el portal')
+        self.assertContains(response, 'Este mes no podés reservar ni cancelar desde el portal')
+        self.assertContains(response, 'Tus turnos activos siguen visibles para seguimiento')
 
 class WebBookingFlowTests(TestCase):
     def setUp(self):
@@ -1900,7 +1901,6 @@ class StudentBookingUseCaseTests(TestCase):
         self.assertEqual(cancellation.booking.pk, booking.pk)
         self.assertEqual(cancellation.booking.status, BookingStatus.CANCELLED)
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
-        self.assertEqual(booking.cancellation_origin, BookingCancellationOrigin.STUDENT_SELF_SERVICE)
         self.assertEqual(cancellation.recovery_credit.student, self.student)
         self.assertEqual(cancellation.recovery_credit.origin_session, session)
 

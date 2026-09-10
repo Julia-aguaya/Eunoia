@@ -258,18 +258,6 @@ def _build_admin_status_badges(access):
             'filter_key': 'pending',
         }
 
-    if access.status == MonthlyAccessStatusType.PENDING_PAYMENT and access.grants_operational_booking_access():
-        return {
-            'operational_label': 'Activo',
-            'operational_tone': 'success',
-            'payment_label': 'Impaga',
-            'payment_tone': 'warning',
-            'action_label': 'Suspender acceso',
-            'is_active': True,
-            'summary_key': 'active',
-            'filter_key': 'active',
-        }
-
     if access.grants_operational_booking_access():
         return {
             'operational_label': 'Activo',
@@ -855,7 +843,7 @@ def _build_operational_status(user, target_date):
     if access.status == MonthlyAccessStatusType.PENDING_PAYMENT:
         return {
             'title': 'Impaga',
-            'message': 'El pago de este mes sigue pendiente. Escribinos para regularizarlo.',
+            'message': 'Tu cuenta está creada, pero todavía no está habilitada para reservar hasta validar la cuenta.',
             'tone': 'danger',
             'can_operate': False,
         }

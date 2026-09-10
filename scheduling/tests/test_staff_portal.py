@@ -4405,7 +4405,6 @@ class AdminPortalViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.upcoming_session.status, SessionStatus.CANCELLED)
-        self.assertEqual(self.upcoming_session.cancellation_origin, BookingCancellationOrigin.SESSION_CANCELLATION)
         self.assertEqual(booking.status, BookingStatus.BOOKED)
         self.assertEqual(credit.status, RecoveryCreditStatus.AVAILABLE)
         self.assertEqual(credit.granted_by, self.staff_user)
