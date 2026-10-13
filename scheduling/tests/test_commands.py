@@ -152,7 +152,7 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
             booking_enabled=False,
         )
 
-    def test_dry_run_reports_legacy_inactive_plan_without_writing(self):
+    def test_dry_run_reports_inactive_plan_without_writing(self):
         out, err = StringIO(), StringIO()
         call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--dry-run', stdout=out, stderr=err)
 
@@ -161,10 +161,10 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         self.assertTrue(self.plan.is_active)
         self.assertEqual(self.future_booking.status, BookingStatus.BOOKED)
         self.assertIn('Ada Inactive', out.getvalue())
-        self.assertIn('WOULD_MASK_PLAN_AND_CANCEL_FUTURE_BOOKINGS', out.getvalue())
+        self.assertIn('REPORTED_NO_AUTOMATIC_DEACTIVATION', out.getvalue())
         self.assertIn('mode=dry-run candidates=1 applied=0', err.getvalue())
 
-    def test_apply_masks_plan_preserves_history_and_is_idempotent(self):
+    def test_apply_reports_but_never_masks_plans_or_cancels_bookings(self):
         first_err, second_err = StringIO(), StringIO()
         call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stderr=first_err)
         call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stderr=second_err)
@@ -172,18 +172,15 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         self.plan.refresh_from_db()
         self.past_booking.refresh_from_db()
         self.future_booking.refresh_from_db()
-        self.assertFalse(self.plan.is_active)
+        self.assertTrue(self.plan.is_active)
         self.assertEqual(self.plan.plan_slots.count(), 1)
         self.assertEqual(self.past_booking.status, BookingStatus.BOOKED)
-        self.assertEqual(self.future_booking.status, BookingStatus.CANCELLED)
-        self.assertEqual(self.future_booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
+        self.assertEqual(self.future_booking.status, BookingStatus.BOOKED)
         self.assertTrue(self.active_student.is_active)
-        self.assertIn('mode=apply candidates=1 applied=1', first_err.getvalue())
-        self.assertIn('mode=apply candidates=0 applied=0', second_err.getvalue())
+        self.assertIn('mode=apply candidates=1 applied=0', first_err.getvalue())
+        self.assertIn('mode=apply candidates=1 applied=0', second_err.getvalue())
 
-    def test_apply_masks_every_active_plan_for_suspended_student_once(self):
-        # Mirrors legacy students with a stale history plus several section/month
-        # overrides: the audit must not leave a hidden effective plan behind.
+    def test_apply_preserves_every_active_plan_for_suspended_student(self):
         reformer = Section.objects.get(code='reformer_arriba')
         historical_plan = StudentMonthlyPlan.objects.create(
             student=self.inactive_student, month=date(2026, 5, 1), section=self.section,
@@ -207,19 +204,14 @@ class AuditInactiveMonthlyPlansCommandTests(TestCase):
         call_command('audit_inactive_monthly_plans', '--from-date', '2026-08-05', '--apply', stdout=second_out, stderr=second_err)
 
         plan_ids = {self.plan.pk, historical_plan.pk, current_reformer_plan.pk, future_plan.pk}
-        self.assertEqual(
-            StudentMonthlyPlan.objects.filter(pk__in=plan_ids, is_active=True).count(),
-            0,
-        )
+        self.assertEqual(StudentMonthlyPlan.objects.filter(pk__in=plan_ids, is_active=True).count(), 4)
         self.assertEqual(StudentMonthlyPlan.objects.filter(pk__in=plan_ids).count(), 4)
         self.assertEqual(StudentMonthlyPlanSlot.objects.filter(monthly_plan_id__in=plan_ids).count(), 4)
-        self.assertFalse(self.inactive_student.get_effective_monthly_plans_for(date(2026, 9, 1)))
-        self.assertEqual(first_out.getvalue().count('MASKED_PLAN_AND_CANCELLED_FUTURE_BOOKINGS'), 4)
-        self.assertEqual(second_out.getvalue().splitlines(), [
-            'student_id,student_name,access_status,plan_id,plan_month,section,slot_details,future_booking_ids,action',
-        ])
-        self.assertIn('mode=apply candidates=1 applied=1', first_err.getvalue())
-        self.assertIn('mode=apply candidates=0 applied=0', second_err.getvalue())
+        self.assertTrue(self.inactive_student.get_effective_monthly_plans_for(date(2026, 9, 1)))
+        self.assertEqual(first_out.getvalue().count('REPORTED_NO_AUTOMATIC_DEACTIVATION'), 4)
+        self.assertEqual(second_out.getvalue().count('REPORTED_NO_AUTOMATIC_DEACTIVATION'), 4)
+        self.assertIn('mode=apply candidates=1 applied=0', first_err.getvalue())
+        self.assertIn('mode=apply candidates=1 applied=0', second_err.getvalue())
 
 
 class RolloverMonthlyAccessStatusesCommandTests(TestCase):
@@ -252,7 +244,7 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
         )
         self.plan.assign_weekly_slots([self.slot])
 
-    def test_command_rolls_august_access_into_september_without_touching_plans_or_slots(self):
+    def test_command_restores_august_access_into_september_and_copies_missing_plan_slots(self):
         out = StringIO()
 
         call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
@@ -262,16 +254,18 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
         self.assertEqual(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).count(), 1)
-        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.student).count(), 1)
-        self.assertEqual(self.plan.plan_slots.count(), 1)
+        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.student).count(), 2)
+        self.assertEqual(
+            StudentMonthlyPlan.objects.get(student=self.student, month=date(2026, 9, 1)).get_weekly_slots(), [self.slot],
+        )
         self.assertIn(
             'month=2026-09; students evaluated=1; accesses created=1; '
-            'existing accesses=0; skipped due to global deactivation=0; errors/failures=0',
+            'existing accesses restored=0; students skipped due to global deactivation=0; errors/failures=0',
             out.getvalue(),
         )
         self.assertIn(
             'month=2026-09; students evaluated=1; accesses created=0; '
-            'existing accesses=1; skipped due to global deactivation=0; errors/failures=0',
+            'existing accesses restored=1; students skipped due to global deactivation=0; errors/failures=0',
             out.getvalue(),
         )
 
@@ -287,14 +281,16 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
         self.assertEqual(access.status, MonthlyAccessStatusType.ACTIVE)
         self.assertTrue(access.booking_enabled)
 
-    def test_command_rollover_never_writes_user_auth_state(self):
-        with patch.object(User, 'save') as user_save:
-            call_command('rollover_monthly_access_statuses', '--month', '2026-09')
+    def test_command_rollover_reactivates_globally_deactivated_student(self):
+        self.student.is_active = False
+        self.student.save(update_fields=['is_active', 'updated_at'])
 
-        user_save.assert_not_called()
-        self.assertTrue(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
+        call_command('rollover_monthly_access_statuses', '--month', '2026-09')
 
-    def test_command_is_idempotent_and_preserves_manually_suspended_target_access(self):
+        self.student.refresh_from_db()
+        self.assertTrue(self.student.is_active)
+
+    def test_command_is_idempotent_and_restores_manually_suspended_target_access(self):
         target_access = MonthlyAccessStatus.objects.create(
             student=self.student,
             month=date(2026, 9, 1),
@@ -308,9 +304,9 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
 
         target_access.refresh_from_db()
         self.assertEqual(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).count(), 1)
-        self.assertEqual(target_access.status, MonthlyAccessStatusType.SUSPENDED)
-        self.assertFalse(target_access.booking_enabled)
-        self.assertIn('accesses created=0; existing accesses=1', out.getvalue())
+        self.assertEqual(target_access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(target_access.booking_enabled)
+        self.assertIn('accesses created=0; existing accesses restored=1', out.getvalue())
 
     def test_command_reenables_next_month_after_monthly_nonpayment_and_generates_booking(self):
         august_access = self.student.get_monthly_access_for(date(2026, 8, 1))
@@ -322,22 +318,22 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
         session = ClassSession.objects.get(date=date(2026, 9, 1), start_time=time(9, 0))
         self.assertTrue(Booking.objects.filter(session=session, student=self.student, status=BookingStatus.BOOKED).exists())
 
-    def test_command_does_not_roll_over_globally_deactivated_student(self):
+    def test_command_restores_globally_deactivated_student(self):
         deactivate_student_globally(student=self.student)
         out = StringIO()
 
         call_command('rollover_monthly_access_statuses', '--month', '2026-09', stdout=out)
 
         self.student.refresh_from_db()
-        self.assertFalse(self.student.is_active)
-        self.assertFalse(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
+        self.assertTrue(self.student.is_active)
+        self.assertTrue(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
         self.assertIn(
-            'students evaluated=1; accesses created=0; existing accesses=0; '
-            'skipped due to global deactivation=1; errors/failures=0',
+            'students evaluated=1; accesses created=1; existing accesses restored=0; '
+            'students skipped due to global deactivation=0; errors/failures=0',
             out.getvalue(),
         )
 
-    def test_command_does_not_reactivate_monthly_suspended_student(self):
+    def test_command_reactivates_monthly_suspended_student(self):
         suspend_student_monthly_access(
             student=self.student, month=date(2026, 8, 1), synchronize_global_auth=True,
         )
@@ -345,8 +341,8 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
         call_command('rollover_monthly_access_statuses', '--month', '2026-09')
 
         self.student.refresh_from_db()
-        self.assertFalse(self.student.is_active)
-        self.assertFalse(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
+        self.assertTrue(self.student.is_active)
+        self.assertTrue(MonthlyAccessStatus.objects.filter(student=self.student, month=date(2026, 9, 1)).exists())
 
     def test_command_reports_individual_partial_failures_and_exits_nonzero(self):
         failing_student = User.objects.create_user(
@@ -375,8 +371,8 @@ class RolloverMonthlyAccessStatusesCommandTests(TestCase):
             err.getvalue(),
         )
         self.assertIn(
-            'month=2026-09; students evaluated=2; accesses created=1; existing accesses=0; '
-            'skipped due to global deactivation=0; errors/failures=1. Rollover completed with failures.',
+            'month=2026-09; students evaluated=2; accesses created=1; existing accesses restored=0; '
+            'students skipped due to global deactivation=0; errors/failures=1. Rollover completed with failures.',
             err.getvalue(),
         )
 

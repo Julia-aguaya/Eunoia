@@ -457,25 +457,176 @@ class SchedulingUseCaseTests(TestCase):
 
         set_auth_active.assert_not_called()
 
-    def test_monthly_suspension_blocks_automatic_next_month_rollover(self):
+    def test_monthly_rollover_overrides_manual_suspension_and_restores_prior_plan(self):
         august = date(2026, 8, 1)
         september = date(2026, 9, 1)
-        MonthlyAccessStatus.objects.create(
+        access = MonthlyAccessStatus.objects.create(
             student=self.student,
             month=august,
             status=MonthlyAccessStatusType.ACTIVE,
             booking_enabled=True,
         )
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.MONDAY, start_time=time(8), end_time=time(9),
+        )
+        plan = StudentMonthlyPlan.objects.create(student=self.student, month=august, section=self.section)
+        plan.assign_weekly_slots([slot])
 
         suspend_student_monthly_access(
-            student=self.student, actor=self.staff_user, month=august, synchronize_global_auth=True,
+            student=self.student,
+            actor=self.staff_user,
+            month=august,
+            record_audit=True,
+            synchronize_global_auth=True,
         )
         result = rollover_monthly_access_statuses(month=september)
 
         self.student.refresh_from_db()
-        self.assertFalse(self.student.is_active)
-        self.assertEqual(result.created_count, 0)
-        self.assertIsNone(self.student.get_monthly_access_for(september))
+        restored_access = self.student.get_monthly_access_for(september)
+        restored_plan = StudentMonthlyPlan.objects.get(student=self.student, month=september, section=self.section)
+        access.refresh_from_db()
+        plan.refresh_from_db()
+        self.assertFalse(access.booking_enabled)
+        self.assertTrue(plan.is_active)
+        self.assertTrue(self.student.is_active)
+        self.assertEqual(result.created_count, 1)
+        self.assertEqual(restored_access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(restored_access.booking_enabled)
+        self.assertEqual(restored_plan.get_weekly_slots(), [slot])
+
+    def test_monthly_rollover_restores_access_without_creating_a_plan_without_active_prior_source(self):
+        august = date(2026, 8, 1)
+        september = date(2026, 9, 1)
+        StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=august,
+            section=self.section,
+            is_active=False,
+        )
+
+        rollover_monthly_access_statuses(month=september)
+
+        restored_access = self.student.get_monthly_access_for(september)
+        self.assertEqual(restored_access.status, MonthlyAccessStatusType.ACTIVE)
+        self.assertTrue(restored_access.booking_enabled)
+        self.assertFalse(StudentMonthlyPlan.objects.filter(student=self.student, month=september).exists())
+
+    def test_monthly_rollover_rolls_back_failed_student_and_retry_creates_one_plan_and_slot_set(self):
+        august = date(2026, 8, 1)
+        september = date(2026, 9, 1)
+        slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.MONDAY, start_time=time(8), end_time=time(9),
+        )
+        failed_plan = StudentMonthlyPlan.objects.create(
+            student=self.student,
+            month=august,
+            section=self.section,
+        )
+        failed_plan.assign_weekly_slots([slot])
+        other_student = User.objects.create_user(
+            email='rollover-healthy@example.com',
+            password='StudentPass2026!',
+            first_name='Katherine',
+            last_name='Johnson',
+            primary_section=self.section,
+        )
+        healthy_plan = StudentMonthlyPlan.objects.create(
+            student=other_student,
+            month=august,
+            section=self.section,
+        )
+        healthy_plan.assign_weekly_slots([slot])
+        original_assign_slots = StudentMonthlyPlan.assign_weekly_slots
+
+        def fail_only_for_student(plan, slots):
+            if plan.student_id == self.student.pk and plan.month == september:
+                raise RuntimeError('slot assignment failed')
+            return original_assign_slots(plan, slots)
+
+        with mock.patch.object(StudentMonthlyPlan, 'assign_weekly_slots', side_effect=fail_only_for_student):
+            result = rollover_monthly_access_statuses(month=september)
+
+        self.assertEqual(len(result.failures), 1)
+        self.assertEqual(result.failures[0].student_id, self.student.pk)
+        self.assertFalse(MonthlyAccessStatus.objects.filter(student=self.student, month=september).exists())
+        self.assertFalse(StudentMonthlyPlan.objects.filter(student=self.student, month=september).exists())
+        self.assertTrue(MonthlyAccessStatus.objects.filter(student=other_student, month=september).exists())
+        self.assertTrue(StudentMonthlyPlan.objects.filter(student=other_student, month=september).exists())
+
+        rollover_monthly_access_statuses(month=september)
+        rollover_monthly_access_statuses(month=september)
+
+        restored_plan = StudentMonthlyPlan.objects.get(student=self.student, month=september, section=self.section)
+        self.assertEqual(MonthlyAccessStatus.objects.filter(student=self.student, month=september).count(), 1)
+        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.student, month=september).count(), 1)
+        self.assertEqual(restored_plan.get_weekly_slots(), [slot])
+
+    def test_monthly_rollover_repairs_active_access_with_booking_disabled(self):
+        target_month = date(2026, 9, 1)
+        MonthlyAccessStatus.objects.create(
+            student=self.student,
+            month=target_month,
+            status=MonthlyAccessStatusType.ACTIVE,
+            booking_enabled=False,
+        )
+
+        rollover_monthly_access_statuses(month=target_month)
+
+        self.assertTrue(self.student.get_monthly_access_for(target_month).booking_enabled)
+
+    def test_monthly_rollover_copies_only_missing_active_prior_month_plans_in_slot_order(self):
+        august = date(2026, 8, 1)
+        september = date(2026, 9, 1)
+        other_section = Section.objects.get(code='reformer_arriba')
+        first_slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.MONDAY, start_time=time(8), end_time=time(9),
+        )
+        second_slot = WeeklyClassSlot.objects.create(
+            section=self.section, weekday=Weekday.WEDNESDAY, start_time=time(8), end_time=time(9),
+        )
+        other_slot = WeeklyClassSlot.objects.create(
+            section=other_section, weekday=Weekday.FRIDAY, start_time=time(8), end_time=time(9),
+        )
+        source_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=august, section=self.section, notes='Copiar este plan',
+        )
+        source_plan.assign_weekly_slots([second_slot, first_slot])
+        StudentMonthlyPlan.objects.create(
+            student=self.student, month=august, section=other_section, is_active=False,
+        ).assign_weekly_slots([other_slot])
+        existing_plan = StudentMonthlyPlan.objects.create(
+            student=self.student, month=september, section=other_section, notes='Conservar este plan',
+        )
+        existing_plan.assign_weekly_slots([other_slot])
+
+        rollover_monthly_access_statuses(month=september)
+        rollover_monthly_access_statuses(month=september)
+
+        copied_plan = StudentMonthlyPlan.objects.get(student=self.student, month=september, section=self.section)
+        existing_plan.refresh_from_db()
+        self.assertEqual(copied_plan.notes, 'Copiar este plan')
+        self.assertEqual(copied_plan.get_weekly_slots(), [second_slot, first_slot])
+        self.assertEqual(existing_plan.notes, 'Conservar este plan')
+        self.assertEqual(StudentMonthlyPlan.objects.filter(student=self.student, month=september).count(), 2)
+
+    def test_monthly_rollover_restores_access_without_resurrecting_cancelled_booking(self):
+        target_month = date(2026, 9, 1)
+        session = ClassSession.objects.create(
+            section=self.section, date=target_month, start_time=time(9), end_time=time(10), capacity=4,
+        )
+        MonthlyAccessStatus.objects.create(
+            student=self.student, month=target_month, status=MonthlyAccessStatusType.ACTIVE, booking_enabled=True,
+        )
+        booking = Booking.objects.create_booking(session=session, student=self.student)
+        deactivate_student_globally(student=self.student, actor=self.staff_user)
+
+        rollover_monthly_access_statuses(month=target_month)
+
+        self.student.refresh_from_db()
+        booking.refresh_from_db()
+        self.assertTrue(self.student.is_active)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
+        self.assertEqual(booking.cancellation_reason, BookingCancellationReason.GLOBAL_DEACTIVATION)
 
     def test_global_deactivation_blocks_login_and_cancels_future_bookings(self):
         access = MonthlyAccessStatus.objects.create(

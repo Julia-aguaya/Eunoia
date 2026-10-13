@@ -832,7 +832,11 @@ class StudentCsvImportTests(TestCase):
 
         import_students_from_csv(csv_content)
 
+        rollover_monthly_access_statuses(month=normalize_month_start(session.date))
+
+        user.refresh_from_db()
         booking.refresh_from_db()
+        self.assertTrue(user.is_active)
         self.assertEqual(booking.status, BookingStatus.CANCELLED)
 
     def test_import_rejects_invalid_email_section_role_and_boolean(self):

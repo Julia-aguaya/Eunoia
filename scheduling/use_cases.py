@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .application.recovery_credits import (
@@ -597,7 +597,7 @@ def cancel_booking_for_global_deactivation(*, booking, actor=None, when=None):
 
 def cleanup_global_deactivation(
     *, student, booking_from_date, plan_reset_from, actor=None, when=None, only_not_started,
-    booking_ids=None, plan_ids=None, mask_all_active_plans=False,
+    booking_ids=None, plan_ids=None, mask_all_active_plans=False, deactivate_plans=True,
 ):
     """Cancel bookings and mask inherited plan assignments after deactivation.
 
@@ -669,7 +669,7 @@ def cleanup_global_deactivation(
     # Plans are audit history, not disposable scheduling state. The reset barrier
     # above makes these plans ineffective from the deactivation month onward;
     # their slots remain available to staff for historical inspection.
-    if locked_plans:
+    if locked_plans and deactivate_plans:
         StudentMonthlyPlan.objects.filter(pk__in=[plan.pk for plan in locked_plans]).update(
             is_active=False,
             updated_at=cancellation_time,
@@ -681,9 +681,9 @@ def cleanup_global_deactivation(
 
 def rollover_monthly_access_statuses(*, month):
     target_month = normalize_month_start(month)
+    previous_month = add_months(target_month, -1)
     created_count = 0
     skipped_existing_count = 0
-    skipped_inactive_count = 0
     failures = []
     student_ids = list(User.objects.filter(role=UserRole.STUDENT).values_list('pk', flat=True))
 
@@ -691,26 +691,77 @@ def rollover_monthly_access_statuses(*, month):
         try:
             with transaction.atomic():
                 student = User.objects.select_for_update().get(pk=student_id)
-                if not student.is_active:
-                    skipped_inactive_count += 1
-                    continue
-
                 access = (
                     MonthlyAccessStatus.objects.select_for_update()
                     .filter(student=student, month=target_month)
                     .first()
                 )
-                if access is not None:
+                if access is None:
+                    try:
+                        with transaction.atomic():
+                            access = MonthlyAccessStatus.objects.create(student=student, month=target_month)
+                    except IntegrityError:
+                        access = MonthlyAccessStatus.objects.select_for_update().get(
+                            student=student,
+                            month=target_month,
+                        )
+                        skipped_existing_count += 1
+                    else:
+                        created_count += 1
+                else:
                     skipped_existing_count += 1
-                    continue
 
-                MonthlyAccessStatus.objects.create(
-                    student=student,
-                    month=target_month,
-                    status=MonthlyAccessStatusType.ACTIVE,
-                    booking_enabled=True,
+                _set_student_auth_active(student=student, is_active=True)
+                access.activate_by_payment()
+                if not access.grants_operational_booking_access():
+                    # Legacy rows can claim active status while booking is disabled.
+                    access.booking_enabled = True
+                    access.deactivated_at = None
+                    access.save(update_fields=['booking_enabled', 'deactivated_at', 'updated_at'])
+
+                existing_target_section_ids = set(
+                    StudentMonthlyPlan.objects.select_for_update().filter(
+                        student=student,
+                        month=target_month,
+                    ).values_list('section_id', flat=True)
                 )
-                created_count += 1
+                source_plans = list(
+                    StudentMonthlyPlan.objects.select_for_update().filter(
+                        student=student,
+                        month=previous_month,
+                        is_active=True,
+                    ).order_by('section_id', 'pk')
+                )
+                for source_plan in source_plans:
+                    if source_plan.section_id in existing_target_section_ids:
+                        continue
+
+                    source_slots = list(
+                        StudentMonthlyPlanSlot.objects.select_for_update().filter(
+                            monthly_plan=source_plan,
+                        ).select_related('weekly_class_slot').order_by('position', 'pk')
+                    )
+                    try:
+                        with transaction.atomic():
+                            target_plan = StudentMonthlyPlan.objects.create(
+                                student=student,
+                                month=target_month,
+                                section=source_plan.section,
+                                notes=source_plan.notes,
+                                is_active=True,
+                            )
+                            if source_slots:
+                                target_plan.assign_weekly_slots(
+                                    [source_slot.weekly_class_slot for source_slot in source_slots]
+                                )
+                    except IntegrityError:
+                        # A competing rollover created the target plan first; preserve it intact.
+                        StudentMonthlyPlan.objects.select_for_update().get(
+                            student=student,
+                            month=target_month,
+                            section=source_plan.section,
+                        )
+                    existing_target_section_ids.add(source_plan.section_id)
         except Exception as exc:
             failures.append(MonthlyAccessRolloverFailure(student_id=student_id, error=str(exc)))
 
@@ -719,7 +770,7 @@ def rollover_monthly_access_statuses(*, month):
         evaluated_count=len(student_ids),
         created_count=created_count,
         skipped_existing_count=skipped_existing_count,
-        skipped_inactive_count=skipped_inactive_count,
+        skipped_inactive_count=0,
         failures=tuple(failures),
     )
 
@@ -762,6 +813,7 @@ def suspend_student_monthly_access(*, student, actor=None, month=None, record_au
             booking_from_date=timezone.localdate(suspension_time),
             plan_reset_from=access.month,
             only_not_started=True,
+            deactivate_plans=False,
         )
 
     changed = auth_changed or access_changed or bool(cancelled_booking_ids) or bool(preserved_plan_ids)

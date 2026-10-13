@@ -8,8 +8,8 @@ from scheduling.use_cases import rollover_monthly_access_statuses
 
 class Command(BaseCommand):
     help = (
-        'Create active monthly access for every globally active student. '
-        'Existing target-month access rows are never changed.'
+        'Restore active login and bookable monthly access for every student, '
+        'including students manually suspended in the prior month.'
     )
 
     def add_arguments(self, parser):
@@ -34,8 +34,8 @@ class Command(BaseCommand):
             f'month={result.month:%Y-%m}; '
             f'students evaluated={result.evaluated_count}; '
             f'accesses created={result.created_count}; '
-            f'existing accesses={result.skipped_existing_count}; '
-            f'skipped due to global deactivation={result.skipped_inactive_count}; '
+            f'existing accesses restored={result.skipped_existing_count}; '
+            'students skipped due to global deactivation=0; '
             f'errors/failures={len(result.failures)}.'
         )
         if result.failures:

@@ -113,7 +113,7 @@ Flujo pragmatico para una entrega minima:
 
 ## Rollover mensual de acceso
 
-El primer dia de cada mes, ejecuta el rollover para crear acceso `active` con reservas habilitadas para las alumnas continuantes que siguen globalmente activas. El comando es idempotente: nunca modifica un estado ya existente del mes objetivo, incluyendo suspensiones manuales, y no copia ni altera planes o slots.
+El primer dia de cada mes, ejecuta el rollover para restaurar login, acceso `active` y reservas habilitadas para todas las alumnas, incluso si quedaron suspendidas o desactivadas manualmente durante el mes anterior. El comando es idempotente: reactiva el acceso existente del mes objetivo y copia solo los planes activos que falten desde el mes inmediatamente anterior, con sus slots en el mismo orden. No modifica planes objetivo existentes, no duplica datos y no restablece reservas canceladas.
 
 ```bash
 .venv\Scripts\python.exe manage.py rollover_monthly_access_statuses --month 2026-09
@@ -125,7 +125,7 @@ Cron recomendado para el dia 1 (ajusta el path del proyecto y el virtualenv; no 
 0 5 1 * * cd /path/to/Eunoia && /path/to/Eunoia/.venv/bin/python manage.py rollover_monthly_access_statuses --month "$(date +\%Y-\%m)"
 ```
 
-El impago suspende solo el `MonthlyAccessStatus` de ese mes y conserva login y reservas futuras. Para una baja global, usa el caso de uso explicito `deactivate_student_globally(...)`, que desactiva `User.is_active` y cancela las reservas futuras.
+El staff puede suspender o desactivar manualmente durante el mes actual mediante sus flujos habituales, incluidos portal, admin e importacion CSV. Esas acciones siguen afectando login, planes y reservas segun corresponda, pero el rollover siguiente restaura login y acceso mensual; no revive reservas que fueron canceladas.
 
 ## Handoff operativo rapido
 
